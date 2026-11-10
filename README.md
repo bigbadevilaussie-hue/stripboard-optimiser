@@ -4,7 +4,7 @@
 
 Stripboard Optimiser is a development fork of [KarloFunke's Stripboard Editor](https://github.com/KarloFunke/stripboard-editor). The aim is to retain the editor's useful stripboard design workflow while adding a headless optimisation engine, independent layout validation, candidate comparison and a dedicated desktop interface.
 
-This repository is under active development. The optimisation workflow and desktop application described below are the project direction; they should not be assumed to be implemented or production-ready yet.
+This repository is under active development. The existing web editor is the starting application. The optimisation workflow and desktop application described below are the project direction; they should not be assumed to be implemented or production-ready yet.
 
 ## Project direction
 
@@ -21,31 +21,93 @@ Planned capabilities include:
 
 The detailed requirements and staged development plan are maintained in [project.md](project.md).
 
-## Starting point: Stripboard Editor
+## Existing application
 
-This fork inherits code and existing functionality from [Stripboard Editor](https://github.com/KarloFunke/stripboard-editor), an editor for drawing schematics, placing components on stripboard, adding cuts and link wires, checking layout conflicts, and producing printable build templates.
+The repository currently contains the inherited Stripboard Editor web application. It provides the existing schematic and stripboard design workflow, including component placement, copper-strip net colouring, cuts, link wires, layout conflict feedback and printable build templates.
 
-The inherited editor is the starting point—not a claim that the planned optimiser is already complete. Existing functionality and project structure may change as the optimiser is developed.
+The current application is a web application built with Next.js and Django. The planned desktop optimiser is a separate development goal; this README does not imply that a desktop build or the complete optimisation pipeline is already available.
 
-## Development status
+## Running the existing web editor locally
 
-The project specification is in place. Implementation is intended to proceed in stages:
+These instructions are for running the inherited web application, not for running a completed desktop optimiser.
 
-1. Build and audit the headless optimisation pipeline.
-2. Add independent electrical and physical validation and candidate ranking.
-3. Build the desktop GUI around the headless engine.
-4. Package distributable applications for macOS, Windows and Linux.
+### Requirements
 
-See [project.md](project.md) for scope, constraints and acceptance criteria.
+- Node.js and npm
+- Python 3
+- The Python dependencies listed in `src/backend/requirements.txt`
 
-## Technology
+The frontend also provides optional build scripts for WebAssembly and native solver components. Those scripts require a compatible Clang toolchain and, for the native Node addon, the relevant Node development headers.
 
-The repository currently contains the inherited Stripboard Editor codebase. Its existing stack includes:
+### Backend
 
-- **Frontend:** Next.js
-- **Backend:** Python, Django and SQLite
+From the repository root:
 
-The planned optimiser will retain a separate headless solver interface so the optimisation engine can be tested and used independently of the GUI.
+```bash
+cd src/backend
+python -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env
+python manage.py migrate
+python manage.py runserver 0.0.0.0:8000
+```
+
+The Django API is served at `http://localhost:8000/api/`.
+
+### Frontend
+
+In a second terminal, from the repository root:
+
+```bash
+cd src/frontend
+npm install
+cp .env.local.example .env.local
+npm run dev
+```
+
+The Next.js frontend is served at `http://localhost:3000`.
+
+The example environment files are templates. Review and configure their values for your local setup before running the application. Do not commit real credentials, secrets or local environment files.
+
+### Available frontend scripts
+
+Run these from `src/frontend`:
+
+| Command | Purpose |
+|---|---|
+| `npm run dev` | Start the Next.js development server |
+| `npm run build` | Build the frontend |
+| `npm run start` | Start the built frontend |
+| `npm run lint` | Run ESLint |
+| `npm run test:solver` | Run the solver test suite |
+| `npm run test:schematic` | Run schematic tests |
+| `npm run test:board` | Run board tests |
+| `npm run test:branches` | Run branch tests |
+| `npm run build:wasm` | Compile the existing C solver sources to WebAssembly |
+| `npm run build:native` | Build the existing native solver libraries and Node addon |
+
+The solver build scripts compile existing code; they do not by themselves provide the new optimiser pipeline described in [project.md](project.md).
+
+## Deployment
+
+The repository retains the inherited Docker deployment configuration:
+
+- `docker-compose.yml` defines the Django, Next.js and Nginx services.
+- `deploy.sh` pulls the current Git branch, rebuilds the Docker services and updates the running deployment.
+
+These files belong to the existing web application deployment. They are not the packaging or release process for the planned macOS, Windows and Linux desktop applications.
+
+## Development roadmap
+
+The optimiser work is intended to proceed in stages:
+
+1. **Headless pipeline:** input normalisation, solver execution, candidate preservation and run manifests.
+2. **Validation and ranking:** independent electrical and physical checks, metrics and Pareto-based candidate comparison.
+3. **Desktop GUI:** configure runs, monitor progress, inspect and compare candidates, and export a validated result.
+4. **Distribution:** package standalone applications for macOS, Windows and Linux.
+
+See [project.md](project.md) for the complete scope, constraints and acceptance criteria.
 
 ## Credits and licensing
 
