@@ -84,7 +84,12 @@ The general Allow cuts control must only be enabled once its behaviour
 is implemented and verified in the solver.
 
 Diagonal routing must likewise be verified as a solver capability before
-the checkbox is enabled.
+the checkbox is enabled. The current route output includes point-to-point
+straight-line wires; a route whose endpoints differ in both row and column
+is diagonal. Do not convert such routes to L-shapes after solving: an
+orthogonal replacement can cross uncut copper strips and create shorts.
+Orthogonal-only routing, if required, must be implemented and validated
+within solver routing/search logic.
 
 Do not display non-functional controls as though they work.
 
@@ -99,9 +104,15 @@ SOFT LOCK:
 - Never export an over-size candidate as a valid final layout.
 
 HARD CLAMP:
-- Enforce lockedRows and lockedCols.
-- Do not accept component placements outside the board.
-- Reject invalid candidates before final selection.
+- Treat lockedRows and lockedCols as hard final board-size limits.
+- The current finish-stage check in layout2/finish.ts tests the maximum
+  required row/column after annealing and throws if the locked cap is exceeded.
+  This is a finalisation check, not evidence that the annealer is constrained
+  to remain within the locked dimensions throughout its search.
+- Reject an over-size result; do not silently resize the board or export it
+  as valid.
+- Any earlier in-search hard constraint is a separate capability and must
+  be verified in the solver source before being claimed.
 
 Do not confuse the W_LOCKOVER penalty with hard board constraints.
 
@@ -141,7 +152,12 @@ Expose these in an Advanced settings panel.
 
 Requirements:
 
-- Preserve the listed defaults.
+- Preserve the listed defaults, but verify them against the exact solver
+  revision being packaged.
+- Treat weights as search/objective preferences, not direct proof of
+  physical superiority or universal user preference.
+- Allow users to adjust supported weights, including the jumper-wire versus
+  track-cut trade-off.
 - Allow users to restore defaults.
 - Validate numerical input.
 - Save settings with each optimisation run.
@@ -177,8 +193,11 @@ Preserve existing project properties:
 Their meanings must remain unchanged.
 
 A locked component cannot be moved by the optimiser.
-An excluded component is not placed on the board.
-Locked board dimensions are hard limits in clamp mode.
+An excluded component is not physically placed as a full component on the
+board, but it must remain represented electrically through the off-board
+expansion process (see Section 20).
+Locked board dimensions are hard limits at finalisation in clamp mode;
+do not assume this is an in-search annealer constraint.
 
 ## 8. Candidate generation
 
@@ -246,10 +265,27 @@ Any layout modification must be followed by another complete validation.
 
 Do not rank candidates solely by the annealer's weighted score.
 
+The current price expression combines area/aspect, jumper wire count,
+wire length, track cuts, drilled/knife-cut pricing, lock overrun, connector
+edge cost, shaft-in cost and sibling-pad separation. Its weighted score
+(eBase/score as exposed by the relevant pipeline) is a search objective,
+not a complete user preference model. Weight magnitudes alone do not prove
+that a particular wire/cut combination is universally superior.
+
+Independently calculate and retain at least these Pareto dimensions:
+
+- Jumper wire count.
+- Track cut count.
+- Board area.
+- Total wire length.
+- Track continuity.
+- Other validated physical-layout measures.
+
 Retain a Pareto shortlist covering:
 
 - Lowest jumper wire count.
 - Lowest cut count.
+- Smallest board area.
 - Shortest total wire length.
 - Best track continuity.
 - Best overall physical layout.
@@ -556,19 +592,23 @@ Fixture rules:
 - Store generated normalised inputs, solver outputs and reports separately from immutable fixture inputs.
 - Add regression tests for import, definition merging, locks, exclusions, pin mapping, board geometry, electrical checks and export round-trip.
 
-Bike-Mate Ver 2 is specifically important because it exercises custom parts, existing placements, off-board components and the distinction between electrically present components and components physically placed on the board. Bike-Mate Ver 1 provides a simpler regression baseline. Audio-Mate adds a more demanding mixed-signal layout case.
+Bike-Mate Ver 2 is specifically important because it exercises custom parts, existing placements, off-board components and the distinction between electrically present components and components physically placed on the board. Bike-Mate Ver 1 provides a simpler regression baseline. The known-good Moto-Mate and Audio-Mate reference JSONs provide 14-wire and 10-wire baseline layouts respectively; preserve those files and their measured metrics for regression testing.
 
 ## 20. Off-board components and mechanical placement constraints
 
 Electrical participation and physical board placement are separate properties.
 
-- A component with `boardExcluded: true` remains part of the electrical design but is not placed on the stripboard.
+- A component with `boardExcluded: true` remains part of the electrical design but is not placed on the stripboard as a full component. The current pipeline calls `expandOffBoard` before solver execution and transforms off-board components into one-hole rigid pad representations. Those pads must remain in the solver model to preserve net connections; solver results are subsequently mapped back to the original off-board component. Do not remove these pad representations from the solver pool.
 - A component with `boardExcluded: false` is eligible for board placement subject to its other constraints.
 - A `boardPos: null` value means no current board placement; it does not mean the component is electrically absent.
 - A component with `locked: true` must retain its existing placement and must not be moved.
 - Never delete an off-board component or its net assignments as a shortcut to obtaining a solution.
 
 The optimiser must support general mechanical placement constraints rather than special-case workarounds for individual USB or GPS modules.
+
+The GUI must display the original off-board component appropriately and must
+not render its internal one-hole solver pads as full physical components or
+duplicate user-visible components.
 
 Required constraint model:
 
@@ -592,7 +632,19 @@ Generic electrical connectivity validation is necessary but does not guarantee a
 
 Potential rule families include:
 
-- **Decoupling:** maximum permitted distance between a device supply pin and its decoupling capacitor.
+- **Decoupling:** maximum permitted distance between a device supply pin and its decoupling capacitor. Identify both exact component-pin endpoints and measure Manhattan distance between their actual board-hole coordinates; component-centre distance is insufficient.
+
+  Provisional schema concept (field names are not yet a committed format):
+
+  ```json
+  {
+    "component": "C2",
+    "pin": "VCC",
+    "near": "ESP32",
+    "targetPin": "3V3",
+    "maxPinDistance": 3
+  }
+  ```
 - **Switching power:** compactness/maximum span of buck-converter switching loops and associated high-current connections.
 - **Analog/digital separation:** proximity restrictions between sensitive analogue inputs and noisy digital switching or clock signals.
 - **High-current paths:** limits on path length, shared track sections or other measurable stripboard routing properties.
@@ -610,7 +662,7 @@ Thread count is a user-configurable run setting, with an automatic mode based on
 
 Parallelism is useful for independent solver runs/seeds; it must not be presented as a guarantee that one solver run becomes faster with more threads.
 
-Every worker must have an isolated working directory and unique input, output, log and temporary-file paths. Workers must never write to a shared candidate filename or mutable project file. This specifically prevents races such as multiple workers writing to the same `projects/0.json`.
+Every worker must have an isolated working directory and unique input, output, log and temporary-file paths. Workers must never write to a shared candidate filename or mutable project file. The desktop implementation should create each worker directory using a thread-safe temporary-directory facility (for example, Python's `tempfile.mkdtemp()`) and retain unique candidate filenames. This specifically prevents races such as multiple workers writing to the same `projects/0.json`.
 
 Requirements:
 
@@ -631,6 +683,7 @@ The import/export pipeline must prove that it does not damage a project.
 - Record the normalised solver input hash and exactly which transformations were applied.
 - Export into a new file; never overwrite the original.
 - Preserve project metadata, component and definition IDs, pin assignments, nets, schematic data, board settings, cuts, wires, lock flags and excluded flags.
+- Normalise `lockedRows` and `lockedCols` to the root-level fields required by the editor/import contract, while retaining their board-level values where present. If root and board-level values conflict, report the conflict rather than silently selecting one representation.
 - Preserve unknown fields where possible.
 - Do not export internal optimiser-only metadata into the editor project format unless the format explicitly supports it; store run metadata in a separate manifest/report.
 - Re-import the exported champion and run the full preflight checks again.
@@ -655,3 +708,166 @@ In addition to Section 16, release acceptance requires:
 - Each parallel worker has isolated files and concurrent execution cannot overwrite another worker's inputs or candidates.
 - Candidate export preserves electrical topology and protected project data, and passes a fresh import/validation round-trip.
 - Circuit-aware physical rules report measurable findings without claiming to simulate physical EMI or analogue behaviour.
+
+
+## 25. Solver capability audit — Stage 0
+
+Do not redesign or implement solver features until the existing solver,
+routing code, TypeScript integration and Python harnesses have been mapped.
+This stage separates verified existing behaviour from partial support,
+unsupported requirements and unresolved questions.
+
+### 25.1 Code facts supplied for audit
+
+The following details are documented from the supplied source snippets.
+They must be checked against the exact source revision packaged for each
+release, with source paths, line references and tests recorded in the audit
+report.
+
+**Cost function — `components/stripboard/v5wasm/decode.c`**
+
+The supplied snippet defines:
+
+- `W_AREA = 0.35`
+- `W_WIRE = 25.0`
+- `W_WLEN = 0.4`
+- `W_CUT = 0.05`
+- `W_BCUT = 2.0`
+- `W_BCUT_DRILL = 24.0`
+- `W_TALL = 2.0`
+- `W_LOCKOVER = 5000.0`
+- `W_SIBLING = 0.5`
+- `CONN_FULL = 30.0`
+
+The supplied pricing expression includes area/aspect, wire count, wire
+length, cuts, selected drilled/knife-cut pricing, lock overrun, connector
+edge cost, shaft-in cost and sibling-pad separation. A positive lock overrun
+receives a fixed very large penalty (`999999999.0`) in that expression.
+The TypeScript mirror is `components/stripboard/layout2/boardPrice.ts`.
+The two implementations must remain consistent and have an automated
+consistency check.
+
+Do not assume every defined weight is directly user-adjustable until the
+source and UI integration are checked. Preserve the defaults only as
+version-specific documented values. A lower weighted score does not alone
+prove a better physical board.
+
+**Board-size validation — `components/stripboard/layout2/finish.ts`**
+
+The supplied lines 287–294 check the required maximum row and column against
+`lockedRowsCap` and `lockedColsCap` during finalisation, throwing an error
+when the finished layout exceeds either cap. This establishes a finalisation
+guard; it does not establish that the annealer itself is prevented from
+exploring over-size layouts. Keep soft penalty and final hard rejection
+semantically distinct.
+
+**Multi-seed portfolio — `components/stripboard/autoLayout5.ts`**
+
+The supplied lines 175–200 show a default of six independent seeds
+(`options.seeds ?? 6`), a configurable move budget and optional seed index
+or base. Seed results are sorted by annealer energy `E`; only the top four
+are passed to finalisation, and the best finalised result is selected by
+final score. Preserve this distinction in performance reporting and audit
+whether seed-level pruning can discard a candidate that would perform better
+after finalisation. The desktop app must not describe this as exhaustive
+finalisation of every seed unless that behaviour is changed and tested.
+
+**Routing — `components/stripboard/v5wasm/route.c`**
+
+The supplied evidence indicates point-to-point straight-line wire routing.
+A wire is diagonal when both its row and column coordinates differ between
+endpoints. Diagonal-to-L-shape post-processing is prohibited because the
+replacement can cross uncut copper strips and create shorts. Orthogonal-only
+routing, if required, must be implemented in solver routing/search logic and
+validated against real stripboard connectivity.
+
+**Headless harness — `tests/solver/v5Solve.js`**
+
+The supplied harness patch preserves a component's `boardPos` and
+`locked` state when `locked` is true and a board position exists. Other
+unlocked components are reset to `boardPos: null`, have
+`flexibleEndPos` cleared and rotation reset to zero, and have the lock field
+removed before solving. Treat this as harness input preparation, not as a
+general import/export rule. Audit that the desktop workflow applies the
+intended lock semantics without unintentionally discarding placements or
+flags.
+
+**Off-board expansion — `components/stripboard/layout2/finish.ts` and
+`autoLayout5.ts`**
+
+The supplied findings state that `expandOffBoard` runs before solver
+execution, replacing off-board components with one-hole rigid pad
+representations and mapping results back afterwards. Retain those pads in
+the solver model to preserve electrical net connections. The GUI must not
+present internal pads as full component bodies or duplicate user-visible
+parts.
+
+### 25.2 Existing behaviour versus extensions
+
+**Sibling pads and proximity**
+
+`W_SIBLING` is a penalty for separation of pads belonging to the same
+off-board component. It is not automatically a general pin-to-pin proximity
+constraint between arbitrary component instances. Audit its exact inputs,
+distance calculation and scope before reusing it. Decoupling constraints
+must identify both exact component-pin endpoints and measure Manhattan
+distance between their board-hole coordinates.
+
+**Rigid component groups**
+
+Support groups of original component instances as rigid placement units
+without merging or mutating their `componentDefs`, IDs, pins or nets. A
+provisional concept is:
+
+```json
+{
+  "group": ["MP1584EN", "L1", "C3"],
+  "relative": "rigid"
+}
+```
+
+Before implementation, define how relative positions and orientations are
+established, whether the group can rotate or reflect as a unit, how member
+locks/exclusions behave, and how board bounds, overlaps and electrical
+validation apply. Audit `leadSiblings` first; do not assume it supports
+arbitrary component groups.
+
+### 25.3 Required audit deliverables
+
+Produce a capability matrix covering:
+
+- Off-board expansion and reverse mapping.
+- Sibling-pad grouping and exact `W_SIBLING` scope.
+- Weight definitions, defaults, objective use and TypeScript parity.
+- Annealer score versus finalised candidate score and seed pruning.
+- Hard and soft board constraints and when each is enforced.
+- Wire/cut generation and diagonal route behaviour.
+- Existing lock/exclusion handling and harness normalisation.
+- Pin-coordinate transforms under component rotation.
+- Existing group/sibling mechanisms.
+- Candidate output format and score fields.
+- Python harness arguments, worker isolation and output naming.
+- Root-level and board-level lock-field import/export behaviour.
+
+Classify every item as **verified existing**, **partially supported**,
+**not supported** or **not yet verified**. Cite source locations and record
+a reproducible test or fixture where possible. Do not add GUI controls for
+unverified or non-functional solver behaviour.
+
+### 25.4 Regression gates
+
+Before accepting any solver, preprocessing, routing or export change:
+
+- Run the real Moto-Mate (14-wire) and Audio-Mate (10-wire) reference JSONs.
+- Compare independently calculated wire count, cut count, board area, wire
+  length and validation results with recorded baselines.
+- Confirm off-board pad expansion and reverse mapping preserve electrical
+  connections and original component identities.
+- Confirm no diagonal-to-L-shape post-processing is used.
+- Confirm worker outputs remain isolated and no candidate is overwritten.
+- Confirm required root-level `lockedRows` and `lockedCols` are present in
+  normalised/exported JSON, while retaining corresponding board-level values.
+- Re-import exported candidates and compare electrical topology and
+  protected project properties with the original fixtures.
+
+A lower weighted solver score alone is not a passing regression result.
