@@ -1,74 +1,60 @@
-# Stripboard Editor
+# Stripboard Optimiser
 
-A free, web-based stripboard (veroboard) layout editor with a built-in schematic editor. Draw a schematic, place the parts onto a virtual board, and the copper strips take the colour of your nets with live conflict detection and an overview of what still needs to be connected. When the layout is done, print a true-scale template and build it.
+**A stripboard (Veroboard) layout optimiser built on the Stripboard Editor project.**
 
-**Live at [stripboard-editor.com](https://stripboard-editor.com?utm_source=github)** · free forever · account optional · no ads
+Stripboard Optimiser is a development fork of [KarloFunke's Stripboard Editor](https://github.com/KarloFunke/stripboard-editor). The aim is to retain the editor's useful stripboard design workflow while adding a headless optimisation engine, independent layout validation, candidate comparison and a dedicated desktop interface.
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="src/frontend/public/demo-circuit-dark.png">
-  <img alt="Stripboard Editor with schematic and board layout side by side" src="src/frontend/public/demo-circuit.png">
-</picture>
+This repository is under active development. The optimisation workflow and desktop application described below are the project direction; they should not be assumed to be implemented or production-ready yet.
 
-## What it does
+## Project direction
 
-1. **Draw the schematic.** Place components from the symbol library or create your own, and wire up the pins to define your nets.
-2. **Drop onto the board.** Drag parts onto the stripboard; strips colour-code to your nets automatically.
-3. **Resolve conflicts.** Add cuts and link wires; anything wrong lights up red the moment it happens.
-4. **Print and build.** Print a 1:1 template with a mirrored copper-side cut guide and a bill of materials (BOM), lay it on the board, and push parts straight through the paper.
+The goal is to help turn an existing circuit layout into a more practical, compact and buildable stripboard design.
 
-![Printable 1:1 stripboard build template with a mirrored cut guide and parts list](src/frontend/public/print-demo.png)
+Planned capabilities include:
 
-An account is optional: you can create and edit projects without signing up, just keep the project's URL to come back to it later. Logging in keeps all your projects in one place and lets you share a design as a read-only or an editable link.
+- **Optimise layouts:** run repeatable optimisation attempts with configurable effort, random seeds and worker count.
+- **Respect design constraints:** preserve fixed components, excluded components, board dimensions and placement restrictions.
+- **Handle real components:** import project JSON and custom part definitions, validate footprints and pin locations, and report missing definitions.
+- **Validate candidates:** check component placement, overlaps, electrical connectivity and unintended shorts independently of the optimiser.
+- **Compare results:** assess candidates using board area, wire count and length, cuts, track continuity and other layout measures—not just the solver's internal score.
+- **Review and export:** inspect candidate layouts and export a selected, validated result without overwriting the original project.
 
-## Feedback
+The detailed requirements and staged development plan are maintained in [project.md](project.md).
 
-This is a fairly new project and still actively developed, with features added regularly. Ideas, bug reports, and questions are genuinely appreciated:
+## Starting point: Stripboard Editor
 
-- Leave a message right in the app at [stripboard-editor.com/feedback](https://stripboard-editor.com/feedback?utm_source=github)
-- Or open a [GitHub issue](https://github.com/KarloFunke/stripboard-editor/issues)
+This fork inherits code and existing functionality from [Stripboard Editor](https://github.com/KarloFunke/stripboard-editor), an editor for drawing schematics, placing components on stripboard, adding cuts and link wires, checking layout conflicts, and producing printable build templates.
 
-You can also follow [what's new and what's planned](https://stripboard-editor.com/updates?utm_source=github).
+The inherited editor is the starting point—not a claim that the planned optimiser is already complete. Existing functionality and project structure may change as the optimiser is developed.
 
-## Tech Stack
+## Development status
 
-- **Frontend**: Next.js
-- **Backend**: Python Django, SQLite
+The project specification is in place. Implementation is intended to proceed in stages:
 
-## Credits
+1. Build and audit the headless optimisation pipeline.
+2. Add independent electrical and physical validation and candidate ranking.
+3. Build the desktop GUI around the headless engine.
+4. Package distributable applications for macOS, Windows and Linux.
 
-The built-in IC pinouts (pin numbers, pin names and descriptions) come from the [KiCad symbol library](https://gitlab.com/kicad/libraries/kicad-symbols) by the KiCad Library Team, licensed under [CC-BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). They were selected, renamed and shortened for this editor by `src/frontend/scripts/importKicadIcs.js`. The resulting `src/frontend/data/icLibrary.ts` is licensed under CC-BY-SA 4.0 as well.
+See [project.md](project.md) for scope, constraints and acceptance criteria.
 
-## Local Development
+## Technology
 
-Frontend runs at `http://localhost:3000`, backend API at `http://localhost:8000/api/`.
+The repository currently contains the inherited Stripboard Editor codebase. Its existing stack includes:
 
-### Frontend
+- **Frontend:** Next.js
+- **Backend:** Python, Django and SQLite
 
-```bash
-cd src/frontend
-npm install
-cp .env.local.example .env.local
-npm run dev
-```
+The planned optimiser will retain a separate headless solver interface so the optimisation engine can be tested and used independently of the GUI.
 
-### Backend
+## Credits and licensing
 
-```bash
-cd src/backend
-python -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env
-python manage.py migrate
-python manage.py runserver 0.0.0.0:8000
-```
+This project is derived from [Stripboard Editor by KarloFunke](https://github.com/KarloFunke/stripboard-editor). The original project's authorship, copyright notices and licence terms remain applicable to inherited code. This fork is distributed under the repository's GPL-3.0 licence; see [LICENSE](LICENSE).
 
-### Create an admin user
+The built-in IC pinout data is derived from the [KiCad symbol library](https://gitlab.com/kicad/libraries/kicad-symbols) by the KiCad Library Team and is licensed under [CC-BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). The inherited import script is `src/frontend/scripts/importKicadIcs.js`, and the resulting data is in `src/frontend/data/icLibrary.ts`; the applicable attribution and share-alike terms continue to apply.
 
-```bash
-cd src/backend
-source venv/bin/activate
-python manage.py create_dev_admin --username admin --password admin
-```
+## Contributing and feedback
 
-This creates a superuser that works with both the Django admin panel (`/admin/`) and the frontend login.
+Bug reports, feature requests and development discussion can be raised through the [GitHub issues](https://github.com/bigbadevilaussie-hue/stripboard-optimiser/issues) for this fork.
+
+When reporting an issue, include the project JSON or a minimal reproducible example where possible. Remove private or sensitive information before sharing project files.
