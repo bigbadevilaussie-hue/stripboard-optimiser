@@ -89,6 +89,81 @@ Run these from `src/frontend`:
 
 The solver build scripts compile existing code; they do not by themselves provide the new optimiser pipeline described in [project.md](project.md).
 
+## Standalone stripboard renderer
+
+The frontend also contains a standalone Node.js renderer that converts a saved project JSON file into two SVG views:
+
+- `board-top.svg` — component side.
+- `board-copper.svg` — copper side.
+
+This renderer is separate from the planned desktop optimiser described in `project.md`. It is a command-line utility extracted from the existing frontend rendering implementation; it does not run the optimisation pipeline.
+
+### Build
+
+From `src/frontend`:
+
+```bash
+./node_modules/.bin/tsc -p standalone-renderer/tsconfig.json
+./node_modules/.bin/tsc-alias -p standalone-renderer/tsconfig.json
+```
+
+Run `tsc-alias` immediately after TypeScript compilation to rewrite the `@/` path aliases in the emitted JavaScript.
+
+The compiled CLI is:
+
+```text
+standalone-renderer/dist/standalone-renderer/cli.js
+```
+
+There is no dedicated npm script for this build.
+
+### Run
+
+From `src/frontend`:
+
+```bash
+node standalone-renderer/dist/standalone-renderer/cli.js <project.json> [--output <dir>]
+```
+
+For example, using the included example project:
+
+```bash
+node standalone-renderer/dist/standalone-renderer/cli.js standalone-renderer/example-project.json --output /tmp/render-test
+```
+
+The CLI accepts `--output <dir>`, `-o <dir>` or `--output=<dir>`. If omitted, output is written to the current directory. The output directory is created automatically.
+
+The input JSON must contain a top-level `board` object and a `components` array. The CLI generates `board-top.svg` and `board-copper.svg`, and reports board dimensions, component count, wire count and cut count.
+
+### Parity tests
+
+Compile the tests from `src/frontend`:
+
+```bash
+rm -rf standalone-renderer/dist-test
+./node_modules/.bin/tsc -p standalone-renderer/tsconfig.test.json
+./node_modules/.bin/tsc-alias -p standalone-renderer/tsconfig.test.json
+```
+
+Then run the five parity tests:
+
+```bash
+node standalone-renderer/dist-test/standalone-renderer/test_compare.js
+node standalone-renderer/dist-test/standalone-renderer/test_static_part_parity.js
+node standalone-renderer/dist-test/standalone-renderer/test_static_part_colours.js
+node standalone-renderer/dist-test/standalone-renderer/test_board_parity.js
+node standalone-renderer/dist-test/standalone-renderer/test_part_drawing_parity.js
+```
+
+The reported parity runs used two local fixtures outside the repository clone:
+
+- `~/Desktop/repo/motomix.json`
+- `~/Desktop/repo/moto14wires30cuts.json`
+
+Those fixture paths must exist for the corresponding parity tests to run as reported. The clean clone also contains `test-fixtures/masters/moto/moto.json` and `test-fixtures/masters/audio/audio.json`; these are not the external fixtures used in those parity runs.
+
+For the renderer's file-by-file architecture, CLI validation behaviour and recorded parity results, see [the standalone renderer README](src/frontend/standalone-renderer/README.md).
+
 ## Deployment
 
 The repository retains the inherited Docker deployment configuration:
