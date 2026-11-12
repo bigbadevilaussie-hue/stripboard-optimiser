@@ -1,0 +1,384 @@
+import tkinter as tk
+from tkinter import ttk, filedialog
+import os, zipfile
+from stripboard_optimizer.ui.project_panel import ProjectPanel
+from stripboard_optimizer.ui.validation_panel import ValidationPanel
+from stripboard_optimizer.controllers.project_controller import ProjectController
+from stripboard_optimizer.filters import split_parts, part_size, def_id_of
+from stripboard_optimizer.board_estimator import estimate_board
+
+BG_ROOT      = "#f3f4f6"
+BG_TOP_BAR   = "#ffffff"
+BG_PANEL     = "#ffffff"
+FG_TEXT      = "#374151"
+GREEN_BTN    = "#10b981"
+RED_BTN      = "#ef4444"
+AMBER_BTN    = "#f59e0b"
+
+FONT_SANS = ("Helvetica Neue", 12)
+FONT_SANS_BOLD = ("Helvetica Neue", 13, "bold")
+FONT_MONO = ("Menlo", 11)
+
+APP_VERSION = "v1.00"
+
+class MainWindow(tk.Tk):
+    def __init__(self):
+        super().__init__()
+        self.title("Stripboard Optimiser")
+        self.geometry("1100x750")
+        self.configure(bg=BG_ROOT)
+        self.controller = ProjectController()
+        self.estimated_tight = (0, 0)
+        self.lock_vars = {} # Store the Y/N vars and reason entries for each part
+        self.setup_style()
+        self.build_ui()
+
+    def setup_style(self):
+        s = ttk.Style(self)
+        s.theme_use("clam")
+        s.configure("TFrame", background=BG_ROOT)
+        s.configure("TopBar.TFrame", background=BG_TOP_BAR)
+        s.configure("Panel.TFrame", background=BG_PANEL, bordercolor="#e5e7eb", relief="solid", borderwidth=1)
+        s.configure("TLabel", background=BG_ROOT, foreground=FG_TEXT, font=FONT_SANS)
+        s.configure("TopBarBold.TLabel", background=BG_TOP_BAR, foreground=FG_TEXT, font=FONT_SANS_BOLD)
+        s.configure("Copper.TLabel", background=BG_PANEL, foreground=FG_TEXT, font=FONT_SANS_BOLD)
+        s.configure("Green.TButton", background=GREEN_BTN, foreground="#ffffff", font=FONT_SANS_BOLD, borderwidth=0, padding=(16, 8), lightcolor=GREEN_BTN, darkcolor=GREEN_BTN)
+        s.map("Green.TButton", background=[('active', "#059669"), ('pressed', "#059669")])
+        s.configure("Red.TButton", background=RED_BTN, foreground="#ffffff", font=FONT_SANS_BOLD, borderwidth=0, padding=(16, 8), lightcolor=RED_BTN, darkcolor=RED_BTN)
+        s.map("Red.TButton", background=[('active', "#dc2626"), ('pressed', "#dc2626")])
+        s.configure("Amber.TButton", background=AMBER_BTN, foreground="#ffffff", font=FONT_SANS_BOLD, borderwidth=0, padding=(16, 8), lightcolor=AMBER_BTN, darkcolor=AMBER_BTN)
+        s.map("Amber.TButton", background=[('active', "#d97706"), ('pressed', "#d97706")])
+        s.configure("Reset.TButton", background="#e5e7eb", foreground="#374151", font=FONT_SANS_BOLD, borderwidth=0, padding=(16, 8))
+
+    def build_ui(self):
+        self.top = ttk.Frame(self, style="TopBar.TFrame", padding=(16, 12))
+        self.top.pack(fill="x")
+        ttk.Label(self.top, text="stripboard_optimiser", style="TopBarBold.TLabel").pack(side="left")
+        self.btn_restart = ttk.Button(self.top, text="Restart", style="Reset.TButton", command=self.reset_app)
+        self.btn_restart.pack(side="right", padx=(8, 0))
+        self.btn_load = ttk.Button(self.top, text="1. Open Project JSON", style="Green.TButton", command=self.load_project)
+        self.btn_load.pack(side="left", padx=(24, 8))
+        self.btn_net = ttk.Button(self.top, text="2. Load .net File", style="Green.TButton", command=self.load_netlist)
+        self.btn_zip = ttk.Button(self.top, text="3. Load KiCAD ZIP", style="Green.TButton", command=self.load_zip)
+        self.btn_preflight = ttk.Button(self.top, text="4. Run Preflight", style="Green.TButton", command=self.run_preflight)
+        
+        self.btn_mode = ttk.Button(self.top, text="5. Mode Select", style="Amber.TButton", command=self.show_mode_select)
+        self.btn_optimise = ttk.Button(self.top, text="6. Optimize", style="Green.TButton", command=self.start_optimisation)
+        self.btn_cancel = ttk.Button(self.top, text="Cancel", style="TButton", command=self.show_log)
+
+        tk.Frame(self, bg="#e5e7eb", height=1).pack(fill="x")
+        self.paned = ttk.PanedWindow(self, orient="horizontal")
+        self.paned.pack(fill="both", expand=True, padx=16, pady=16)
+        left_wrapper = ttk.Frame(self.paned, style="TFrame")
+        self.paned.add(left_wrapper, weight=1)
+        self.project_panel = ProjectPanel(left_wrapper)
+        self.project_panel.pack(fill="both", expand=True)
+        version_label = tk.Label(left_wrapper, text=APP_VERSION, bg=BG_ROOT, fg="#9ca3af", font=("Helvetica Neue", 10))
+        version_label.pack(side="bottom", anchor="w", pady=(8, 0), padx=4)
+
+        self.right_frame = ttk.Frame(self.paned, style="TFrame")
+        self.paned.add(self.right_frame, weight=4)
+        self.log_frame = ttk.Frame(self.right_frame, style="Panel.TFrame", padding=1)
+        self.validation_panel = ValidationPanel(self.log_frame)
+        self.validation_panel.pack(fill="both", expand=True)
+        
+        # PANEL 1: MODE SELECT
+        self.mode_frame = ttk.Frame(self.right_frame, style="Panel.TFrame", padding=40)
+        ttk.Label(self.mode_frame, text="Select Optimisation Mode", font=FONT_SANS_BOLD, background=BG_PANEL).pack(pady=(0, 20))
+        self.mode_var = tk.StringVar(value="2pass")
+        modes = [
+            ("manual", "Manual (Expert Mode)", "Control every seed and weight manually."),
+            ("full_auto", "Auto (Cross your fingers and pray)", "The solver picks the settings and runs a massive sweep."),
+            ("2pass", "2-Pass Tournament (Preferred)", "Run a wide qualifier, then a high-effort Grand Final.")
+        ]
+        for val, label, desc in modes:
+            rb = tk.Radiobutton(self.mode_frame, text=label, variable=self.mode_var, value=val,
+                                bg=BG_PANEL, fg=FG_TEXT, selectcolor=BG_PANEL,
+                                activebackground=BG_PANEL, activeforeground=FG_TEXT,
+                                font=FONT_SANS_BOLD, anchor="w", highlightthickness=0, bd=0)
+            rb.pack(fill="x", pady=(10, 0))
+            tk.Label(self.mode_frame, text=desc, bg=BG_PANEL, fg="#737373", font=FONT_SANS, anchor="w").pack(fill="x", padx=25, pady=(0, 10))
+        ttk.Button(self.mode_frame, text="CONFIRM MODE", style="Green.TButton", command=self.confirm_mode).pack(pady=(30, 0), ipadx=20, ipady=10)
+
+        # PANEL 2: QUESTIONS (Auto / 2-Pass)
+        self.questions_frame = ttk.Frame(self.right_frame, style="Panel.TFrame", padding=40)
+        
+        # We need a scrollable canvas for the questions because there might be many locked parts
+        self.canvas = tk.Canvas(self.questions_frame, bg=BG_PANEL, highlightthickness=0)
+        self.scrollbar = ttk.Scrollbar(self.questions_frame, orient="vertical", command=self.canvas.yview)
+        self.scrollable_frame = ttk.Frame(self.canvas, style="Panel.TFrame")
+        self.scrollable_frame.bind(
+            "<Configure>",
+            lambda e: self.canvas.configure(scrollregion=self.canvas.bbox("all"))
+        )
+        self.canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
+        self.canvas.configure(yscrollcommand=self.scrollbar.set)
+        
+        self.canvas.pack(side="left", fill="both", expand=True)
+        self.scrollbar.pack(side="right", fill="y")
+        
+        # Bind mousewheel to canvas
+        self.canvas.bind_all("<MouseWheel>", lambda e: self.canvas.yview_scroll(int(-1*(e.delta/120)), "units"))
+
+        # Buttons for questions frame (packed outside the canvas at the bottom)
+        self.q_btn_frame = ttk.Frame(self.questions_frame, style="Panel.TFrame")
+        self.q_btn_frame.pack(side="bottom", fill="x", pady=(10, 0))
+        ttk.Button(self.q_btn_frame, text="START OPTIMISATION", style="Green.TButton", command=self.start_optimisation).pack(side="right", ipadx=20, ipady=10)
+
+        # PANEL 3: MANUAL SETTINGS
+        self.manual_frame = ttk.Frame(self.right_frame, style="Panel.TFrame", padding=40)
+        ttk.Label(self.manual_frame, text="Manual Settings", font=FONT_SANS_BOLD, background=BG_PANEL).pack(pady=(0, 20))
+        tk.Label(self.manual_frame, text="(Configure locks, seeds, and weights here)", bg=BG_PANEL, fg="#737373", font=FONT_SANS).pack()
+        ttk.Button(self.manual_frame, text="START OPTIMISATION", style="Green.TButton", command=self.start_optimisation).pack(pady=(30, 0), ipadx=20, ipady=10)
+
+        self.log_frame.pack(fill="both", expand=True)
+        self.log("Ready. Open a project JSON to begin.")
+
+    def log(self, msg):
+        self.validation_panel.log(msg)
+
+    def reset_app(self):
+        self.controller = ProjectController()
+        self.validation_panel.report.delete(1.0, tk.END)
+        self.log("Ready. Open a project JSON to begin.")
+        for frame in [self.log_frame, self.mode_frame, self.questions_frame, self.manual_frame]:
+            frame.pack_forget()
+        self.log_frame.pack(fill="both", expand=True)
+        for btn in [self.btn_net, self.btn_zip, self.btn_preflight, self.btn_mode, self.btn_optimise, self.btn_cancel]:
+            btn.pack_forget()
+        self.btn_load.pack(side="left", padx=(24, 8))
+        self.project_panel.lbl_board.configure(text="No board loaded")
+
+    def load_project(self):
+        path = filedialog.askopenfilename(filetypes=[("Project JSON", "*.json")])
+        if not path: return
+        try:
+            project = self.controller.load_project(path)
+            self.btn_load.pack_forget()
+            self.project_panel.update_info(project)
+            
+            self.log(f"\n--- 1. PROJECT JSON: {os.path.basename(path)} ---")
+            self.log(f"[BOARD] {project.rows} Rows x {project.cols} Cols ({project.rows * project.cols} total holes)")
+            self.log(f"[INFO] JSON Pin Assignments: {project.pin_count}")
+            
+            comps = project.components
+            on_board_parts, off_board_parts = split_parts(comps)
+            
+            self.log(f"[INFO] OFF-BOARD PARTS: {len(off_board_parts)}")
+            self.log(f"[INFO] ON-BOARD PARTS: {len(on_board_parts)}")
+            
+            missing = project.missing_footprints
+            if missing:
+                self.log(f"[WARN] {len(missing)} footprints are missing. Waiting to see the Pretty KiCad ZIP.")
+
+            self.btn_net.pack(side="left", padx=8)
+        except Exception as e:
+            self.log(f"\n[ERROR] Could not load JSON: {e}")
+
+    def load_netlist(self):
+        path = filedialog.askopenfilename(filetypes=[("Netlist", "*.net")])
+        if not path: return
+        try:
+            net_nodes = self.controller.load_netlist(path)
+            self.btn_net.configure(style="Green.TButton")
+            self.btn_net.pack_forget()
+            self.log(f"\n--- 2. NETLIST: {os.path.basename(path)} ---")
+            self.log(f"[INFO] Netlist Pins: {net_nodes}")
+            self.log("[OK] JSON and Netlist pin counts match.")
+            self.btn_zip.pack(side="left", padx=8)
+        except ValueError as e:
+            self.log(f"\n[FAIL] {e}")
+            self.btn_net.configure(style="Red.TButton")
+
+    def load_zip(self):
+        path = filedialog.askopenfilename(filetypes=[("KiCad Footprints", "*.zip")])
+        if not path: return
+        self.controller.load_zip(path)
+        self.btn_zip.pack_forget()
+        
+        self.log(f"\n--- 3. KICAD FOOTPRINTS: {os.path.basename(path)} ---")
+        for name, (pads, w, h) in self.controller.zip_footprints.items():
+            self.log(f"  [FILE] {name} ({pads} pads, {w}x{h} = {w*h} holes)")
+            
+        project = self.controller.project
+        on_board_parts, _ = split_parts(project.components)
+        
+        self.log("\n--- MERGED ON-BOARD INVENTORY ---")
+        total_holes = 0
+        missing_custom_count = 0
+        zip_names_lower = [n.lower() for n in self.controller.zip_footprints.keys()]
+        
+        for c in on_board_parts:
+            label = c.get("label") or c.get("name") or "Unknown"
+            c_def = project.component_defs.get(def_id_of(c), {})
+            c_name = c_def.get("name", label)
+            w, h, src = part_size(c, project.component_defs)
+            holes = w * h
+            total_holes += holes
+            
+            is_custom = src == "FALLBACK" or "SuperMini" in c_name or "MP1584" in c_name or "GPS" in c_name
+            zip_match = False
+            
+            if is_custom:
+                for zip_name in zip_names_lower:
+                    clean_cname = c_name.lower().replace(" ", "").replace("-", "").replace("_", "")
+                    clean_zip = zip_name.replace(" ", "").replace("-", "").replace("_", "")
+                    if clean_cname in clean_zip or clean_zip in clean_cname:
+                        zip_match = True
+                        break
+                if not zip_match:
+                    missing_custom_count += 1
+                    
+            status = "[OK]" if (not is_custom or zip_match) else "[MISSING]"
+            self.log(f"  {status} {label:<15} | {c_name:<25} | {w}x{h} = {holes} holes")
+            
+        board_holes = project.rows * project.cols
+        self.log(f"\n[INFO] --- FINAL BOARD SUMMARY ---")
+        self.log(f"[INFO] Total On-Board Parts: {len(on_board_parts)}")
+        self.log(f"[INFO] Estimated Total Holes Needed: {total_holes}")
+        self.log(f"[INFO] Board Total Holes: {board_holes}")
+        
+        if missing_custom_count > 0:
+            self.log(f"[WARN] {missing_custom_count} custom parts have no matching footprint in the ZIP.")
+            
+        if total_holes > board_holes:
+            self.log(f"[WARN] Board seems too small! Parts need {total_holes} holes, board is {board_holes}.")
+        else:
+            self.log(f"[OK] Board size is reasonable for {total_holes} holes.")
+
+        est = estimate_board(project.components, project.component_defs)
+        self.estimated_tight = est['tight']
+        self.log(f"\n[ESTIMATE] Tight fit: {est['tight'][0]}x{est['tight'][1]} ({est['tight'][0]*est['tight'][1]} holes)")
+            
+        self.btn_preflight.pack(side="left", padx=8)
+
+    def run_preflight(self):
+        self.log("\n--- 4. PREFLIGHT ---")
+        findings = self.controller.run_preflight()
+        self.validation_panel.log_findings(findings)
+        has_errors = any(f.severity == "ERROR" for f in findings)
+        if not has_errors:
+            self.btn_preflight.pack_forget()
+            self.btn_mode.pack(side="left", padx=8)
+
+    def show_mode_select(self):
+        self.log_frame.pack_forget()
+        self.mode_frame.pack(fill="both", expand=True)
+        self.btn_mode.pack_forget()
+        self.btn_cancel.pack(side="left", padx=8)
+
+    def confirm_mode(self):
+        mode = self.mode_var.get()
+        self.log(f"\n--- 5. MODE SELECT ---")
+        self.log(f"[INFO] User selected: {mode.upper()}")
+        
+        self.mode_frame.pack_forget()
+        
+        if mode == "manual":
+            # Manual: Skip questions, go straight to Manual settings
+            self.manual_frame.pack(fill="both", expand=True)
+        else:
+            # Auto / 2-Pass: Ask about locks first
+            self.show_questions()
+
+    def show_questions(self):
+        self.questions_frame.pack(fill="both", expand=True)
+        project = self.controller.project
+        
+        # Clear previous questions
+        for widget in self.scrollable_frame.winfo_children():
+            widget.destroy()
+        self.lock_vars = {}
+        
+        # 1. Board Lock Questions
+        if project.locked_rows or project.locked_cols:
+            frame = ttk.Frame(self.scrollable_frame, style="Panel.TFrame")
+            frame.pack(fill="x", pady=(0, 20))
+            
+            tk.Label(frame, text=f"Keep Board Dimensions Locked ({project.rows}x{project.cols})?", bg=BG_PANEL, fg=FG_TEXT, font=FONT_SANS_BOLD).pack(anchor="w")
+            
+            keep_var = tk.StringVar(value="yes")
+            tk.Radiobutton(frame, text="Yes", variable=keep_var, value="yes", bg=BG_PANEL, fg=FG_TEXT).pack(anchor="w")
+            tk.Radiobutton(frame, text="No (Unlock and auto-size)", variable=keep_var, value="no", bg=BG_PANEL, fg=FG_TEXT).pack(anchor="w")
+            
+            tk.Label(frame, text="Why was it locked? (e.g., physical case limit, cosmetic)", bg=BG_PANEL, fg=FG_TEXT, font=FONT_SANS).pack(anchor="w", pady=(5,0))
+            reason_entry = tk.Entry(frame, width=50)
+            reason_entry.pack(anchor="w")
+            
+            self.lock_vars["BOARD"] = {"keep": keep_var, "reason": reason_entry}
+        else:
+            tk.Label(self.scrollable_frame, text="Board dimensions are not locked.", bg=BG_PANEL, fg=FG_TEXT, font=FONT_SANS).pack(anchor="w", pady=(0, 20))
+
+        # 2. Part Lock Questions
+        placed = [c for c in project.components if c.get("boardPos")]
+        locked = [c for c in placed if c.get("locked") is True]
+        
+        if locked:
+            tk.Label(self.scrollable_frame, text="Locked Parts:", bg=BG_PANEL, fg=FG_TEXT, font=FONT_SANS_BOLD).pack(anchor="w", pady=(10, 5))
+            
+            for c in locked:
+                label = c.get("label") or c.get("name") or "Unknown"
+                frame = ttk.Frame(self.scrollable_frame, style="Panel.TFrame")
+                frame.pack(fill="x", pady=(5, 10))
+                
+                tk.Label(frame, text=f"Keep {label} locked?", bg=BG_PANEL, fg=FG_TEXT, font=FONT_SANS_BOLD).pack(anchor="w")
+                
+                keep_var = tk.StringVar(value="yes")
+                tk.Radiobutton(frame, text="Yes", variable=keep_var, value="yes", bg=BG_PANEL, fg=FG_TEXT).pack(anchor="w")
+                tk.Radiobutton(frame, text="No (Unlock and scramble)", variable=keep_var, value="no", bg=BG_PANEL, fg=FG_TEXT).pack(anchor="w")
+                
+                tk.Label(frame, text="Reason:", bg=BG_PANEL, fg=FG_TEXT, font=FONT_SANS).pack(anchor="w", pady=(5,0))
+                reason_var = tk.StringVar(value="edge/case/cosmetic")
+                reason_entry = ttk.Combobox(frame, textvariable=reason_var, values=["edge", "case", "cosmetic", "mistake"])
+                reason_entry.pack(anchor="w")
+                
+                self.lock_vars[label] = {"keep": keep_var, "reason": reason_entry}
+        else:
+            tk.Label(self.scrollable_frame, text="No parts are locked.", bg=BG_PANEL, fg=FG_TEXT, font=FONT_SANS).pack(anchor="w")
+
+    def start_optimisation(self):
+        self.log(f"\n--- 5. PLACEMENT STRATEGY ---")
+        project = self.controller.project
+        
+        # Apply Board decisions
+        if "BOARD" in self.lock_vars:
+            data = self.lock_vars["BOARD"]
+            keep = data["keep"].get()
+            reason = data["reason"].get()
+            self.log(f"[INFO] Board Lock: Keep={keep} | Reason: {reason}")
+            if keep == "no":
+                self.log(f"[APPLY] Unlocking board. Auto-sizing to {self.estimated_tight[0]}x{self.estimated_tight[1]}.")
+                project.rows = self.estimated_tight[0]
+                project.cols = self.estimated_tight[1]
+                project.locked_rows = False
+                project.locked_cols = False
+                
+        # Apply Part decisions
+        for c in project.components:
+            label = c.get("label") or c.get("name") or "Unknown"
+            if label in self.lock_vars:
+                data = self.lock_vars[label]
+                keep = data["keep"].get()
+                reason = data["reason"].get()
+                self.log(f"[INFO] Part Lock '{label}': Keep={keep} | Reason: {reason}")
+                if keep == "no":
+                    c["locked"] = False
+
+        self.questions_frame.pack_forget()
+        self.manual_frame.pack_forget()
+        self.log_frame.pack(fill="both", expand=True)
+        
+        mode = self.mode_var.get()
+        self.log(f"\n[OPTIMISE] Starting mode: {mode.upper()}")
+        self.log("[STUB] Solver adapter not wired up yet. Standing by.")
+
+    def show_log(self):
+        self.mode_frame.pack_forget()
+        self.questions_frame.pack_forget()
+        self.manual_frame.pack_forget()
+        self.log_frame.pack(fill="both", expand=True)
+        self.btn_cancel.pack_forget()
+        if not self.controller.project: pass
+        elif not self.controller.zip_path: self.btn_zip.pack(side="left", padx=8)
+        elif not self.controller.net_path: self.btn_net.pack(side="left", padx=8)
+        else: self.btn_mode.pack(side="left", padx=8)

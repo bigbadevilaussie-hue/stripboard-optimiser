@@ -1,0 +1,143 @@
+{
+  "version": 4,
+  "name": "example-project",
+  "description": "Minimal example for the standalone renderer",
+  "notes": "",
+  "componentDefs": [],
+  "components": [
+    {
+      "id": "658d2bd2-5969-4d69-a065-7fb47f0b9c46",
+      "defId": "def-fuse",
+      "label": "F1",
+      "schematicPos": {
+        "x": 260,
+        "y": 300
+      },
+      "schematicRotation": 90,
+      "boardPos": {
+        "row": 0,
+        "col": 1
+      },
+      "rotation": 0,
+      "flexibleEndPos": {
+        "row": 5,
+        "col": 1
+      },
+      "locked": true
+    },
+    {
+      "id": "ea4eb5c7-9943-44b9-83b1-564438540899",
+      "defId": "def-pmos",
+      "label": "12v Mosfet",
+      "schematicPos": {
+        "x": 340,
+        "y": 540
+      },
+      "schematicRotation": 0,
+      "boardPos": {
+        "row": 1,
+        "col": 13
+      },
+      "rotation": 0,
+      "labelOffset": {
+        "x": -21.975429892539978,
+        "y": 13.030126452445984
+      },
+      "package": "to220",
+      "footprintOverride": {
+        "width": 1,
+        "height": 5,
+        "pins": [
+          {
+            "id": "1",
+            "name": "G",
+            "offsetRow": 1,
+            "offsetCol": 0
+          },
+          {
+            "id": "2",
+            "name": "D",
+            "offsetRow": 2,
+            "offsetCol": 0
+          },
+          {
+            "id": "3",
+            "name": "S",
+            "offsetRow": 3,
+            "offsetCol": 0
+          }
+        ],
+        "bodyCells": [
+          {
+            "row": 0,
+            "col": 0
+          },
+          {
+            "row": 4,
+            "col": 0
+          }
+        ]
+      },
+      "value": "IRF4905"
+    }
+  ],
+  "nets": [
+    {
+      "id": "6d29ccfd-603b-46b9-a877-232a47159a94",
+      "name": "net2",
+      "color": "#06b6d4"
+    },
+    {
+      "id": "07b6eb14-b5f0-4e86-8365-b214cdc05b4c",
+      "name": "12v Switched",
+      "color": "#84cc16"
+    },
+    {
+      "id": "40d39fe4-480f-4912-b976-19d4a4491c78",
+      "name": "net4",
+      "color": "#8b5cf6"
+    },
+    {
+      "id": "90a401c8-1534-4061-be8c-d857424b4bb7",
+      "name": "net24",
+      "color": "hsl(79, 70%, 50%)"
+    }
+  ],
+  "netAssignments": [
+    {
+      "netId": "07b6eb14-b5f0-4e86-8365-b214cdc05b4c",
+      "componentId": "ea4eb5c7-9943-44b9-83b1-564438540899",
+      "pinId": "2"
+    },
+    {
+      "netId": "6d29ccfd-603b-46b9-a877-232a47159a94",
+      "componentId": "658d2bd2-5969-4d69-a065-7fb47f0b9c46",
+      "pinId": "1"
+    },
+    {
+      "netId": "6d29ccfd-603b-46b9-a877-232a47159a94",
+      "componentId": "ea4eb5c7-9943-44b9-83b1-564438540899",
+      "pinId": "3"
+    },
+    {
+      "netId": "90a401c8-1534-4061-be8c-d857424b4bb7",
+      "componentId": "658d2bd2-5969-4d69-a065-7fb47f0b9c46",
+      "pinId": "2"
+    },
+    {
+      "netId": "40d39fe4-480f-4912-b976-19d4a4491c78",
+      "componentId": "ea4eb5c7-9943-44b9-83b1-564438540899",
+      "pinId": "1"
+    }
+  ],
+  "schematicWires": [],
+  "netLabels": [],
+  "board": {
+    "rows": 69,
+    "cols": 69,
+    "cuts": [],
+    "wires": [],
+    "lockedRows": false,
+    "lockedCols": false
+  }
+}
