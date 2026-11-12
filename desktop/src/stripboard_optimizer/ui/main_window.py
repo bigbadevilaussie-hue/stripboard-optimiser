@@ -1,11 +1,15 @@
 import tkinter as tk
 from tkinter import ttk, filedialog
 import os, zipfile
+import json, queue, shutil, subprocess, tempfile, threading
+from pathlib import Path
 from stripboard_optimizer.ui.project_panel import ProjectPanel
 from stripboard_optimizer.ui.validation_panel import ValidationPanel
+from stripboard_optimizer.ui.board_viewer import BoardViewer
 from stripboard_optimizer.controllers.project_controller import ProjectController
 from stripboard_optimizer.filters import split_parts, part_size, def_id_of
 from stripboard_optimizer.board_estimator import estimate_board
+from stripboard_optimizer.solver.worker import SolveWorker
 
 BG_ROOT      = "#f3f4f6"
 BG_TOP_BAR   = "#ffffff"
@@ -19,7 +23,7 @@ FONT_SANS = ("Helvetica Neue", 12)
 FONT_SANS_BOLD = ("Helvetica Neue", 13, "bold")
 FONT_MONO = ("Menlo", 11)
 
-APP_VERSION = "v1.00"
+APP_VERSION = "v1.10"
 
 class MainWindow(tk.Tk):
     def __init__(self):
@@ -29,7 +33,11 @@ class MainWindow(tk.Tk):
         self.configure(bg=BG_ROOT)
         self.controller = ProjectController()
         self.estimated_tight = (0, 0)
-        self.lock_vars = {} # Store the Y/N vars and reason entries for each part
+        self.lock_vars = {}
+        self.project_path = None
+        self.solver = None
+        self.solver_q = queue.Queue()
+        self.best = None
         self.setup_style()
         self.build_ui()
 
@@ -61,10 +69,14 @@ class MainWindow(tk.Tk):
         self.btn_net = ttk.Button(self.top, text="2. Load .net File", style="Green.TButton", command=self.load_netlist)
         self.btn_zip = ttk.Button(self.top, text="3. Load KiCAD ZIP", style="Green.TButton", command=self.load_zip)
         self.btn_preflight = ttk.Button(self.top, text="4. Run Preflight", style="Green.TButton", command=self.run_preflight)
-        
+
         self.btn_mode = ttk.Button(self.top, text="5. Mode Select", style="Amber.TButton", command=self.show_mode_select)
         self.btn_optimise = ttk.Button(self.top, text="6. Optimize", style="Green.TButton", command=self.start_optimisation)
         self.btn_cancel = ttk.Button(self.top, text="Cancel", style="TButton", command=self.show_log)
+        self.btn_stop = ttk.Button(self.top, text="Stop", style="Red.TButton", command=self.cancel_solve)
+        self.btn_preview = ttk.Button(self.top, text="Preview board", style="Green.TButton", command=self.preview_best)
+        self.btn_render_save = ttk.Button(self.top, text="Render JSON...", style="Green.TButton", command=self.render_from_file)
+        self.btn_render_save.pack(side="right", padx=(8, 0))
 
         tk.Frame(self, bg="#e5e7eb", height=1).pack(fill="x")
         self.paned = ttk.PanedWindow(self, orient="horizontal")
@@ -78,10 +90,15 @@ class MainWindow(tk.Tk):
 
         self.right_frame = ttk.Frame(self.paned, style="TFrame")
         self.paned.add(self.right_frame, weight=4)
+
         self.log_frame = ttk.Frame(self.right_frame, style="Panel.TFrame", padding=1)
         self.validation_panel = ValidationPanel(self.log_frame)
         self.validation_panel.pack(fill="both", expand=True)
-        
+
+        self.board_view_frame = ttk.Frame(self.right_frame, style="Panel.TFrame")
+        self.board_viewer = BoardViewer(self.board_view_frame, on_close=self.show_log)
+        self.board_viewer.pack(fill="both", expand=True)
+
         # PANEL 1: MODE SELECT
         self.mode_frame = ttk.Frame(self.right_frame, style="Panel.TFrame", padding=40)
         ttk.Label(self.mode_frame, text="Select Optimisation Mode", font=FONT_SANS_BOLD, background=BG_PANEL).pack(pady=(0, 20))
@@ -102,25 +119,15 @@ class MainWindow(tk.Tk):
 
         # PANEL 2: QUESTIONS (Auto / 2-Pass)
         self.questions_frame = ttk.Frame(self.right_frame, style="Panel.TFrame", padding=40)
-        
-        # We need a scrollable canvas for the questions because there might be many locked parts
         self.canvas = tk.Canvas(self.questions_frame, bg=BG_PANEL, highlightthickness=0)
         self.scrollbar = ttk.Scrollbar(self.questions_frame, orient="vertical", command=self.canvas.yview)
         self.scrollable_frame = ttk.Frame(self.canvas, style="Panel.TFrame")
-        self.scrollable_frame.bind(
-            "<Configure>",
-            lambda e: self.canvas.configure(scrollregion=self.canvas.bbox("all"))
-        )
+        self.scrollable_frame.bind("<Configure>", lambda e: self.canvas.configure(scrollregion=self.canvas.bbox("all")))
         self.canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
         self.canvas.configure(yscrollcommand=self.scrollbar.set)
-        
         self.canvas.pack(side="left", fill="both", expand=True)
         self.scrollbar.pack(side="right", fill="y")
-        
-        # Bind mousewheel to canvas
         self.canvas.bind_all("<MouseWheel>", lambda e: self.canvas.yview_scroll(int(-1*(e.delta/120)), "units"))
-
-        # Buttons for questions frame (packed outside the canvas at the bottom)
         self.q_btn_frame = ttk.Frame(self.questions_frame, style="Panel.TFrame")
         self.q_btn_frame.pack(side="bottom", fill="x", pady=(10, 0))
         ttk.Button(self.q_btn_frame, text="START OPTIMISATION", style="Green.TButton", command=self.start_optimisation).pack(side="right", ipadx=20, ipady=10)
@@ -133,6 +140,7 @@ class MainWindow(tk.Tk):
 
         self.log_frame.pack(fill="both", expand=True)
         self.log("Ready. Open a project JSON to begin.")
+        self.after(200, self._poll_solver)
 
     def log(self, msg):
         self.validation_panel.log(msg)
@@ -144,7 +152,7 @@ class MainWindow(tk.Tk):
         for frame in [self.log_frame, self.mode_frame, self.questions_frame, self.manual_frame]:
             frame.pack_forget()
         self.log_frame.pack(fill="both", expand=True)
-        for btn in [self.btn_net, self.btn_zip, self.btn_preflight, self.btn_mode, self.btn_optimise, self.btn_cancel]:
+        for btn in [self.btn_net, self.btn_zip, self.btn_preflight, self.btn_mode, self.btn_optimise, self.btn_cancel, self.btn_stop, self.btn_preview, self.btn_render_save]:
             btn.pack_forget()
         self.btn_load.pack(side="left", padx=(24, 8))
         self.project_panel.lbl_board.configure(text="No board loaded")
@@ -154,23 +162,19 @@ class MainWindow(tk.Tk):
         if not path: return
         try:
             project = self.controller.load_project(path)
+            self.project_path = path
             self.btn_load.pack_forget()
             self.project_panel.update_info(project)
-            
             self.log(f"\n--- 1. PROJECT JSON: {os.path.basename(path)} ---")
             self.log(f"[BOARD] {project.rows} Rows x {project.cols} Cols ({project.rows * project.cols} total holes)")
             self.log(f"[INFO] JSON Pin Assignments: {project.pin_count}")
-            
             comps = project.components
             on_board_parts, off_board_parts = split_parts(comps)
-            
             self.log(f"[INFO] OFF-BOARD PARTS: {len(off_board_parts)}")
             self.log(f"[INFO] ON-BOARD PARTS: {len(on_board_parts)}")
-            
             missing = project.missing_footprints
             if missing:
                 self.log(f"[WARN] {len(missing)} footprints are missing. Waiting to see the Pretty KiCad ZIP.")
-
             self.btn_net.pack(side="left", padx=8)
         except Exception as e:
             self.log(f"\n[ERROR] Could not load JSON: {e}")
@@ -195,19 +199,15 @@ class MainWindow(tk.Tk):
         if not path: return
         self.controller.load_zip(path)
         self.btn_zip.pack_forget()
-        
         self.log(f"\n--- 3. KICAD FOOTPRINTS: {os.path.basename(path)} ---")
         for name, (pads, w, h) in self.controller.zip_footprints.items():
             self.log(f"  [FILE] {name} ({pads} pads, {w}x{h} = {w*h} holes)")
-            
         project = self.controller.project
         on_board_parts, _ = split_parts(project.components)
-        
         self.log("\n--- MERGED ON-BOARD INVENTORY ---")
         total_holes = 0
         missing_custom_count = 0
         zip_names_lower = [n.lower() for n in self.controller.zip_footprints.keys()]
-        
         for c in on_board_parts:
             label = c.get("label") or c.get("name") or "Unknown"
             c_def = project.component_defs.get(def_id_of(c), {})
@@ -215,10 +215,8 @@ class MainWindow(tk.Tk):
             w, h, src = part_size(c, project.component_defs)
             holes = w * h
             total_holes += holes
-            
             is_custom = src == "FALLBACK" or "SuperMini" in c_name or "MP1584" in c_name or "GPS" in c_name
             zip_match = False
-            
             if is_custom:
                 for zip_name in zip_names_lower:
                     clean_cname = c_name.lower().replace(" ", "").replace("-", "").replace("_", "")
@@ -228,28 +226,22 @@ class MainWindow(tk.Tk):
                         break
                 if not zip_match:
                     missing_custom_count += 1
-                    
             status = "[OK]" if (not is_custom or zip_match) else "[MISSING]"
             self.log(f"  {status} {label:<15} | {c_name:<25} | {w}x{h} = {holes} holes")
-            
         board_holes = project.rows * project.cols
         self.log(f"\n[INFO] --- FINAL BOARD SUMMARY ---")
         self.log(f"[INFO] Total On-Board Parts: {len(on_board_parts)}")
         self.log(f"[INFO] Estimated Total Holes Needed: {total_holes}")
         self.log(f"[INFO] Board Total Holes: {board_holes}")
-        
         if missing_custom_count > 0:
             self.log(f"[WARN] {missing_custom_count} custom parts have no matching footprint in the ZIP.")
-            
         if total_holes > board_holes:
             self.log(f"[WARN] Board seems too small! Parts need {total_holes} holes, board is {board_holes}.")
         else:
             self.log(f"[OK] Board size is reasonable for {total_holes} holes.")
-
         est = estimate_board(project.components, project.component_defs)
         self.estimated_tight = est['tight']
         self.log(f"\n[ESTIMATE] Tight fit: {est['tight'][0]}x{est['tight'][1]} ({est['tight'][0]*est['tight'][1]} holes)")
-            
         self.btn_preflight.pack(side="left", padx=8)
 
     def run_preflight(self):
@@ -271,67 +263,47 @@ class MainWindow(tk.Tk):
         mode = self.mode_var.get()
         self.log(f"\n--- 5. MODE SELECT ---")
         self.log(f"[INFO] User selected: {mode.upper()}")
-        
         self.mode_frame.pack_forget()
-        
         if mode == "manual":
-            # Manual: Skip questions, go straight to Manual settings
             self.manual_frame.pack(fill="both", expand=True)
         else:
-            # Auto / 2-Pass: Ask about locks first
             self.show_questions()
 
     def show_questions(self):
         self.questions_frame.pack(fill="both", expand=True)
         project = self.controller.project
-        
-        # Clear previous questions
         for widget in self.scrollable_frame.winfo_children():
             widget.destroy()
         self.lock_vars = {}
-        
-        # 1. Board Lock Questions
         if project.locked_rows or project.locked_cols:
             frame = ttk.Frame(self.scrollable_frame, style="Panel.TFrame")
             frame.pack(fill="x", pady=(0, 20))
-            
             tk.Label(frame, text=f"Keep Board Dimensions Locked ({project.rows}x{project.cols})?", bg=BG_PANEL, fg=FG_TEXT, font=FONT_SANS_BOLD).pack(anchor="w")
-            
             keep_var = tk.StringVar(value="yes")
             tk.Radiobutton(frame, text="Yes", variable=keep_var, value="yes", bg=BG_PANEL, fg=FG_TEXT).pack(anchor="w")
             tk.Radiobutton(frame, text="No (Unlock and auto-size)", variable=keep_var, value="no", bg=BG_PANEL, fg=FG_TEXT).pack(anchor="w")
-            
             tk.Label(frame, text="Why was it locked? (e.g., physical case limit, cosmetic)", bg=BG_PANEL, fg=FG_TEXT, font=FONT_SANS).pack(anchor="w", pady=(5,0))
             reason_entry = tk.Entry(frame, width=50)
             reason_entry.pack(anchor="w")
-            
             self.lock_vars["BOARD"] = {"keep": keep_var, "reason": reason_entry}
         else:
             tk.Label(self.scrollable_frame, text="Board dimensions are not locked.", bg=BG_PANEL, fg=FG_TEXT, font=FONT_SANS).pack(anchor="w", pady=(0, 20))
-
-        # 2. Part Lock Questions
         placed = [c for c in project.components if c.get("boardPos")]
         locked = [c for c in placed if c.get("locked") is True]
-        
         if locked:
             tk.Label(self.scrollable_frame, text="Locked Parts:", bg=BG_PANEL, fg=FG_TEXT, font=FONT_SANS_BOLD).pack(anchor="w", pady=(10, 5))
-            
             for c in locked:
                 label = c.get("label") or c.get("name") or "Unknown"
                 frame = ttk.Frame(self.scrollable_frame, style="Panel.TFrame")
                 frame.pack(fill="x", pady=(5, 10))
-                
                 tk.Label(frame, text=f"Keep {label} locked?", bg=BG_PANEL, fg=FG_TEXT, font=FONT_SANS_BOLD).pack(anchor="w")
-                
                 keep_var = tk.StringVar(value="yes")
                 tk.Radiobutton(frame, text="Yes", variable=keep_var, value="yes", bg=BG_PANEL, fg=FG_TEXT).pack(anchor="w")
                 tk.Radiobutton(frame, text="No (Unlock and scramble)", variable=keep_var, value="no", bg=BG_PANEL, fg=FG_TEXT).pack(anchor="w")
-                
                 tk.Label(frame, text="Reason:", bg=BG_PANEL, fg=FG_TEXT, font=FONT_SANS).pack(anchor="w", pady=(5,0))
                 reason_var = tk.StringVar(value="edge/case/cosmetic")
                 reason_entry = ttk.Combobox(frame, textvariable=reason_var, values=["edge", "case", "cosmetic", "mistake"])
                 reason_entry.pack(anchor="w")
-                
                 self.lock_vars[label] = {"keep": keep_var, "reason": reason_entry}
         else:
             tk.Label(self.scrollable_frame, text="No parts are locked.", bg=BG_PANEL, fg=FG_TEXT, font=FONT_SANS).pack(anchor="w")
@@ -339,43 +311,182 @@ class MainWindow(tk.Tk):
     def start_optimisation(self):
         self.log(f"\n--- 5. PLACEMENT STRATEGY ---")
         project = self.controller.project
-        
-        # Apply Board decisions
+        unlocked = set()
+        board_change = None
         if "BOARD" in self.lock_vars:
             data = self.lock_vars["BOARD"]
-            keep = data["keep"].get()
-            reason = data["reason"].get()
+            keep, reason = data["keep"].get(), data["reason"].get()
             self.log(f"[INFO] Board Lock: Keep={keep} | Reason: {reason}")
             if keep == "no":
                 self.log(f"[APPLY] Unlocking board. Auto-sizing to {self.estimated_tight[0]}x{self.estimated_tight[1]}.")
-                project.rows = self.estimated_tight[0]
-                project.cols = self.estimated_tight[1]
-                project.locked_rows = False
-                project.locked_cols = False
-                
-        # Apply Part decisions
+                board_change = self.estimated_tight
+                project.rows, project.cols = self.estimated_tight
+                project.locked_rows = project.locked_cols = False
         for c in project.components:
             label = c.get("label") or c.get("name") or "Unknown"
             if label in self.lock_vars:
                 data = self.lock_vars[label]
-                keep = data["keep"].get()
-                reason = data["reason"].get()
+                keep, reason = data["keep"].get(), data["reason"].get()
                 self.log(f"[INFO] Part Lock '{label}': Keep={keep} | Reason: {reason}")
                 if keep == "no":
                     c["locked"] = False
-
+                    unlocked.add(label)
         self.questions_frame.pack_forget()
         self.manual_frame.pack_forget()
         self.log_frame.pack(fill="both", expand=True)
-        
         mode = self.mode_var.get()
         self.log(f"\n[OPTIMISE] Starting mode: {mode.upper()}")
-        self.log("[STUB] Solver adapter not wired up yet. Standing by.")
+        try:
+            raw = json.loads(Path(self.project_path).read_text())
+            if board_change:
+                raw.setdefault("board", {}).update(rows=board_change[0], cols=board_change[1], lockedRows=False, lockedCols=False)
+            for c in raw.get("components", []):
+                if (c.get("label") or c.get("name") or "Unknown") in unlocked:
+                    c["locked"] = False
+            job = Path(tempfile.mkdtemp(prefix="sbjob_")) / "project.json"
+            job.write_text(json.dumps(raw))
+        except Exception as e:
+            self.log(f"[ERROR] Could not prepare the solver input: {e}")
+            return
+        self.best = None
+        self.btn_preview.pack_forget()
+        self.btn_cancel.pack_forget()
+        self.btn_stop.pack(side="left", padx=8)
+        self.solver = SolveWorker(str(job), mode, self.solver_q)
+        self.solver.start()
+
+    def cancel_solve(self):
+        if self.solver: self.solver.cancel()
+        self.log("[SOLVE] Stopping...")
+
+    def _poll_solver(self):
+        try:
+            while True:
+                m = self.solver_q.get_nowait()
+                if m[0] == "log":
+                    self.log(m[1])
+                elif m[0] == "candidate":
+                    _, stage, seed, effort, s, path, ok = m
+                    tag = "OK " if ok else "BAD"
+                    self.log(f"[{tag}] stage {stage} seed {seed} e{effort}: {s['rows']}x{s['cols']} wires {s['wires']} cuts {s['cuts']} price {s.get('price', '?')} ({s['ms']/1000:.0f}s)")
+                elif m[0] == "done":
+                    _, best, cancelled = m
+                    self.btn_stop.pack_forget()
+                    self.btn_cancel.pack_forget()
+                    if cancelled:
+                        self.log("[SOLVE] Stopped.")
+                    elif best:
+                        s, path, seed = best
+                        out = Path(self.project_path).with_name(Path(self.project_path).stem + "_solved.json")
+                        out.write_text(Path(path).read_text())
+                        self.best = (s, str(out))
+                        self.log(f"\n[BEST] seed {seed}: {s['rows']}x{s['cols']}, wires {s['wires']}, cuts {s['cuts']} (knife {s['knife']}), price {s.get('price', '?')}")
+                        self.log(f"[BEST] Saved to {out}")
+                        self.btn_preview.pack(side="left", padx=8)
+                    else:
+                        self.log("[SOLVE] No valid board found.")
+        except queue.Empty:
+            pass
+        self.after(200, self._poll_solver)
+
+    def preview_best(self):
+        if not self.best: return
+        path = self.best[1]
+        def job():
+            try:
+                tmp = Path(tempfile.mkdtemp(prefix="sbpreview_"))
+                cli = Path(__file__).parent.parent / "resources" / "standalone-renderer" / "standalone-renderer" / "cli.js"
+                if not cli.exists():
+                    self.solver_q.put(("log", f"[ERROR] Standalone renderer not found at {cli}"))
+                    return
+                node = shutil.which("node") or "/usr/local/bin/node"
+                r = subprocess.run([node, str(cli), path, "--output", str(tmp)], capture_output=True, text=True, timeout=120)
+                if r.returncode != 0:
+                    self.solver_q.put(("log", f"[ERROR] Renderer failed: {(r.stderr or r.stdout).strip()}"))
+                    return
+                top_svg = tmp / "board-top.svg"
+                copper_svg = tmp / "board-copper.svg"
+                top_png = tmp / "place.png"
+                copper_png = tmp / "cut.png"
+                for src, dst in [(top_svg, top_png), (copper_svg, copper_png)]:
+                    if not src.exists():
+                        self.solver_q.put(("log", f"[ERROR] Renderer did not write {src.name}"))
+                        return
+                    subprocess.run(["rsvg-convert", "-o", str(dst), str(src)], check=True, timeout=60)
+                self.solver_q.put(("log", f"[PREVIEW] Rendered {top_png} and {copper_png}"))
+                subprocess.run(["open", str(top_png), str(copper_png)])
+            except subprocess.TimeoutExpired:
+                self.solver_q.put(("log", "[ERROR] Preview timed out"))
+            except Exception as e:
+                self.solver_q.put(("log", f"[ERROR] Preview failed: {e}"))
+        threading.Thread(target=job, daemon=True).start()
+
+    def render_from_file(self):
+        path = filedialog.askopenfilename(filetypes=[("Project JSON", "*.json")])
+        if not path: return
+        self.log(f"\n[RENDER] {os.path.basename(path)}")
+        def job():
+            try:
+                out_dir = Path.home() / "Desktop" / "stripboard-renders"
+                out_dir.mkdir(parents=True, exist_ok=True)
+                stem = Path(path).stem
+                cli = Path(__file__).parent.parent / "resources" / "standalone-renderer" / "standalone-renderer" / "cli.js"
+                if not cli.exists():
+                    self.solver_q.put(("log", f"[ERROR] Renderer not found at {cli}"))
+                    return
+                node = shutil.which("node") or "/usr/local/bin/node"
+                svg_dir = out_dir / f"{stem}-svg"
+                svg_dir.mkdir(exist_ok=True)
+                r = subprocess.run([node, str(cli), path, "--output", str(svg_dir)], capture_output=True, text=True, timeout=120)
+                if r.returncode != 0:
+                    self.solver_q.put(("log", f"[ERROR] Renderer failed: {(r.stderr or r.stdout).strip()}"))
+                    return
+                top_svg = svg_dir / "board-top.svg"
+                copper_svg = svg_dir / "board-copper.svg"
+                top_png = out_dir / f"{stem}-top.png"
+                copper_png = out_dir / f"{stem}-copper.png"
+                schematic_png = out_dir / f"{stem}-schematic.png"
+
+                # Schematic renderer — separate CLI
+                schematic_cli = Path(__file__).parent.parent / "resources" / "standalone-renderer" / "standalone-renderer" / "schematic" / "cli.js"
+                schematic_svg = svg_dir / "schematic.svg"
+                have_schematic = False
+                if schematic_cli.exists():
+                    rs = subprocess.run([node, str(schematic_cli), path, "--output", str(svg_dir)], capture_output=True, text=True, timeout=120)
+                    if rs.returncode == 0 and schematic_svg.exists():
+                        have_schematic = True
+                    else:
+                        self.solver_q.put(("log", f"[RENDER] Schematic skipped: {(rs.stderr or rs.stdout).strip()[:200]}"))
+                else:
+                    self.solver_q.put(("log", f"[RENDER] Schematic CLI not found at {schematic_cli}"))
+                to_convert = [(top_svg, top_png), (copper_svg, copper_png)]
+                if have_schematic:
+                    to_convert.append((schematic_svg, schematic_png))
+                for src, dst in to_convert:
+                    if not src.exists():
+                        self.solver_q.put(("log", f"[ERROR] Missing {src.name}"))
+                        return
+                    subprocess.run(["rsvg-convert", "-w", "2400", "-b", "white", "-o", str(dst), str(src)], check=True, timeout=60)
+                saved = f"{top_png.name}, {copper_png.name}"
+                if have_schematic:
+                    saved += f", {schematic_png.name}"
+                self.solver_q.put(("log", f"[RENDER] Saved {saved}"))
+                self.board_viewer.load(str(top_png), str(copper_png), str(schematic_png) if have_schematic else None)
+                self.show_board_view()
+            except Exception as e:
+                self.solver_q.put(("log", f"[ERROR] Render failed: {e}"))
+        threading.Thread(target=job, daemon=True).start()
+
+    def show_board_view(self):
+        for f in [self.log_frame, self.mode_frame, self.questions_frame, self.manual_frame]:
+            f.pack_forget()
+        self.board_view_frame.pack(fill="both", expand=True)
 
     def show_log(self):
         self.mode_frame.pack_forget()
         self.questions_frame.pack_forget()
         self.manual_frame.pack_forget()
+        self.board_view_frame.pack_forget()
         self.log_frame.pack(fill="both", expand=True)
         self.btn_cancel.pack_forget()
         if not self.controller.project: pass

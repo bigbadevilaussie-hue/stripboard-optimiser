@@ -1,0 +1,687 @@
+"use strict";
+// ── Schematic Symbol Definitions ─────────────────────────
+//
+// ARCHITECTURE: Pin-first, grid-aligned design.
+//
+// All pin stubEnd positions MUST be at multiples of G (the grid size = 20).
+// Pins are defined first, then the body is drawn around them.
+// The symbol origin (0,0) is always grid-aligned.
+// Body geometry is decorative — it adapts to pin positions, not vice versa.
+//
+// Labels and bounding boxes are computed at render time, not stored here.
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.createGenericIcSymbol = createGenericIcSymbol;
+exports.createSipIcSymbol = createSipIcSymbol;
+exports.createPinBoxSymbol = createPinBoxSymbol;
+exports.createConnectorSymbol = createConnectorSymbol;
+exports.createFootprintSymbol = createFootprintSymbol;
+exports.registerCustomSymbol = registerCustomSymbol;
+exports.getSymbolDef = getSymbolDef;
+const schematicConstants_1 = require("../utils/schematicConstants.js");
+const G = schematicConstants_1.GRID_SIZE; // all stubEnd coords MUST be multiples of this
+// ── Passive Symbols ───────────────────────────────────
+// 2-pin vertical: pins at (0, -G) and (0, G) = (0, -20) and (0, 20)
+const resistor = {
+    symbolId: "resistor",
+    label: "Resistor",
+    labelYOffset: 10,
+    hidePinLabels: true,
+    category: "passive",
+    bodyPaths: [
+        { d: "M 0 -10 L 5 -8 L -5 -3 L 5 2 L -5 7 L 5 12 L 0 14", fill: "none" },
+        // Stub lines from body to pin endpoints
+        { d: "M 0 -10 L 0 -20", fill: "none" },
+        { d: "M 0 14 L 0 20", fill: "none" },
+    ],
+    pins: [
+        { pinId: "1", defaultName: "1", stubStart: { x: 0, y: -10 }, stubEnd: { x: 0, y: -G }, side: "top" },
+        { pinId: "2", defaultName: "2", stubStart: { x: 0, y: 14 }, stubEnd: { x: 0, y: G }, side: "bottom" },
+    ],
+};
+const capacitor = {
+    symbolId: "capacitor",
+    label: "Capacitor",
+    category: "passive",
+    hidePinLabels: true,
+    bodyPaths: [
+        { d: "M -8 -3 L 8 -3", fill: "none" }, // top plate
+        { d: "M -8 3 L 8 3", fill: "none" }, // bottom plate
+        { d: "M 0 -3 L 0 -20", fill: "none" }, // top stub
+        { d: "M 0 3 L 0 20", fill: "none" }, // bottom stub
+    ],
+    pins: [
+        { pinId: "1", defaultName: "1", stubStart: { x: 0, y: -3 }, stubEnd: { x: 0, y: -G }, side: "top" },
+        { pinId: "2", defaultName: "2", stubStart: { x: 0, y: 3 }, stubEnd: { x: 0, y: G }, side: "bottom" },
+    ],
+};
+const capPolarized = {
+    symbolId: "cap-polarized",
+    label: "Polarized Capacitor",
+    category: "passive",
+    bodyPaths: [
+        { d: "M -8 -3 L 8 -3", fill: "none" }, // flat plate (+)
+        { d: "M -8 3 Q 0 8 8 3", fill: "none" }, // curved plate (−)
+        { d: "M 0 -3 L 0 -20", fill: "none" },
+        { d: "M 0 6 L 0 20", fill: "none" },
+    ],
+    extraElements: [
+        { type: "text", props: { x: -12, y: 0, fontSize: 10, textAnchor: "end", children: "+" } },
+    ],
+    pins: [
+        { pinId: "1", defaultName: "+", stubStart: { x: 0, y: -3 }, stubEnd: { x: 0, y: -G }, side: "top" },
+        { pinId: "2", defaultName: "−", stubStart: { x: 0, y: 3 }, stubEnd: { x: 0, y: G }, side: "bottom" },
+    ],
+};
+// 2-pin horizontal: pins 1.5 grid cells apart each side
+const DIODE_LEAD = 2 * G; // 40 — one full grid cell per side
+const diode = {
+    symbolId: "diode",
+    label: "Diode",
+    labelYOffset: 10,
+    category: "passive",
+    bodyPaths: [
+        { d: "M -8 -8 L 8 0 L -8 8 Z", fill: "none" }, // triangle
+        { d: "M 8 -8 L 8 8", fill: "none" }, // bar
+        { d: `M -8 0 L ${-DIODE_LEAD} 0`, fill: "none" },
+        { d: `M 8 0 L ${DIODE_LEAD} 0`, fill: "none" },
+    ],
+    pins: [
+        { pinId: "1", defaultName: "A", stubStart: { x: -8, y: 0 }, stubEnd: { x: -DIODE_LEAD, y: 0 }, side: "left" },
+        { pinId: "2", defaultName: "K", stubStart: { x: 8, y: 0 }, stubEnd: { x: DIODE_LEAD, y: 0 }, side: "right" },
+    ],
+};
+const led = {
+    symbolId: "led",
+    label: "LED",
+    labelYOffset: 16,
+    category: "passive",
+    bodyPaths: [
+        { d: "M -8 -8 L 8 0 L -8 8 Z", fill: "none" },
+        { d: "M 8 -8 L 8 8", fill: "none" },
+        { d: `M -8 0 L ${-DIODE_LEAD} 0`, fill: "none" },
+        { d: `M 8 0 L ${DIODE_LEAD} 0`, fill: "none" },
+    ],
+    extraElements: [
+        // Arrow 1: shaft + head
+        { type: "line", props: { x1: 3, y1: -11, x2: 10, y2: -18 } },
+        { type: "line", props: { x1: 10, y1: -18, x2: 7, y2: -17 } },
+        { type: "line", props: { x1: 10, y1: -18, x2: 9, y2: -15 } },
+        // Arrow 2
+        { type: "line", props: { x1: 7, y1: -9, x2: 14, y2: -16 } },
+        { type: "line", props: { x1: 14, y1: -16, x2: 11, y2: -15 } },
+        { type: "line", props: { x1: 14, y1: -16, x2: 13, y2: -13 } },
+    ],
+    pins: [
+        { pinId: "1", defaultName: "A", stubStart: { x: -8, y: 0 }, stubEnd: { x: -DIODE_LEAD, y: 0 }, side: "left" },
+        { pinId: "2", defaultName: "K", stubStart: { x: 8, y: 0 }, stubEnd: { x: DIODE_LEAD, y: 0 }, side: "right" },
+    ],
+};
+const zener = {
+    symbolId: "zener",
+    label: "Zener Diode",
+    labelYOffset: 12,
+    category: "passive",
+    bodyPaths: [
+        { d: "M -8 -8 L 8 0 L -8 8 Z", fill: "none" },
+        { d: "M 6 -10 L 8 -8 L 8 8 L 10 10", fill: "none" },
+        { d: `M -8 0 L ${-DIODE_LEAD} 0`, fill: "none" },
+        { d: `M 8 0 L ${DIODE_LEAD} 0`, fill: "none" },
+    ],
+    pins: [
+        { pinId: "1", defaultName: "A", stubStart: { x: -8, y: 0 }, stubEnd: { x: -DIODE_LEAD, y: 0 }, side: "left" },
+        { pinId: "2", defaultName: "K", stubStart: { x: 8, y: 0 }, stubEnd: { x: DIODE_LEAD, y: 0 }, side: "right" },
+    ],
+};
+const fuse = {
+    symbolId: "fuse",
+    label: "Fuse",
+    labelYOffset: 12,
+    hidePinLabels: true,
+    category: "passive",
+    bodyPaths: [
+        { d: "M -6 -18 L 6 -18 L 6 18 L -6 18 Z", fill: "none" }, // body rectangle
+        { d: "M 0 -40 L 0 40", fill: "none" }, // element line + leads
+    ],
+    pins: [
+        { pinId: "1", defaultName: "1", stubStart: { x: 0, y: -18 }, stubEnd: { x: 0, y: -2 * G }, side: "top" },
+        { pinId: "2", defaultName: "2", stubStart: { x: 0, y: 18 }, stubEnd: { x: 0, y: 2 * G }, side: "bottom" },
+    ],
+};
+// ── Semiconductor Symbols ─────────────────────────────
+// 3-pin: B at (-2G, 0), C at (G, -2G), E at (G, 2G)
+const npn = {
+    symbolId: "npn",
+    label: "NPN Transistor",
+    category: "semiconductor",
+    bodyPaths: [
+        { d: "M -6 -14 L -6 14", fill: "none" }, // base bar
+        { d: "M -6 -7 L 12 -18", fill: "none" }, // collector
+        { d: "M -6 7 L 12 18", fill: "none" }, // emitter
+        { d: "M 9 14 L 12 18 L 7 17", fill: "none" }, // arrow
+        // Stubs to grid-aligned endpoints
+        { d: `M -6 0 L ${-2 * G} 0`, fill: "none" }, // B stub
+        { d: `M 12 -18 L ${G} ${-2 * G}`, fill: "none" }, // C stub
+        { d: `M 12 18 L ${G} ${2 * G}`, fill: "none" }, // E stub
+    ],
+    extraElements: [
+        { type: "circle", props: { cx: 3, cy: 0, r: 20, fill: "none", strokeWidth: 1.5 } },
+    ],
+    pins: [
+        { pinId: "1", defaultName: "B", stubStart: { x: -6, y: 0 }, stubEnd: { x: -2 * G, y: 0 }, side: "left" },
+        { pinId: "2", defaultName: "C", stubStart: { x: 12, y: -18 }, stubEnd: { x: G, y: -2 * G }, side: "top" },
+        { pinId: "3", defaultName: "E", stubStart: { x: 12, y: 18 }, stubEnd: { x: G, y: 2 * G }, side: "bottom" },
+    ],
+};
+const pnp = {
+    symbolId: "pnp",
+    label: "PNP Transistor",
+    category: "semiconductor",
+    bodyPaths: [
+        { d: "M -6 -14 L -6 14", fill: "none" },
+        { d: "M -6 -7 L 12 -18", fill: "none" },
+        { d: "M -6 7 L 12 18", fill: "none" },
+        { d: "M -3 11 L -6 7 L -1 8", fill: "none" }, // arrow inward
+        { d: `M -6 0 L ${-2 * G} 0`, fill: "none" },
+        { d: `M 12 -18 L ${G} ${-2 * G}`, fill: "none" },
+        { d: `M 12 18 L ${G} ${2 * G}`, fill: "none" },
+    ],
+    extraElements: [
+        { type: "circle", props: { cx: 3, cy: 0, r: 20, fill: "none", strokeWidth: 1.5 } },
+    ],
+    pins: [
+        { pinId: "1", defaultName: "B", stubStart: { x: -6, y: 0 }, stubEnd: { x: -2 * G, y: 0 }, side: "left" },
+        { pinId: "2", defaultName: "C", stubStart: { x: 12, y: -18 }, stubEnd: { x: G, y: -2 * G }, side: "top" },
+        { pinId: "3", defaultName: "E", stubStart: { x: 12, y: 18 }, stubEnd: { x: G, y: 2 * G }, side: "bottom" },
+    ],
+};
+const nmos = {
+    symbolId: "nmos",
+    label: "N-Channel MOSFET",
+    category: "semiconductor",
+    bodyPaths: [
+        { d: "M -8 -12 L -8 12", fill: "none" }, // gate line
+        { d: "M -4 -12 L -4 -5", fill: "none" }, // channel
+        { d: "M -4 -3 L -4 3", fill: "none" },
+        { d: "M -4 5 L -4 12", fill: "none" },
+        { d: "M -4 -8 L 12 -8 L 12 -16", fill: "none" }, // drain
+        { d: "M -4 8 L 12 8 L 12 16", fill: "none" }, // source
+        { d: "M -4 0 L 12 0 L 12 8", fill: "none" }, // body
+        { d: "M -4 0 L 1 -3 L 1 3 Z", fill: "currentColor" }, // arrow
+        // Stubs
+        { d: `M -8 0 L ${-2 * G} 0`, fill: "none" },
+        { d: `M 12 -16 L ${G} ${-2 * G}`, fill: "none" },
+        { d: `M 12 16 L ${G} ${2 * G}`, fill: "none" },
+    ],
+    pins: [
+        { pinId: "1", defaultName: "G", stubStart: { x: -8, y: 0 }, stubEnd: { x: -2 * G, y: 0 }, side: "left" },
+        { pinId: "2", defaultName: "D", stubStart: { x: 12, y: -16 }, stubEnd: { x: G, y: -2 * G }, side: "top" },
+        { pinId: "3", defaultName: "S", stubStart: { x: 12, y: 16 }, stubEnd: { x: G, y: 2 * G }, side: "bottom" },
+    ],
+};
+const pmos = {
+    symbolId: "pmos",
+    label: "P-Channel MOSFET",
+    category: "semiconductor",
+    bodyPaths: [
+        { d: "M -8 -12 L -8 12", fill: "none" },
+        { d: "M -4 -12 L -4 -5", fill: "none" },
+        { d: "M -4 -3 L -4 3", fill: "none" },
+        { d: "M -4 5 L -4 12", fill: "none" },
+        { d: "M -4 -8 L 12 -8 L 12 -16", fill: "none" },
+        { d: "M -4 8 L 12 8 L 12 16", fill: "none" },
+        { d: "M -4 0 L 12 0 L 12 8", fill: "none" },
+        { d: "M 12 0 L 7 -3 L 7 3 Z", fill: "currentColor" }, // arrow
+        { d: `M -8 0 L ${-2 * G} 0`, fill: "none" },
+        { d: `M 12 -16 L ${G} ${-2 * G}`, fill: "none" },
+        { d: `M 12 16 L ${G} ${2 * G}`, fill: "none" },
+    ],
+    pins: [
+        { pinId: "1", defaultName: "G", stubStart: { x: -8, y: 0 }, stubEnd: { x: -2 * G, y: 0 }, side: "left" },
+        { pinId: "2", defaultName: "D", stubStart: { x: 12, y: -16 }, stubEnd: { x: G, y: -2 * G }, side: "top" },
+        { pinId: "3", defaultName: "S", stubStart: { x: 12, y: 16 }, stubEnd: { x: G, y: 2 * G }, side: "bottom" },
+    ],
+};
+// Voltage regulator: box with pins at (-2G, 0), (2G, 0), (0, 2G)
+const vreg = {
+    symbolId: "vreg",
+    label: "Voltage Regulator",
+    labelYOffset: -5,
+    category: "semiconductor",
+    bodyPaths: [
+        { d: "M -18 -16 L 18 -16 L 18 16 L -18 16 Z", fill: "none" },
+        { d: `M -18 0 L ${-2 * G} 0`, fill: "none" }, // IN stub
+        { d: `M 18 0 L ${2 * G} 0`, fill: "none" }, // OUT stub
+        { d: `M 0 16 L 0 ${2 * G}`, fill: "none" }, // GND stub
+    ],
+    pins: [
+        { pinId: "1", defaultName: "IN", stubStart: { x: -18, y: 0 }, stubEnd: { x: -2 * G, y: 0 }, side: "left" },
+        { pinId: "2", defaultName: "OUT", stubStart: { x: 18, y: 0 }, stubEnd: { x: 2 * G, y: 0 }, side: "right" },
+        { pinId: "3", defaultName: "GND", stubStart: { x: 0, y: 16 }, stubEnd: { x: 0, y: 2 * G }, side: "bottom" },
+    ],
+};
+// ── Generic Box Symbols ───────────────────────────────
+const generic2pin = {
+    symbolId: "generic-2pin",
+    label: "Generic 2-Pin",
+    category: "generic",
+    bodyPaths: [
+        { d: "M -8 -8 L 8 -8 L 8 8 L -8 8 Z", fill: "none" },
+        { d: "M 0 -8 L 0 -20", fill: "none" },
+        { d: "M 0 8 L 0 20", fill: "none" },
+    ],
+    pins: [
+        { pinId: "1", defaultName: "1", stubStart: { x: 0, y: -8 }, stubEnd: { x: 0, y: -G }, side: "top" },
+        { pinId: "2", defaultName: "2", stubStart: { x: 0, y: 8 }, stubEnd: { x: 0, y: G }, side: "bottom" },
+    ],
+};
+const generic3pin = {
+    symbolId: "generic-3pin",
+    label: "Generic 3-Pin",
+    category: "generic",
+    bodyPaths: [
+        { d: "M -8 -G L 8 -G L 8 G L -8 G Z".replaceAll("G", String(G)), fill: "none" },
+        { d: `M 0 ${-G} L 0 ${-2 * G}`, fill: "none" },
+        { d: `M -8 0 L ${-G} 0`, fill: "none" },
+        { d: `M 0 ${G} L 0 ${2 * G}`, fill: "none" },
+    ],
+    pins: [
+        { pinId: "1", defaultName: "1", stubStart: { x: 0, y: -G }, stubEnd: { x: 0, y: -2 * G }, side: "top" },
+        { pinId: "2", defaultName: "2", stubStart: { x: -8, y: 0 }, stubEnd: { x: -G, y: 0 }, side: "left" },
+        { pinId: "3", defaultName: "3", stubStart: { x: 0, y: G }, stubEnd: { x: 0, y: 2 * G }, side: "bottom" },
+    ],
+};
+// ── Inductor ──────────────────────────────────────────
+const inductor = {
+    symbolId: "inductor",
+    label: "Inductor",
+    category: "passive",
+    hidePinLabels: true,
+    bodyPaths: [
+        // Coil loops (4 bumps)
+        { d: "M 0 -12 A 5 5 0 0 1 0 -4 A 5 5 0 0 1 0 4 A 5 5 0 0 1 0 12", fill: "none" },
+        // Stubs to grid
+        { d: `M 0 -12 L 0 ${-G}`, fill: "none" },
+        { d: `M 0 12 L 0 ${G}`, fill: "none" },
+    ],
+    pins: [
+        { pinId: "1", defaultName: "1", stubStart: { x: 0, y: -12 }, stubEnd: { x: 0, y: -G }, side: "top" },
+        { pinId: "2", defaultName: "2", stubStart: { x: 0, y: 12 }, stubEnd: { x: 0, y: G }, side: "bottom" },
+    ],
+};
+// ── Transformer ───────────────────────────────────────
+// 4-pin: P1 (top-left), P2 (bottom-left), S1 (top-right), S2 (bottom-right)
+const transformer = {
+    symbolId: "transformer",
+    label: "Transformer",
+    category: "passive",
+    bodyPaths: [
+        // Primary coil (left side)
+        { d: "M -10 -12 A 5 5 0 0 1 -10 -4 A 5 5 0 0 1 -10 4 A 5 5 0 0 1 -10 12", fill: "none" },
+        // Secondary coil (right side)
+        { d: "M 10 -12 A 5 5 0 0 0 10 -4 A 5 5 0 0 0 10 4 A 5 5 0 0 0 10 12", fill: "none" },
+        // Core lines (two vertical parallel lines between coils)
+        { d: "M -3 -14 L -3 14", fill: "none" },
+        { d: "M 3 -14 L 3 14", fill: "none" },
+        // Stubs
+        { d: `M -10 -12 L ${-2 * G} ${-G}`, fill: "none" },
+        { d: `M -10 12 L ${-2 * G} ${G}`, fill: "none" },
+        { d: `M 10 -12 L ${2 * G} ${-G}`, fill: "none" },
+        { d: `M 10 12 L ${2 * G} ${G}`, fill: "none" },
+    ],
+    pins: [
+        { pinId: "1", defaultName: "P1", stubStart: { x: -10, y: -12 }, stubEnd: { x: -2 * G, y: -G }, side: "left" },
+        { pinId: "2", defaultName: "P2", stubStart: { x: -10, y: 12 }, stubEnd: { x: -2 * G, y: G }, side: "left" },
+        { pinId: "3", defaultName: "S1", stubStart: { x: 10, y: -12 }, stubEnd: { x: 2 * G, y: -G }, side: "right" },
+        { pinId: "4", defaultName: "S2", stubStart: { x: 10, y: 12 }, stubEnd: { x: 2 * G, y: G }, side: "right" },
+    ],
+};
+// ── Common Component Symbols ──────────────────────────
+const opamp = {
+    symbolId: "opamp",
+    label: "Op-Amp",
+    category: "ic",
+    labelYOffset: 15,
+    bodyPaths: [
+        // Triangle body
+        { d: "M -20 -24 L 20 0 L -20 24 Z", fill: "none" },
+        // +/- labels inside
+        // Stubs
+        { d: `M -20 -12 L ${-2 * G} ${-G}`, fill: "none" }, // +
+        { d: `M -20 12 L ${-2 * G} ${G}`, fill: "none" }, // -
+        { d: `M 20 0 L ${2 * G} 0`, fill: "none" }, // OUT
+        { d: `M 0 -18 L 0 ${-2 * G}`, fill: "none" }, // V+
+        { d: `M 0 18 L 0 ${2 * G}`, fill: "none" }, // V-
+    ],
+    extraElements: [
+        { type: "text", props: { x: -14, y: -8, fontSize: 10, textAnchor: "middle", children: "+" } },
+        { type: "text", props: { x: -14, y: 16, fontSize: 10, textAnchor: "middle", children: "−" } },
+    ],
+    pins: [
+        { pinId: "3", defaultName: "+", stubStart: { x: -20, y: -12 }, stubEnd: { x: -2 * G, y: -G }, side: "left" },
+        { pinId: "2", defaultName: "−", stubStart: { x: -20, y: 12 }, stubEnd: { x: -2 * G, y: G }, side: "left" },
+        { pinId: "6", defaultName: "OUT", stubStart: { x: 20, y: 0 }, stubEnd: { x: 2 * G, y: 0 }, side: "right" },
+        { pinId: "7", defaultName: "V+", stubStart: { x: 0, y: -18 }, stubEnd: { x: 0, y: -2 * G }, side: "top" },
+        { pinId: "4", defaultName: "V−", stubStart: { x: 0, y: 18 }, stubEnd: { x: 0, y: 2 * G }, side: "bottom" },
+    ],
+};
+// ── Switch ────────────────────────────────────────────
+const switchSPST = {
+    symbolId: "switch",
+    label: "Switch",
+    labelYOffset: 10,
+    hidePinLabels: true,
+    category: "passive",
+    bodyPaths: [
+        // Pin 1 lead
+        { d: `M ${-G} 0 L 0 0`, fill: "none" },
+        // Angled lever from pin1 contact toward pin2
+        { d: `M 0 0 L ${G} ${-G / 2}`, fill: "none" },
+        // Pin 2 lead
+        { d: `M ${G} 0 L ${2 * G} 0`, fill: "none" },
+    ],
+    extraElements: [
+        { type: "circle", props: { cx: 0, cy: 0, r: 2, fill: "currentColor" } },
+        { type: "circle", props: { cx: G, cy: 0, r: 2, fill: "currentColor" } },
+    ],
+    pins: [
+        { pinId: "1", defaultName: "1", stubStart: { x: 0, y: 0 }, stubEnd: { x: -G, y: 0 }, side: "left" },
+        { pinId: "2", defaultName: "2", stubStart: { x: G, y: 0 }, stubEnd: { x: 2 * G, y: 0 }, side: "right" },
+    ],
+};
+// Potentiometer: resistor box with a wiper arrow into the side (3 terminals)
+const potentiometer = {
+    symbolId: "potentiometer",
+    label: "Potentiometer",
+    labelYOffset: 15,
+    category: "passive",
+    bodyPaths: [
+        { d: "M -7 -16 L 7 -16 L 7 16 L -7 16 Z", fill: "none" },
+        { d: `M 0 -16 L 0 ${-2 * G}`, fill: "none" },
+        { d: `M 0 16 L 0 ${2 * G}`, fill: "none" },
+        { d: `M ${-2 * G} 0 L -7 0`, fill: "none" }, // wiper lead into the body
+        { d: "M -7 0 L -14 -4 M -7 0 L -14 4", fill: "none" }, // wiper arrowhead
+    ],
+    pins: [
+        { pinId: "1", defaultName: "VCC", stubStart: { x: 0, y: -16 }, stubEnd: { x: 0, y: -2 * G }, side: "top" },
+        { pinId: "2", defaultName: "OUT", stubStart: { x: -14, y: 0 }, stubEnd: { x: -2 * G, y: 0 }, side: "left" },
+        { pinId: "3", defaultName: "GND", stubStart: { x: 0, y: 16 }, stubEnd: { x: 0, y: 2 * G }, side: "bottom" },
+    ],
+};
+// Push button (momentary SPST): two contacts bridged by a plunger bar
+const pushbutton = {
+    symbolId: "pushbutton",
+    label: "Push Button",
+    labelYOffset: 22,
+    hidePinLabels: true,
+    category: "passive",
+    bodyPaths: [
+        { d: `M ${-2 * G} 0 L -12 0`, fill: "none" }, // left lead
+        { d: `M ${2 * G} 0 L 12 0`, fill: "none" }, // right lead
+        { d: "M -16 -12 L 16 -12", fill: "none" }, // movable bar
+        { d: "M 0 -12 L 0 -22", fill: "none" }, // plunger stem
+        { d: "M -10 -22 L 10 -22", fill: "none" }, // button top
+    ],
+    extraElements: [
+        { type: "circle", props: { cx: -12, cy: 0, r: 2, fill: "currentColor" } },
+        { type: "circle", props: { cx: 12, cy: 0, r: 2, fill: "currentColor" } },
+    ],
+    pins: [
+        { pinId: "1", defaultName: "1", stubStart: { x: -12, y: 0 }, stubEnd: { x: -2 * G, y: 0 }, side: "left" },
+        { pinId: "2", defaultName: "2", stubStart: { x: 12, y: 0 }, stubEnd: { x: 2 * G, y: 0 }, side: "right" },
+    ],
+};
+// ── Static symbol registry ────────────────────────────
+const STATIC_SYMBOLS = [
+    resistor, capacitor, capPolarized, diode, led, zener, inductor, fuse, transformer, switchSPST,
+    potentiometer, pushbutton,
+    npn, pnp, nmos, pmos, vreg,
+    opamp,
+    generic2pin, generic3pin,
+];
+// ── Dynamic symbol generators ─────────────────────────
+/** Create a generic IC symbol. Pins at grid-aligned positions. */
+function createGenericIcSymbol(pinCount) {
+    const pinsPerSide = Math.ceil(pinCount / 2);
+    const rightCount = pinCount - pinsPerSide;
+    const bodyWidth = 80;
+    const halfW = bodyWidth / 2;
+    // Pins spaced G apart, starting at y=0
+    // Center vertically: offset so the group is centered around 0
+    const extent = (pinsPerSide - 1) * G;
+    const yStart = -Math.floor(extent / 2 / G) * G; // round DOWN to grid
+    const pins = [];
+    const bodyTop = yStart - 10;
+    const bodyBottom = yStart + extent + 10;
+    // Left side: top to bottom
+    for (let i = 0; i < pinsPerSide; i++) {
+        const y = yStart + i * G;
+        pins.push({
+            pinId: String(i + 1),
+            defaultName: String(i + 1),
+            stubStart: { x: -halfW, y },
+            stubEnd: { x: -halfW - G, y },
+            side: "left",
+        });
+    }
+    // Right side: bottom to top
+    for (let i = 0; i < rightCount; i++) {
+        const y = yStart + extent - i * G;
+        pins.push({
+            pinId: String(pinsPerSide + i + 1),
+            defaultName: String(pinsPerSide + i + 1),
+            stubStart: { x: halfW, y },
+            stubEnd: { x: halfW + G, y },
+            side: "right",
+        });
+    }
+    // Build body paths including stubs
+    const bodyPaths = [
+        { d: `M ${-halfW} ${bodyTop} L ${halfW} ${bodyTop} L ${halfW} ${bodyBottom} L ${-halfW} ${bodyBottom} Z`, fill: "none" },
+        { d: `M -6 ${bodyTop} A 6 6 0 0 1 6 ${bodyTop}`, fill: "none" }, // notch
+    ];
+    // Add stub lines
+    for (const pin of pins) {
+        bodyPaths.push({ d: `M ${pin.stubStart.x} ${pin.stubStart.y} L ${pin.stubEnd.x} ${pin.stubEnd.y}`, fill: "none" });
+    }
+    return {
+        symbolId: `generic-ic-${pinCount}`,
+        label: `Generic IC (${pinCount}-pin)`,
+        category: "ic",
+        labelYOffset: 14,
+        bodyPaths,
+        pins,
+    };
+}
+/** An IC with its pins in one row (SIP): a narrow box, every pin on the left, pin 1 at the top. */
+function createSipIcSymbol(pinCount) {
+    const halfW = 20;
+    const extent = (pinCount - 1) * G;
+    const yStart = -Math.floor(extent / 2 / G) * G;
+    const bodyTop = yStart - 10;
+    const bodyBottom = yStart + extent + 10;
+    const pins = Array.from({ length: pinCount }, (_, i) => ({
+        pinId: String(i + 1),
+        defaultName: String(i + 1),
+        stubStart: { x: -halfW, y: yStart + i * G },
+        stubEnd: { x: -halfW - G, y: yStart + i * G },
+        side: "left",
+    }));
+    return {
+        symbolId: `sip-ic-${pinCount}`,
+        label: `SIP IC (${pinCount}-pin)`,
+        category: "ic",
+        labelYOffset: 14,
+        bodyPaths: [
+            { d: `M ${-halfW} ${bodyTop} L ${halfW} ${bodyTop} L ${halfW} ${bodyBottom} L ${-halfW} ${bodyBottom} Z`, fill: "none" },
+            ...pins.map((p) => ({ d: `M ${p.stubStart.x} ${p.stubStart.y} L ${p.stubEnd.x} ${p.stubEnd.y}`, fill: "none" })),
+        ],
+        pins,
+    };
+}
+const PIN_BOX_SIDES = {
+    l: { start: { x: -18, y: 0 }, end: { x: -2 * G, y: 0 }, side: "left" },
+    r: { start: { x: 18, y: 0 }, end: { x: 2 * G, y: 0 }, side: "right" },
+    t: { start: { x: 0, y: -16 }, end: { x: 0, y: -2 * G }, side: "top" },
+    b: { start: { x: 0, y: 16 }, end: { x: 0, y: 2 * G }, side: "bottom" },
+};
+/**
+ * A small box with at most one pin per side, for three-leg parts whose legs
+ * follow no common order (regulators, references, sensors). The id names the
+ * side of each pin: "box-l1-b2-r3" puts pin 1 left, 2 below and 3 right.
+ */
+function createPinBoxSymbol(symbolId) {
+    const pins = symbolId.split("-").slice(1).map((token) => {
+        const at = PIN_BOX_SIDES[token[0]];
+        const pinId = token.slice(1);
+        return { pinId, defaultName: pinId, stubStart: at.start, stubEnd: at.end, side: at.side };
+    });
+    return {
+        symbolId,
+        label: "IC",
+        labelYOffset: -5,
+        category: "ic",
+        bodyPaths: [
+            { d: "M -18 -16 L 18 -16 L 18 16 L -18 16 Z", fill: "none" },
+            ...pins.map((p) => ({ d: `M ${p.stubStart.x} ${p.stubStart.y} L ${p.stubEnd.x} ${p.stubEnd.y}`, fill: "none" })),
+        ],
+        pins,
+    };
+}
+/** Create a connector symbol. Pins at grid-aligned positions. */
+function createConnectorSymbol(pinCount) {
+    const bodyWidth = 20;
+    const halfW = bodyWidth / 2;
+    // Ensure stub endpoints land on grid multiples
+    const stubEndX = -Math.ceil((halfW + G) / G) * G; // round outward to grid
+    const extent = (pinCount - 1) * G;
+    const yStart = -Math.floor(extent / 2 / G) * G;
+    const pins = [];
+    const bodyTop = yStart - 10;
+    const bodyBottom = yStart + extent + 10;
+    for (let i = 0; i < pinCount; i++) {
+        const y = yStart + i * G;
+        pins.push({
+            pinId: String(i + 1),
+            defaultName: String(i + 1),
+            stubStart: { x: -halfW, y },
+            stubEnd: { x: stubEndX, y },
+            side: "left",
+        });
+    }
+    const bodyPaths = [
+        { d: `M ${-halfW} ${bodyTop} L ${halfW} ${bodyTop} L ${halfW} ${bodyBottom} L ${-halfW} ${bodyBottom} Z`, fill: "none" },
+    ];
+    for (const pin of pins) {
+        bodyPaths.push({ d: `M ${pin.stubStart.x} ${pin.stubStart.y} L ${pin.stubEnd.x} ${pin.stubEnd.y}`, fill: "none" });
+    }
+    return {
+        symbolId: `connector-${pinCount}`,
+        label: `Connector (${pinCount}-pin)`,
+        category: "connector",
+        bodyPaths,
+        pins,
+    };
+}
+// ── Custom Footprint Symbol ───────────────────────────
+/** Create a symbol that mirrors the stripboard footprint layout — box with pins inside */
+function createFootprintSymbol(pins, width, height) {
+    const cellSpacing = G;
+    const maxRow = height - 1;
+    const maxCol = width - 1;
+    // Round offsets to grid so all pin positions land on grid multiples
+    const offsetX = Math.floor(maxCol / 2) * cellSpacing;
+    const offsetY = Math.floor(maxRow / 2) * cellSpacing;
+    const pad = 8;
+    const bodyLeft = -offsetX - pad;
+    const bodyTop = -offsetY - pad;
+    const bodyRight = (maxCol * cellSpacing - offsetX) + pad;
+    const bodyBottom = (maxRow * cellSpacing - offsetY) + pad;
+    const symbolPins = pins.map((pin) => {
+        const x = pin.offsetCol * cellSpacing - offsetX;
+        const y = pin.offsetRow * cellSpacing - offsetY;
+        // Determine which edge the pin is closest to for label placement
+        const distLeft = pin.offsetCol;
+        const distRight = maxCol - pin.offsetCol;
+        const distTop = pin.offsetRow;
+        const distBottom = maxRow - pin.offsetRow;
+        // Corner pins are equally close to a vertical and a horizontal edge. Break the
+        // tie along the axis the pin's neighbours run in, so the end pins of a column
+        // keep their labels beside them instead of flipping to top/bottom.
+        const inSameCol = pins.filter((p) => p.offsetCol === pin.offsetCol).length;
+        const inSameRow = pins.filter((p) => p.offsetRow === pin.offsetRow).length;
+        const horizDist = Math.min(distLeft, distRight);
+        const vertDist = Math.min(distTop, distBottom);
+        const horizontal = horizDist < vertDist || (horizDist === vertDist && inSameCol >= inSameRow);
+        let side;
+        if (horizontal)
+            side = distRight <= distLeft ? "right" : "left";
+        else
+            side = distTop <= distBottom ? "top" : "bottom";
+        // Anchor the label to the body outline rather than the pin, so every label
+        // keeps the same gap from the edge even when the pin sits further inside.
+        const labelPos = side === "left" ? { x: bodyLeft, y }
+            : side === "right" ? { x: bodyRight, y }
+                : side === "top" ? { x, y: bodyTop }
+                    : { x, y: bodyBottom };
+        return {
+            pinId: pin.id,
+            defaultName: pin.name,
+            stubStart: { x, y },
+            stubEnd: { x, y },
+            side,
+            labelPos,
+        };
+    });
+    return {
+        symbolId: "custom-footprint",
+        label: "Custom",
+        category: "generic",
+        labelYOffset: 10,
+        // Labels attach to the outline (see labelPos), so this is the gap from it
+        pinLabelOffset: 6,
+        bodyPaths: [
+            { d: `M ${bodyLeft} ${bodyTop} L ${bodyRight} ${bodyTop} L ${bodyRight} ${bodyBottom} L ${bodyLeft} ${bodyBottom} Z`, fill: "none" },
+        ],
+        pins: symbolPins,
+    };
+}
+// ── Public API ────────────────────────────────────────
+/** Symbol cache for custom footprint symbols */
+const customSymbolCache = new Map();
+function registerCustomSymbol(defId, symbol) {
+    customSymbolCache.set(`custom-footprint-${defId}`, symbol);
+}
+// A symbol made to size is the same every time, so each id is built once.
+// Custom footprint symbols are not in here: theirs are replaced under the
+// same id when the part is edited.
+const generatedSymbols = new Map();
+function generateSymbol(symbolId) {
+    const icMatch = symbolId.match(/^generic-ic-(\d+)$/);
+    if (icMatch)
+        return createGenericIcSymbol(parseInt(icMatch[1], 10));
+    const connMatch = symbolId.match(/^connector-(\d+)$/);
+    if (connMatch)
+        return createConnectorSymbol(parseInt(connMatch[1], 10));
+    const sipMatch = symbolId.match(/^sip-ic-(\d+)$/);
+    if (sipMatch)
+        return createSipIcSymbol(parseInt(sipMatch[1], 10));
+    if (/^box(-[lrtb]\d+)+$/.test(symbolId))
+        return createPinBoxSymbol(symbolId);
+    return undefined;
+}
+function getSymbolDef(symbolId) {
+    const staticMatch = STATIC_SYMBOLS.find((s) => s.symbolId === symbolId);
+    if (staticMatch)
+        return staticMatch;
+    // Custom footprint symbols
+    const cached = customSymbolCache.get(symbolId);
+    if (cached)
+        return cached;
+    let generated = generatedSymbols.get(symbolId);
+    if (!generated) {
+        generated = generateSymbol(symbolId);
+        if (generated)
+            generatedSymbols.set(symbolId, generated);
+    }
+    return generated;
+}

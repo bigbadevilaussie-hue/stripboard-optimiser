@@ -1,0 +1,18 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.BUILTIN_DEFS = void 0;
+exports.BUILTIN_DEFS = {
+    "def-resistor": { symbol: "resistor", pins: ["1", "2"], hasValue: true, labelPrefix: "R", width: 1, height: 1 },
+    "def-capacitor": { symbol: "capacitor", pins: ["1", "2"], hasValue: true, labelPrefix: "C", width: 1, height: 1 },
+    "def-cap-polarized": { symbol: "cap-polarized", pins: ["+", "-"], hasValue: true, labelPrefix: "C", width: 1, height: 1 },
+    "def-led": { symbol: "led", pins: ["A", "K"], hasValue: true, labelPrefix: "D", width: 1, height: 1 },
+    "def-diode": { symbol: "diode", pins: ["A", "K"], hasValue: true, labelPrefix: "D", width: 1, height: 1 },
+    "def-zener": { symbol: "zener", pins: ["A", "K"], hasValue: true, labelPrefix: "D", width: 1, height: 1 },
+    "def-fuse": { symbol: "fuse", pins: ["1", "2"], hasValue: true, labelPrefix: "F", width: 1, height: 1 },
+    "def-switch": { symbol: "switch", pins: ["1", "2"], hasValue: false, labelPrefix: "SW", width: 2, height: 2 },
+    "def-pushbutton": { symbol: "pushbutton", pins: ["1", "2"], hasValue: false, labelPrefix: "SW", width: 2, height: 2 },
+    "def-inductor": { symbol: "inductor", pins: ["1", "2"], hasValue: true, labelPrefix: "L", width: 1, height: 1 },
+    "def-npn": { symbol: "npn", pins: ["B", "C", "E"], hasValue: true, labelPrefix: "Q", width: 2, height: 2 },
+    "def-pmos": { symbol: "pmos", pins: ["G", "D", "S"], hasValue: true, labelPrefix: "Q", width: 2, height: 2 },
+    "def-connector-2": { symbol: "connector-2", pins: ["1", "2"], hasValue: false, labelPrefix: "J", width: 1, height: 1 },
+};

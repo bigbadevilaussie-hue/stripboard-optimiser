@@ -17,7 +17,11 @@
     "types": [
       "node"
     ],
-    "jsx": "react-jsx"
+    "jsx": "react-jsx",
+    "lib": [
+      "ES2021",
+      "DOM"
+    ]
   },
   "include": [
     "./**/*.ts"
