@@ -1,43 +1,43 @@
 # Stripboard Optimiser
 
-**A stripboard (Veroboard) layout optimiser built on the Stripboard Editor project.**
+A development fork of [KarloFunke's Stripboard Editor](https://github.com/KarloFunke/stripboard-editor), focused on practical Veroboard/stripboard design, standalone rendering and a separate desktop optimisation workflow.
 
-Stripboard Optimiser is a development fork of [KarloFunke's Stripboard Editor](https://github.com/KarloFunke/stripboard-editor). The aim is to retain the editor's useful stripboard design workflow while adding a headless optimisation engine, independent layout validation, candidate comparison and a dedicated desktop interface.
+This is **not** a PCB design or fabrication application.
 
-This repository is under active development. The existing web editor is the starting application. The optimisation workflow and desktop application described below are the project direction; they should not be assumed to be implemented or production-ready yet.
+## Repository status
 
-## Project direction
+The repository currently contains three related parts:
 
-The goal is to help turn an existing circuit layout into a more practical, compact and buildable stripboard design.
+1. **Inherited web editor** — the existing Next.js frontend and Django backend.
+2. **Standalone renderers** — Node.js command-line tools for the stripboard's component side, copper side and schematic.
+3. **Desktop prototype** — a Tkinter interface with project import/preflight UI and a three-view image viewer. The desktop optimiser is not yet runnable as a complete application: its UI imports `stripboard_optimizer.solver.worker.SolveWorker`, but that module is not present in the current repository. Packaging and a complete dependency/install workflow are also not present.
 
-Planned capabilities include:
+The optimisation engine, validation pipeline, candidate management and desktop distribution requirements remain defined in [project.md](project.md). That document is the specification; it must not be read as proof that every requirement has been implemented.
 
-- **Optimise layouts:** run repeatable optimisation attempts with configurable effort, random seeds and worker count.
-- **Respect design constraints:** preserve fixed components, excluded components, board dimensions and placement restrictions.
-- **Handle real components:** import project JSON and custom part definitions, validate footprints and pin locations, and report missing definitions.
-- **Validate candidates:** check component placement, overlaps, electrical connectivity and unintended shorts independently of the optimiser.
-- **Compare results:** assess candidates using board area, wire count and length, cuts, track continuity and other layout measures—not just the solver's internal score.
-- **Review and export:** inspect candidate layouts and export a selected, validated result without overwriting the original project.
+## Repository layout
 
-The detailed requirements and staged development plan are maintained in [project.md](project.md).
+```text
+stripboard-optimiser/
+├── README.md                         # Repository overview and entry points
+├── project.md                        # Canonical project specification and status notes
+├── desktop/
+│   ├── README.md                     # Desktop prototype status and file map
+│   └── src/stripboard_optimizer/     # Tkinter desktop application source
+│       ├── ui/
+│       └── resources/standalone-renderer/ # Bundled JavaScript renderer runtime
+└── src/
+    ├── backend/                      # Django backend
+    ├── frontend/                     # Next.js application and renderer source
+    │   └── standalone-renderer/
+    │       ├── schematic/            # Schematic SVG renderer source
+    │       ├── dist/                 # Compiled JavaScript renderer
+    │       └── README.md             # Renderer build, CLI and parity documentation
+    └── nginx/                        # Nginx deployment configuration
+```
 
-## Existing application
+## Run the inherited web application
 
-The repository currently contains the inherited Stripboard Editor web application. It provides the existing schematic and stripboard design workflow, including component placement, copper-strip net colouring, cuts, link wires, layout conflict feedback and printable build templates.
-
-The current application is a web application built with Next.js and Django. The planned desktop optimiser is a separate development goal; this README does not imply that a desktop build or the complete optimisation pipeline is already available.
-
-## Running the existing web editor locally
-
-These instructions are for running the inherited web application, not for running a completed desktop optimiser.
-
-### Requirements
-
-- Node.js and npm
-- Python 3
-- The Python dependencies listed in `src/backend/requirements.txt`
-
-The frontend also provides optional build scripts for WebAssembly and native solver components. Those scripts require a compatible Clang toolchain and, for the native Node addon, the relevant Node development headers.
+These instructions run the existing web editor. They do not launch the desktop prototype or a completed optimiser.
 
 ### Backend
 
@@ -68,9 +68,9 @@ npm run dev
 
 The Next.js frontend is served at `http://localhost:3000`.
 
-The example environment files are templates. Review and configure their values for your local setup before running the application. Do not commit real credentials, secrets or local environment files.
+The example environment files are templates. Configure them for the local environment. Never commit real credentials, secrets or local environment files.
 
-### Available frontend scripts
+### Frontend scripts
 
 Run these from `src/frontend`:
 
@@ -80,118 +80,88 @@ Run these from `src/frontend`:
 | `npm run build` | Build the frontend |
 | `npm run start` | Start the built frontend |
 | `npm run lint` | Run ESLint |
-| `npm run test:solver` | Run the solver test suite |
+| `npm run test:solver` | Run solver tests |
 | `npm run test:schematic` | Run schematic tests |
 | `npm run test:board` | Run board tests |
 | `npm run test:branches` | Run branch tests |
 | `npm run build:wasm` | Compile the existing C solver sources to WebAssembly |
 | `npm run build:native` | Build the existing native solver libraries and Node addon |
+| `npm run check:agent-docs` | Run the repository's agent-documentation consistency check |
 
-The solver build scripts compile existing code; they do not by themselves provide the new optimiser pipeline described in [project.md](project.md).
+The solver build scripts compile existing solver code. They do not by themselves implement the complete optimiser pipeline described in [project.md](project.md).
 
-## Standalone stripboard renderer
+## Standalone rendering
 
-The frontend also contains a standalone Node.js renderer that converts a saved project JSON file into two SVG views:
+The standalone renderer is TypeScript source under `src/frontend/standalone-renderer/`. Its compiled JavaScript is under `src/frontend/standalone-renderer/dist/`.
 
-- `board-top.svg` — component side.
-- `board-copper.svg` — copper side.
+It provides two separate command-line entry points:
 
-This renderer is separate from the planned desktop optimiser described in `project.md`. It is a command-line utility extracted from the existing frontend rendering implementation; it does not run the optimisation pipeline.
+| Renderer | Compiled entry point | Output |
+|---|---|---|
+| Stripboard | `dist/standalone-renderer/cli.js` | `board-top.svg`, `board-copper.svg` |
+| Schematic | `dist/standalone-renderer/schematic/cli.js` | `schematic.svg` |
 
-### Build
-
-From `src/frontend`:
+Build from `src/frontend`:
 
 ```bash
 ./node_modules/.bin/tsc -p standalone-renderer/tsconfig.json
 ./node_modules/.bin/tsc-alias -p standalone-renderer/tsconfig.json
 ```
 
-Run `tsc-alias` immediately after TypeScript compilation to rewrite the `@/` path aliases in the emitted JavaScript.
-
-The compiled CLI is:
-
-```text
-standalone-renderer/dist/standalone-renderer/cli.js
-```
-
-There is no dedicated npm script for this build.
-
-### Run
-
-From `src/frontend`:
+Run the board renderer:
 
 ```bash
-node standalone-renderer/dist/standalone-renderer/cli.js <project.json> [--output <dir>]
+node standalone-renderer/dist/standalone-renderer/cli.js <project.json> --output <dir>
 ```
 
-For example, using the included example project:
+Run the schematic renderer:
 
 ```bash
-node standalone-renderer/dist/standalone-renderer/cli.js standalone-renderer/example-project.json --output /tmp/render-test
+node standalone-renderer/dist/standalone-renderer/schematic/cli.js <project.json> --output <dir>
 ```
 
-The CLI accepts `--output <dir>`, `-o <dir>` or `--output=<dir>`. If omitted, output is written to the current directory. The output directory is created automatically.
+Both CLIs accept `--output <dir>` and `-o <dir>`. The schematic CLI writes `schematic.svg`; the board CLI writes the top and copper SVGs. Detailed input expectations, source layout, test compilation and recorded parity results are in [the renderer README](src/frontend/standalone-renderer/README.md).
 
-The input JSON must contain a top-level `board` object and a `components` array. The CLI generates `board-top.svg` and `board-copper.svg`, and reports board dimensions, component count, wire count and cut count.
+## Desktop prototype
 
-### Parity tests
+The desktop source is in `desktop/src/stripboard_optimizer/`. Its current UI includes project loading, netlist and KiCad ZIP selection, preflight display, optimisation-mode selection, solver controls and a board viewer with Front (Top), Back (Copper) and Schematic views.
 
-Compile the tests from `src/frontend`:
+The renderer runtime used by the desktop is bundled under:
 
-```bash
-rm -rf standalone-renderer/dist-test
-./node_modules/.bin/tsc -p standalone-renderer/tsconfig.test.json
-./node_modules/.bin/tsc-alias -p standalone-renderer/tsconfig.test.json
-```
+`desktop/src/stripboard_optimizer/resources/standalone-renderer/`
 
-Then run the five parity tests:
+The TypeScript source of truth remains under `src/frontend/standalone-renderer/`; `dist/` is its compiled output, and the desktop resources directory is the runtime copy consumed by the Python UI.
 
-```bash
-node standalone-renderer/dist-test/standalone-renderer/test_compare.js
-node standalone-renderer/dist-test/standalone-renderer/test_static_part_parity.js
-node standalone-renderer/dist-test/standalone-renderer/test_static_part_colours.js
-node standalone-renderer/dist-test/standalone-renderer/test_board_parity.js
-node standalone-renderer/dist-test/standalone-renderer/test_part_drawing_parity.js
-```
-
-The reported parity runs used two local fixtures outside the repository clone:
-
-- `~/Desktop/repo/motomix.json`
-- `~/Desktop/repo/moto14wires30cuts.json`
-
-Those fixture paths must exist for the corresponding parity tests to run as reported. The clean clone also contains `test-fixtures/masters/moto/moto.json` and `test-fixtures/masters/audio/audio.json`; these are not the external fixtures used in those parity runs.
-
-For the renderer's file-by-file architecture, CLI validation behaviour and recorded parity results, see [the standalone renderer README](src/frontend/standalone-renderer/README.md).
+**Desktop status warning:** the current UI imports a missing `desktop/src/stripboard_optimizer/solver/worker.py`. Therefore the desktop entry point cannot currently be treated as launch-ready. The repository also has no desktop `pyproject.toml`, requirements file, installer or packaging workflow. See [desktop/README.md](desktop/README.md) for the verified file map and limitations.
 
 ## Deployment
 
-The repository retains the inherited Docker deployment configuration:
+The inherited web deployment files remain:
 
-- `docker-compose.yml` defines the Django, Next.js and Nginx services.
-- `deploy.sh` pulls the current Git branch, rebuilds the Docker services and updates the running deployment.
+- `docker-compose.yml` — Django, Next.js and Nginx services.
+- `deploy.sh` — existing deployment helper.
 
-These files belong to the existing web application deployment. They are not the packaging or release process for the planned macOS, Windows and Linux desktop applications.
+These are for the inherited web application. They are not a desktop packaging or release process.
 
-## Development roadmap
+## Development direction
 
-The optimiser work is intended to proceed in stages:
+The planned optimiser workflow is:
 
-1. **Headless pipeline:** input normalisation, solver execution, candidate preservation and run manifests.
-2. **Validation and ranking:** independent electrical and physical checks, metrics and Pareto-based candidate comparison.
-3. **Desktop GUI:** configure runs, monitor progress, inspect and compare candidates, and export a validated result.
-4. **Distribution:** package standalone applications for macOS, Windows and Linux.
+1. Import and normalise project data without changing circuit topology.
+2. Run the existing headless solver reproducibly.
+3. Preserve and independently validate candidate layouts.
+4. Rank and compare valid candidates using physical and electrical measures.
+5. Export a selected validated project without overwriting the original.
+6. Package the desktop application for macOS, Windows and Linux.
 
-See [project.md](project.md) for the complete scope, constraints and acceptance criteria.
+Requirements and acceptance criteria are in [project.md](project.md). Implemented behaviour must be verified against source and tests before it is described as complete.
 
 ## Credits and licensing
 
-This project is derived from [Stripboard Editor by KarloFunke](https://github.com/KarloFunke/stripboard-editor). The original project's authorship, copyright notices and licence terms remain applicable to inherited code. This fork is distributed under the repository's GPL-3.0 licence; see [LICENSE](LICENSE).
+This project is derived from [Stripboard Editor by KarloFunke](https://github.com/KarloFunke/stripboard-editor). Original authorship, copyright notices and licence terms continue to apply to inherited code. This fork is distributed under the repository's GPL-3.0 licence; see [LICENSE](LICENSE).
 
-The built-in IC pinout data is derived from the [KiCad symbol library](https://gitlab.com/kicad/libraries/kicad-symbols) by the KiCad Library Team and is licensed under [CC-BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). The inherited import script is `src/frontend/scripts/importKicadIcs.js`, and the resulting data is in `src/frontend/data/icLibrary.ts`; the applicable attribution and share-alike terms continue to apply.
+Built-in IC pinout data is derived from the [KiCad symbol library](https://gitlab.com/kicad/libraries/kicad-symbols) by the KiCad Library Team and is licensed under [CC-BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). The inherited import script is `src/frontend/scripts/importKicadIcs.js`, and the resulting data is in `src/frontend/data/icLibrary.ts`; applicable attribution and share-alike terms continue to apply.
 
 ## Contributing and feedback
 
-Bug reports, feature requests and development discussion can be raised through the [GitHub issues](https://github.com/bigbadevilaussie-hue/stripboard-optimiser/issues) for this fork.
-
-When reporting an issue, include the project JSON or a minimal reproducible example where possible. Remove private or sensitive information before sharing project files.
+Use the [GitHub issues](https://github.com/bigbadevilaussie-hue/stripboard-optimiser/issues) for bug reports and feature requests. Include a minimal reproducible project JSON where possible, with private or sensitive information removed.
