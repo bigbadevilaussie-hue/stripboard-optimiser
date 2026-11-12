@@ -871,3 +871,83 @@ Before accepting any solver, preprocessing, routing or export change:
   protected project properties with the original fixtures.
 
 A lower weighted solver score alone is not a passing regression result.
+
+
+## 26. Implementation snapshot — 2026-11-13
+
+This section records a source-tree inspection of the repository at commit
+`affa0f5`. It is an implementation snapshot, not a replacement for the
+requirements and acceptance criteria above. A feature described in earlier
+sections remains a requirement until its implementation and verification
+are recorded explicitly.
+
+### 26.1 Web application
+
+The inherited Next.js frontend, Django backend and Nginx/Docker deployment
+remain in the repository. Their existing run and deployment instructions
+are in the root README.
+
+### 26.2 Standalone rendering
+
+The frontend renderer now has two separate TypeScript CLI entry points:
+
+- `src/frontend/standalone-renderer/cli.ts` renders the component-side and
+  copper-side board SVGs.
+- `src/frontend/standalone-renderer/schematic/cli.ts` renders a schematic
+  SVG from schematic data in a project JSON file.
+
+The production TypeScript configuration includes the schematic source.
+Compiled JavaScript is under `src/frontend/standalone-renderer/dist/`.
+The desktop UI has a bundled runtime copy under
+`desktop/src/stripboard_optimizer/resources/standalone-renderer/`.
+Keep the source, compiled output and desktop runtime copy synchronised when
+renderer code changes. The desktop UI's `Render JSON...` action invokes the
+board and schematic CLIs separately, converts available SVG files to PNG
+with `rsvg-convert`, and provides Front (Top), Back (Copper) and Schematic
+views.
+
+The standalone renderer's parity test sources and their recorded historical
+results are documented in
+`src/frontend/standalone-renderer/README.md`. Those historical results
+must not be described as a fresh test run unless the tests are rerun.
+
+### 26.3 Desktop application status
+
+The tracked desktop prototype is under `desktop/src/stripboard_optimizer/`.
+The current UI includes project JSON loading, optional netlist and KiCad ZIP
+loading, a preflight panel, mode-selection controls, solver-worker queue
+handling, renderer invocation and a three-view image viewer.
+
+**Known launch blocker at this snapshot:**
+`desktop/src/stripboard_optimizer/ui/main_window.py` imports
+`stripboard_optimizer.solver.worker.SolveWorker`, but the tracked
+`desktop/src/stripboard_optimizer/solver/` directory contains only
+`__init__.py`. The imported worker module is absent. The desktop entry point
+therefore must not be described as launch-ready until that module is
+implemented and the application is run successfully.
+
+The current desktop tree also has no `pyproject.toml`, desktop requirements
+file, installer or packaging configuration. The current render path calls
+Node.js and `rsvg-convert`; the image viewer uses Pillow. Cross-platform
+path handling, dependency management and packaging remain to be completed.
+
+The desktop README documents the actual tracked file structure and current
+limitations. Do not infer that the broader desktop architecture specified
+in Sections 2–24 exists merely because its target modules are listed there.
+
+### 26.4 Documentation maintenance rule
+
+Keep these documents aligned by responsibility:
+
+- Root `README.md`: repository overview, web setup, renderer entry points,
+  desktop status and links to detailed documentation.
+- `desktop/README.md`: actual desktop file tree, current UI behaviour,
+  runtime dependencies and known launch blockers.
+- `src/frontend/README.md`: frontend setup and npm scripts.
+- `src/frontend/standalone-renderer/README.md`: renderer source, build,
+  CLI inputs/outputs, desktop runtime copy and parity tests.
+- `project.md`: canonical target requirements, acceptance criteria and
+  dated implementation snapshots.
+
+When implementation changes, update the document responsible for that
+area. Do not describe planned or unverified behaviour as implemented.
