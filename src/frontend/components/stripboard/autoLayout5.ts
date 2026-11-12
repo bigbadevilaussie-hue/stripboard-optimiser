@@ -297,6 +297,30 @@ export function computeAutoLayout5(
   const netIdx = new Map(nets.map((n, i) => [n.id, i]));
   const netByPin = new Map(netAssignments.map((a) => [a.componentId + ":" + a.pinId, netIdx.get(a.netId)]));
 
+  // Pre-solve validation: a locked flexible part must have a well-defined
+  // original orientation (horizontal or vertical). Missing, identical or
+  // diagonal endpoints are invalid input.
+  for (const c of components) {
+    if (c.boardExcluded) continue;
+    const def = resolveComponentDef(c, componentDefs);
+    if (!def || !def.flexible || !c.locked) continue;
+    if (!c.boardPos) {
+      throw new Error(`Locked flexible part "${c.label}" has no boardPos`);
+    }
+    const ep = c.flexibleEndPos;
+    if (!ep) {
+      throw new Error(`Locked flexible part "${c.label}" has no flexibleEndPos`);
+    }
+    const sameRow = c.boardPos.row === ep.row;
+    const sameCol = c.boardPos.col === ep.col;
+    if (sameRow && sameCol) {
+      throw new Error(`Locked flexible part "${c.label}" has identical endpoints (${c.boardPos.row},${c.boardPos.col})`);
+    }
+    if (!sameRow && !sameCol) {
+      throw new Error(`Locked flexible part "${c.label}" has diagonal endpoints (${c.boardPos.row},${c.boardPos.col}) to (${ep.row},${ep.col})`);
+    }
+  }
+
   // ── model ──
   const parts: Part[] = [];
   const skipped: Component[] = [];
@@ -452,7 +476,9 @@ export function computeAutoLayout5(
       const sh = p.shapes.get(rotOfPart(g, pi))!;
       return { w: sh.w, h: sh.h, sh };
     }
-    const mode: "H" | "V" = flexBit(g.hv, pi) === 1 && p.canH ? "H" : "V";
+    const mode: "H" | "V" = p.locked
+      ? (p.comp.boardPos!.row === p.comp.flexibleEndPos!.row ? "H" : "V")
+      : (flexBit(g.hv, pi) === 1 && p.canH ? "H" : "V");
     return mode === "H" ? { w: p.dc0 + 1, h: 1, mode } : { w: 1, h: 0, mode };
   });
 
@@ -471,7 +497,7 @@ export function computeAutoLayout5(
           const lockRot = p.locked ? Math.max(0, (ROTS as number[]).indexOf(p.comp.rotation)) : 0;
           const lsh = p.shapes.get(ROTS[lockRot])!;
           return {
-            ...common, kind: 0 as const, idx: rigidIdx.indexOf(pi), lockRot,
+            ...common, kind: 0 as const, idx: rigidIdx.indexOf(pi), lockRot, lockFlexH: 0,
             lockY0: p.locked ? p.comp.boardPos!.row + lsh.dRow : 0, lockY1: 0, lockX: p.locked ? p.comp.boardPos!.col + lsh.dCol : 0,
             shapes: ROTS.map((r) => {
               const sh = p.shapes.get(r)!;
@@ -480,9 +506,10 @@ export function computeAutoLayout5(
           };
         }
         const bp = p.comp.boardPos, ep = p.comp.flexibleEndPos ?? bp;
+        const lockFlexH = p.locked ? (bp!.row === ep!.row ? 1 : 0) : 0;
         const spec = profOf[pi]!.spec;
         return {
-          ...common, kind: 1 as const, idx: flexIdx.indexOf(pi), lockRot: 0,
+          ...common, kind: 1 as const, idx: flexIdx.indexOf(pi), lockRot: 0, lockFlexH,
           lockY0: p.locked ? Math.min(bp!.row, ep!.row) : 0, lockY1: p.locked ? Math.max(bp!.row, ep!.row) : 0, lockX: p.locked ? Math.min(bp!.col, ep!.col) : 0,
           flex: {
             na: p.na ?? -1, nb: p.nb ?? -1, minS: p.minS, maxS: p.maxS, canH: p.canH, dc0: p.dc0,
@@ -503,7 +530,7 @@ export function computeAutoLayout5(
       pullNets: pullGroups.map((g) => g.parts),
       pullNet: pullGroups.map((g) => g.net),
       halfTurn: rigidIdx.map((pi) => !!parts[pi].def.halfTurnOnly),
-      canHV: flexIdx.map((pi) => { const p = parts[pi] as FlexPart; return p.canH && p.canV; }),
+      canHV: flexIdx.map((pi) => { const p = parts[pi] as FlexPart; return p.canH && p.canV && !p.locked; }),
       rotK,
     };
   };

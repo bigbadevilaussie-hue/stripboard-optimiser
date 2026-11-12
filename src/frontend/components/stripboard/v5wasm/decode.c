@@ -98,7 +98,7 @@ enum { SH_OTHER = 0, SH_AXIAL = 1, SH_CAN = 2, SH_LED = 3 };
 
 static i32 nP, nNets, nFlex, nRigid, mRow, mCol, lockRowsCap, lockColsCap, sidesDef, nNP, clrPad, maxNet, maxK, nSib;
 static double wBCut;
-static i32 *pKind, *pLocked, *pIsConn, *pClr, *pLines, *pFat, *pIdx, *pSides, *pLockY0, *pLockY1, *pLockX, *pLockRot, *pShapeBase;
+static i32 *pKind, *pLocked, *pIsConn, *pClr, *pLines, *pFat, *pIdx, *pSides, *pLockY0, *pLockY1, *pLockX, *pLockRot, *pLockFlexH, *pShapeBase;
 static i32 *fNa, *fNb, *fMinS, *fMaxS, *fCanH, *fDc0, *fVdOff, *fHasSpec, *fShape, *fMark;
 static double *fLen, *fR;
 static i32 *vdTab;
@@ -257,7 +257,7 @@ EXPORT(v5_init) i32 *v5_init(i32 *mi, double *md) {
   i32 nShapes = ri(), nShapePins = ri(), nVd = ri(), nSibPi = ri();
   wBCut = F[fd++];
   pKind = rarr(nP); pLocked = rarr(nP); pIsConn = rarr(nP); pClr = rarr(nP); pLines = rarr(nP); pFat = rarr(nP);
-  pIdx = rarr(nP); pSides = rarr(nP); pLockY0 = rarr(nP); pLockY1 = rarr(nP); pLockX = rarr(nP); pLockRot = rarr(nP); pShapeBase = rarr(nP);
+  pIdx = rarr(nP); pSides = rarr(nP); pLockY0 = rarr(nP); pLockY1 = rarr(nP); pLockX = rarr(nP); pLockRot = rarr(nP); pLockFlexH = rarr(nP); pShapeBase = rarr(nP);
   fNa = rarr(nP); fNb = rarr(nP); fMinS = rarr(nP); fMaxS = rarr(nP); fCanH = rarr(nP); fDc0 = rarr(nP);
   fVdOff = rarr(nP); fHasSpec = rarr(nP); fShape = rarr(nP); fMark = rarr(nP);
   fLen = rdarr(nP); fR = rdarr(nP);
@@ -658,7 +658,8 @@ static i32 decode(void) {
       geoShape[pi] = s; geoW[pi] = sW[s]; geoH[pi] = sH[s]; geoMode[pi] = 0;
       outKey[pi] = rot;
     } else {
-      i32 hmode = gHv[pIdx[pi]] == 1 && fCanH[pi];
+      if (pLocked[pi] && pLockFlexH[pi] != 0 && pLockFlexH[pi] != 1) { outI[0] = 0; return 0; }
+      i32 hmode = pLocked[pi] ? pLockFlexH[pi] : (gHv[pIdx[pi]] == 1 && fCanH[pi]);
       geoShape[pi] = -1;
       if (hmode) { geoMode[pi] = 1; geoW[pi] = fDc0[pi] + 1; geoH[pi] = 1; }
       else { geoMode[pi] = 2; geoW[pi] = 1; geoH[pi] = 0; }
@@ -1319,6 +1320,7 @@ static i32 decode(void) {
     }
     sibling += W_SIBLING * imax(0, r1 - r0 + (c1 - c0) - (n - 1));
   }
+
   double price =
     W_AREA * (physH * physW + aspectOver) + W_WIRE * wires + W_WLEN * wireLen +
     W_CUT * cuts + wBCut * bCuts + W_LOCKOVER * lockOver + connEdge + shaftIn + sibling;

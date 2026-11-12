@@ -18,7 +18,7 @@ export interface WasmPart {
   kind: 0 | 1; locked: boolean; isConn: boolean; clr: number; lines: number; fat: boolean;
   idx: number; // position in rigidIdx / flexIdx
   sides: number; // connector edges bit mask (1 left, 2 right, 4 top, 8 bottom), -1: the solve's default
-  lockY0: number; lockY1: number; lockX: number; lockRot: number;
+  lockY0: number; lockY1: number; lockX: number; lockRot: number; lockFlexH: number;
   shapes?: WasmShape[]; // rigid: one per rotation index
   flex?: WasmFlex;
 }
@@ -245,7 +245,7 @@ function serialize(m: WasmModel): { ints: Int32Array; dbls: Float64Array } {
   const col = (f: (p: WasmPart) => number) => { for (const p of P) I.push(f(p)); };
   const b = (x: boolean | undefined) => (x ? 1 : 0);
   col((p) => p.kind); col((p) => b(p.locked)); col((p) => b(p.isConn)); col((p) => p.clr); col((p) => p.lines); col((p) => b(p.fat));
-  col((p) => p.idx); col((p) => p.sides); col((p) => p.lockY0); col((p) => p.lockY1); col((p) => p.lockX); col((p) => p.lockRot);
+  col((p) => p.idx); col((p) => p.sides); col((p) => p.lockY0); col((p) => p.lockY1); col((p) => p.lockX); col((p) => p.lockRot); col((p) => p.lockFlexH);
   let sb = 0;
   col((p) => { if (!p.shapes) return -1; const s = sb; sb += p.shapes.length; return s; });
   col((p) => p.flex?.na ?? -1); col((p) => p.flex?.nb ?? -1); col((p) => p.flex?.minS ?? 0); col((p) => p.flex?.maxS ?? 0);
