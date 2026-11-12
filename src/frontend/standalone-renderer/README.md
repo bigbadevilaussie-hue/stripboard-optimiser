@@ -1,20 +1,41 @@
-# Standalone Stripboard Renderer
+# Standalone renderers
 
-A Node.js command-line renderer that converts a saved Stripboard Optimiser project JSON file into two SVG files:
+This directory contains two Node.js command-line renderers extracted from the frontend rendering implementation:
 
-- `board-top.svg` — component side.
-- `board-copper.svg` — copper side.
+1. The **stripboard renderer** creates component-side and copper-side SVGs.
+2. The **schematic renderer** creates a schematic SVG from the schematic data in a saved project JSON.
 
-The renderer is extracted from the existing frontend and runs in Node.js without React, Zustand, Next.js or a browser DOM in its production rendering path.
+The production rendering paths use Node.js filesystem APIs and SVG generation; they do not require React, Zustand, Next.js or a browser DOM.
+
+## Location and outputs
+
+Source of truth:
+
+`src/frontend/standalone-renderer/`
+
+Compiled JavaScript:
+
+`src/frontend/standalone-renderer/dist/`
+
+The desktop application's bundled runtime copy:
+
+`desktop/src/stripboard_optimizer/resources/standalone-renderer/`
+
+The desktop copy is a runtime bundle. Make renderer source changes in this directory, rebuild `dist/`, then keep the desktop runtime copy synchronised. There is currently no automated sync script documented for that copy.
+
+| Renderer | TypeScript entry point | Compiled entry point | Output |
+|---|---|---|---|
+| Stripboard | `cli.ts` | `dist/standalone-renderer/cli.js` | `board-top.svg`, `board-copper.svg` |
+| Schematic | `schematic/cli.ts` | `dist/standalone-renderer/schematic/cli.js` | `schematic.svg` |
 
 ## Requirements
 
-- Node.js
-- Dependencies installed in `src/frontend/node_modules`
-- TypeScript compiler
-- `tsc-alias`
+- Node.js.
+- Frontend dependencies installed in `src/frontend/node_modules`.
+- TypeScript compiler.
+- `tsc-alias`.
 
-Run commands from:
+Run commands from the frontend directory:
 
 ```bash
 cd ~/Documents/stripboard-optimiser/src/frontend
@@ -29,164 +50,125 @@ Compile the production renderer:
 ./node_modules/.bin/tsc-alias -p standalone-renderer/tsconfig.json
 ```
 
-Run `tsc-alias` immediately after TypeScript compilation. It rewrites the `@/` path aliases in the emitted JavaScript.
+Run `tsc-alias` immediately after TypeScript compilation to rewrite the `@/` aliases in emitted JavaScript.
 
-Compiled output:
+The production TypeScript configuration includes all `.ts` files under this directory, including the schematic renderer. It excludes `dist/` and `node_modules/`.
 
-```text
-standalone-renderer/dist/
-```
+There is no dedicated standalone-renderer npm script in `src/frontend/package.json`.
 
-CLI entry point:
+## Stripboard CLI
 
-```text
-standalone-renderer/dist/standalone-renderer/cli.js
-```
-
-There is currently no dedicated standalone-renderer build script in `package.json`.
-
-## Usage
+Run:
 
 ```bash
 node standalone-renderer/dist/standalone-renderer/cli.js <project.json> [--output <dir>]
 ```
 
-Example using the included example project:
+Example:
 
 ```bash
-node standalone-renderer/dist/standalone-renderer/cli.js standalone-renderer/example-project.json --output /tmp/render-test
+node standalone-renderer/dist/standalone-renderer/cli.js standalone-renderer/example-project.json --output /tmp/board-render
 ```
 
-### Arguments
+Options:
 
 | Argument | Description |
 |---|---|
-| `project.json` | Input project JSON file. Required. |
+| `project.json` | One saved project JSON file; required. |
 | `--output <dir>` | Output directory. |
 | `-o <dir>` | Short form of `--output`. |
-| `--output=<dir>` | Equals-sign form of the output option. |
+| `--output=<dir>` | Equals-sign form. |
 
-If `--output` is omitted, the current working directory (`.`) is used. The output directory is created automatically when necessary.
+If no output directory is supplied, the current working directory is used. The output directory is created automatically.
 
-### Generated files
+The input must be a JSON object containing a `board` object and a `components` array. The renderer produces:
 
-```text
-<output-directory>/
-├── board-top.svg
-└── board-copper.svg
-```
+- `board-top.svg` — component side.
+- `board-copper.svg` — copper side.
 
-The CLI reports board dimensions, component count, wire count, cut count and the paths of both generated files.
+The CLI reports board dimensions, component count, wire count and cut count. Missing or non-array `board.wires` and `board.cuts` are reported as zero.
 
-## Input JSON
+## Schematic CLI
 
-The CLI accepts a saved project JSON file directly; no conversion or preprocessing is required.
-
-The CLI checks for these top-level properties:
-
-- `board` — an object.
-- `components` — an array.
-
-The renderer consumes the project's board and component data to generate the SVG output. The CLI reports `board.rows`, `board.cols`, `board.wires` and `board.cuts`. If `board.wires` or `board.cuts` is absent or is not an array, its reported count is zero.
-
-### Example project
-
-The included example is:
-
-```text
-standalone-renderer/example-project.json
-```
-
-It is accepted directly by the CLI. The verified invocation:
+Run:
 
 ```bash
-node standalone-renderer/dist/standalone-renderer/cli.js standalone-renderer/example-project.json --output /tmp/render-test
+node standalone-renderer/dist/standalone-renderer/schematic/cli.js <project.json> [--output <dir>]
 ```
 
-reported:
+Example:
 
-```text
-Board:     69 rows x 69 cols
-Components: 2
-Wires:     0
-Cuts:      0
-Wrote:     /tmp/render-test/board-top.svg
-Wrote:     /tmp/render-test/board-copper.svg
+```bash
+node standalone-renderer/dist/standalone-renderer/schematic/cli.js path/to/project.json --output /tmp/schematic-render
 ```
 
-## Error handling
+The schematic CLI accepts `--output <dir>` or `-o <dir>`. It writes `schematic.svg` into the selected directory (or the current directory if no output directory is supplied).
 
-The CLI exits with status 1 and reports an error for:
+The schematic renderer reads these project fields:
 
-- Missing input file.
-- Invalid JSON.
-- JSON that is not an object.
-- Missing or invalid `board` object.
-- Missing or invalid `components` array.
-- Unknown command-line options.
-- Missing output directory argument.
-- Rendering failures.
+- `components`
+- `componentDefs`
+- `nets`
+- `netAssignments`
+- `schematicWires`
+- `netLabels`
 
-Only one input project JSON file is accepted.
-
-## Rendering options
-
-The CLI currently enables all three options:
-
-| Option | Value |
-|---|---|
-| Colour rendering | Enabled |
-| Component labels | Enabled |
-| Pin labels | Enabled |
-
-Both board views are generated in one invocation:
-
-- **Top (`place`)** — component side of the board.
-- **Copper (`cut`)** — copper side of the board.
+It resolves component symbol definitions, applies schematic rotation and mirroring, draws component symbols and wires, and uses net colours where the project data provides them. This is a renderer, not a schematic editor, electrical rule checker or netlist validator.
 
 ## Architecture
 
+### Stripboard renderer
+
 | File | Responsibility |
 |---|---|
-| `render.ts` | Full-board SVG rendering and public rendering entry point |
+| `cli.ts` | Node.js CLI for board SVG output |
+| `render.ts` | Full-board SVG rendering entry point |
 | `part_body.ts` | Component body SVG generation |
-| `part_drawing.ts` | Standalone copy of the component geometry calculation |
-| `static_part.ts` | Static component rendering, including pins and labels |
-| `cli.ts` | Node.js command-line interface |
-| `example-project.json` | Example input project |
+| `part_drawing.ts` | Standalone component geometry calculations |
+| `static_part.ts` | Static component rendering, pins and labels |
+| `example-project.json` | Example board input |
 | `tsconfig.json` | Production TypeScript configuration |
 | `tsconfig.test.json` | Test TypeScript configuration |
 
-The geometry function in `part_drawing.ts` is copied from the original application rather than imported from its TSX module. This avoids loading the React JSX runtime in the production renderer.
+### Schematic renderer
 
-The original application rendering implementation remains separate.
+| File | Responsibility |
+|---|---|
+| `schematic/cli.ts` | Node.js CLI for schematic SVG output |
+| `schematic/render.ts` | Schematic SVG composition and bounds |
+| `schematic/resolve_symbol.ts` | Component-definition and symbol resolution |
+| `schematic/component_block.ts` | Component symbol block rendering |
+| `schematic/draw_symbol.ts` | Symbol geometry and pin rendering |
+| `schematic/net_label.ts` | Net-label glyph rendering |
+| `schematic/symbol_geometry.ts` | Rotation, mirroring, transforms and bounds |
+| `schematic/wire_line.ts` | Schematic wire rendering |
+| `schematic/builtin_defs.ts` | Built-in schematic definition support |
 
-## Tests and parity verification
+Shared renderer dependencies are imported from the existing frontend component, data, type and utility modules. The compiled output under `dist/` contains those runtime dependencies.
 
-The parity tests compare standalone SVG output and geometry with the original React implementation.
+The desktop UI bundles the compiled runtime separately under `desktop/src/stripboard_optimizer/resources/standalone-renderer/`. The desktop's `Render JSON...` action runs the board and schematic CLIs separately, converts their SVGs to PNG with `rsvg-convert`, and loads the available images in the three-view viewer.
 
-### Test files
+## Parity tests
+
+The five parity test source files are:
 
 ```text
-standalone-renderer/test_compare.tsx
-standalone-renderer/test_static_part_parity.tsx
-standalone-renderer/test_static_part_colours.tsx
-standalone-renderer/test_board_parity.tsx
-standalone-renderer/test_part_drawing_parity.tsx
+test_compare.tsx
+test_static_part_parity.tsx
+test_static_part_colours.tsx
+test_board_parity.tsx
+test_part_drawing_parity.tsx
 ```
 
-### Compile the test suite
-
-Run once after source changes:
+They compare the standalone renderer with the original React implementation. Compile from `src/frontend`:
 
 ```bash
-cd ~/Documents/stripboard-optimiser/src/frontend
 rm -rf standalone-renderer/dist-test
 ./node_modules/.bin/tsc -p standalone-renderer/tsconfig.test.json
 ./node_modules/.bin/tsc-alias -p standalone-renderer/tsconfig.test.json
 ```
 
-### Run all five tests
+Run:
 
 ```bash
 node standalone-renderer/dist-test/standalone-renderer/test_compare.js
@@ -196,29 +178,18 @@ node standalone-renderer/dist-test/standalone-renderer/test_board_parity.js
 node standalone-renderer/dist-test/standalone-renderer/test_part_drawing_parity.js
 ```
 
-### Test fixtures
-
-The parity tests were run using these external fixtures:
+The recorded parity runs used these external fixture paths:
 
 ```text
-/Users/nick/Desktop/repo/motomix.json
-/Users/nick/Desktop/repo/moto14wires30cuts.json
+~/Desktop/repo/motomix.json
+~/Desktop/repo/moto14wires30cuts.json
 ```
 
-These files are outside the clean repository clone. The tests therefore depend on their availability at those paths unless the fixture paths are changed.
+Those files are outside the repository and must exist at those paths for the corresponding recorded runs. The repository also contains separate master fixtures under `test-fixtures/masters/`; those are not the external files listed above.
 
-The clean clone also contains:
+### Recorded parity results
 
-```text
-test-fixtures/masters/moto/moto.json
-test-fixtures/masters/audio/audio.json
-```
-
-Those are separate repository fixtures; they are not the two external files used by the reported parity runs.
-
-### Verified parity results
-
-Reported test results:
+The previously recorded results are:
 
 | Comparison | Fixture | Result |
 |---|---|---|
@@ -229,52 +200,36 @@ Reported test results:
 | Full-board top SVG | `moto14wires30cuts.json` | Match |
 | Full-board copper SVG | `moto14wires30cuts.json` | Match |
 
-The expanded full-board fixture contained:
+Recorded full-board fixture details:
 
-- Board: 24 × 56
-- Components: 44
-- Placed components in geometry parity: 32
-- Distinct component definition IDs: 13
-- Flexible components: 24
-- Wires: 14
-- Cuts: 30
+- Board: 24 × 56.
+- Components: 44.
+- Geometry parity placements: 32.
+- Distinct component definition IDs: 13.
+- Flexible components: 24.
+- Wires: 14.
+- Cuts: 30.
 
-Full-board SVG comparison:
+Recorded SVG lengths:
 
 | Output | React reference | Standalone | Result |
 |---|---:|---:|---|
 | Top | 212,721 characters | 212,721 characters | Match |
 | Copper | 183,726 characters | 183,726 characters | Match |
 
-The smaller component-level tests use F1 and the 12V MOSFET and cover colour, monochrome and mirrored body rendering where applicable.
+These are historical recorded results, not a claim that the tests were rerun during the current documentation update.
 
-## Dependencies
+## Runtime dependencies
 
-### Production runtime
+The inspected compiled production entry points use Node.js filesystem/path APIs. The renderer is designed to run without React, Zustand, Next.js or a browser DOM.
 
-The inspected compiled production files use Node.js:
-
-- `fs`
-- `path`
-
-No React, `react/jsx-runtime`, Zustand or Next.js imports were found in the inspected compiled production path (`cli.js`, `render.js` and `part_drawing.js`).
-
-### Development and test dependencies
-
-The frontend package configuration includes:
-
-- `jsdom` — client-side React test rendering.
-- `@types/jsdom` — TypeScript definitions for jsdom.
-- `tsc-alias` — rewrites TypeScript path aliases in compiled output.
-
-The original React components are used by parity tests as reference implementations. They are not production rendering dependencies.
+The desktop GUI adds separate image-conversion and display requirements: `rsvg-convert` and Python Pillow. Those are desktop integration dependencies, not dependencies of the SVG renderer CLI itself.
 
 ## Maintenance
 
-The copied geometry implementation in `part_drawing.ts` must remain consistent with the original application geometry function.
-
-If the original geometry changes, update the standalone copy and run the geometry parity test against the original implementation.
-
-Retain the parity tests as regression protection.
-
-Generated SVGs are output artefacts and should not be committed unless specifically required.
+- Keep the TypeScript source under this directory as the authoritative renderer implementation.
+- Rebuild `dist/` after source changes.
+- Synchronise the desktop runtime copy after rebuilding.
+- Keep the five parity tests as regression protection.
+- If `part_drawing.ts` changes, compare it with the original frontend geometry implementation.
+- Do not commit generated SVG output unless it is explicitly required.
