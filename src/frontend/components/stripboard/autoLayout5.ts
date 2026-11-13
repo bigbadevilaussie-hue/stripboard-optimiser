@@ -915,11 +915,15 @@ export function computeAutoLayout5(
       } else if (d.geo[pi].mode === "H") {
         const brBit = flexBit(bestG.br, pi);
         const x1 = d.xI[pi], x2 = d.xI[pi] + (p as FlexPart).dc0;
-        placed.push({ id: p.comp.id, boardPos: { row: d.yI[pi], col: brBit === 0 ? x1 : x2 }, rotation: 0, flexibleEndPos: { row: d.yI[pi], col: brBit === 0 ? x2 : x1 } });
+        placed.push(p.locked
+          ? { id: p.comp.id, boardPos: p.comp.boardPos!, rotation: 0, flexibleEndPos: p.comp.flexibleEndPos!, locked: true }
+          : { id: p.comp.id, boardPos: { row: d.yI[pi], col: brBit === 0 ? x1 : x2 }, rotation: 0, flexibleEndPos: { row: d.yI[pi], col: brBit === 0 ? x2 : x1 } });
       } else {
         const brBit = flexBit(bestG.br, pi);
         const t = d.yI[pi], b = d.yI[d.vBot.get(pi)!];
-        placed.push({ id: p.comp.id, boardPos: { row: brBit === 0 ? t : b, col: d.xI[pi] }, rotation: 0, flexibleEndPos: { row: brBit === 0 ? b : t, col: d.xI[pi] } });
+        placed.push(p.locked
+          ? { id: p.comp.id, boardPos: p.comp.boardPos!, rotation: 0, flexibleEndPos: p.comp.flexibleEndPos!, locked: true }
+          : { id: p.comp.id, boardPos: { row: brBit === 0 ? t : b, col: d.xI[pi] }, rotation: 0, flexibleEndPos: { row: brBit === 0 ? b : t, col: d.xI[pi] } });
       }
     }
     let wiringOut: LabBoard | undefined;

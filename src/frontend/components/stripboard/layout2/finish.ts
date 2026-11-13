@@ -703,21 +703,30 @@ export function finishRepair(
   const issues: string[] = [];
   for (const c of skipped) issues.push(`${c.label ?? c.id} could not be planned`);
   if (conflicts > 0) issues.push(`${conflicts} strip conflicts remain`);
+  // finishRepair works in the decoder's padded coordinate space (shm added
+  // mRow/mCol to every placement, and the cuts and wires are in that same
+  // frame). The editor expects unpadded coordinates: un-shift everything back
+  // before building the result, or the board ships offset by the decoder
+  // margin. finishSkeleton never enters this frame, so only this path needs it.
+  const unshm = (p: BoardPosition): BoardPosition => ({ row: p.row - mRow, col: p.col - mCol });
   const result: AutoLayoutResult = {
     placements: virtual
       .filter((c) => movedIds.has(c.id) && c.boardPos)
       .map((c) => {
         const def = resolveComponentDef(c, componentDefs)!;
-        return def.flexible
-          ? { componentId: c.id, boardPos: c.boardPos!, flexibleEndPos: c.flexibleEndPos }
-          : { componentId: c.id, boardPos: c.boardPos!, rotation: c.rotation };
+        const pos = unshm(c.boardPos!);
+        if (def.flexible) {
+          const end = unshm(c.flexibleEndPos ?? c.boardPos!);
+          return { componentId: c.id, boardPos: pos, flexibleEndPos: end };
+        }
+        return { componentId: c.id, boardPos: pos, rotation: c.rotation };
       }),
-    cuts,
-    wires,
+    cuts: cuts.map((k) => ({ ...k, row: k.row - mRow, col: k.col - mCol })),
+    wires: wires.map((w) => ({ from: unshm(w.from), to: unshm(w.to) })),
     issues,
     quality: conflicts * 100 + incomplete.length + skipped.length * 2,
     starvedNetIds: incomplete.map((n) => n.netId),
-    boardSize: { rows, cols },
+    boardSize: { rows: rows - 2 * mRow, cols: cols - 2 * mCol },
     unplaceIds,
   };
   // the passes that move no part and route no wire

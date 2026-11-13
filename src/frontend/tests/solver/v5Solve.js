@@ -131,10 +131,12 @@ const data = JSON.parse(fs.readFileSync(path.join(dataDir, "projects", `${id}.js
 const defs = [...DEFAULT_COMPONENTS, ...(data.componentDefs ?? [])];
 const nets = data.nets ?? [];
 const asg = data.netAssignments ?? [];
-const blankComps = data.components.map((c) => ({
-  ...c, boardPos: null, flexibleEndPos: undefined, rotation: 0, locked: undefined,
-}));
-const blankBoard = { ...data.board, cuts: [], wires: [], lockedRows: false, lockedCols: false };
+const blankComps = data.components.map((c) => (
+  c.locked && c.boardPos
+    ? { ...c }
+    : { ...c, boardPos: null, flexibleEndPos: undefined, rotation: 0, locked: undefined }
+));
+const blankBoard = { ...data.board, cuts: [], wires: [] };
 if (stackCap && stackMin) {
   const placeable = new Set(blankComps.filter((c) => !c.boardExcluded).map((c) => c.id));
   if (asg.filter((a) => placeable.has(a.componentId)).length < stackMin) stackCap = undefined;
@@ -258,7 +260,7 @@ if (saveFile) {
     ...data,
     name: `${tag} of prod ${id} seed ${seed}`,
     components: collapseLeads(solvedComps, positions),
-    board: { ...data.board, rows: solvedBoard.rows, cols: solvedBoard.cols, cuts: solvedBoard.cuts, wires: solvedBoard.wires, lockedRows: false, lockedCols: false },
+    board: { ...data.board, rows: solvedBoard.rows, cols: solvedBoard.cols, cuts: solvedBoard.cuts, wires: solvedBoard.wires, lockedRows: data.board.lockedRows ?? false, lockedCols: data.board.lockedCols ?? false },
     autoLayoutUsed: true,
   };
   fs.writeFileSync(saveFile, JSON.stringify(saved));
