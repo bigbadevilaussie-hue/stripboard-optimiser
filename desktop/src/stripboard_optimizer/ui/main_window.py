@@ -9,6 +9,9 @@ from stripboard_optimizer.ui.board_viewer import BoardViewer
 from stripboard_optimizer.controllers.project_controller import ProjectController
 from stripboard_optimizer.filters import split_parts, part_size, def_id_of
 from stripboard_optimizer.board_estimator import estimate_board
+from stripboard_optimizer.utils.system_info import detect as detect_system
+from stripboard_optimizer.solver.probe import run_speed_probe
+from stripboard_optimizer.solver.estimator import estimate as estimate_runtime
 from stripboard_optimizer.solver.worker import SolveWorker
 
 BG_ROOT      = "#f3f4f6"
@@ -23,7 +26,7 @@ FONT_SANS = ("Helvetica Neue", 12)
 FONT_SANS_BOLD = ("Helvetica Neue", 13, "bold")
 FONT_MONO = ("Menlo", 11)
 
-APP_VERSION = "v1.10"
+APP_VERSION = "v1.20"
 
 class MainWindow(tk.Tk):
     def __init__(self):
@@ -38,6 +41,8 @@ class MainWindow(tk.Tk):
         self.solver = None
         self.solver_q = queue.Queue()
         self.best = None
+        self.sys_info = None
+        self.probe_result = None
         self.setup_style()
         self.build_ui()
 
@@ -116,6 +121,12 @@ class MainWindow(tk.Tk):
             rb.pack(fill="x", pady=(10, 0))
             tk.Label(self.mode_frame, text=desc, bg=BG_PANEL, fg="#737373", font=FONT_SANS, anchor="w").pack(fill="x", padx=25, pady=(0, 10))
         ttk.Button(self.mode_frame, text="CONFIRM MODE", style="Green.TButton", command=self.confirm_mode).pack(pady=(30, 0), ipadx=20, ipady=10)
+        self.sys_label = ttk.Label(self.mode_frame, text="Detecting CPU…",
+                                   background=BG_PANEL, foreground=FG_TEXT, font=FONT_SANS)
+        self.sys_label.pack(anchor="w", pady=(20, 2))
+        self.est_label = ttk.Label(self.mode_frame, text="Measuring solver speed…",
+                                   background=BG_PANEL, foreground=FG_TEXT, font=FONT_SANS)
+        self.est_label.pack(anchor="w", pady=(0, 0))
 
         # PANEL 2: QUESTIONS (Auto / 2-Pass)
         self.questions_frame = ttk.Frame(self.right_frame, style="Panel.TFrame", padding=40)
@@ -258,6 +269,38 @@ class MainWindow(tk.Tk):
         self.mode_frame.pack(fill="both", expand=True)
         self.btn_mode.pack_forget()
         self.btn_cancel.pack(side="left", padx=8)
+        self._start_system_measurement()
+
+    def _start_system_measurement(self):
+        if not self.controller.project or not self.project_path:
+            return
+        sys_info = detect_system()
+        self.sys_info = sys_info
+        cores = sys_info.physical_cores or sys_info.logical_cores or 1
+        model = sys_info.cpu_model or "unknown CPU"
+        ram = f"{sys_info.total_ram_gb:.0f} GB" if sys_info.total_ram_gb else "RAM unknown"
+        self.sys_label.configure(text=f"CPU: {model} · {cores} cores · {ram}")
+
+        def worker():
+            result = run_speed_probe(self.project_path, decodes=10)
+            self.after(0, lambda: self._on_probe_result(result))
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _on_probe_result(self, result):
+        self.probe_result = result
+        if not result.ok or result.ms_per_decode is None:
+            self.est_label.configure(text=f"Runtime: unknown (probe failed: {result.error or 'no data'})")
+            return
+        threads = self.sys_info.recommended_threads if self.sys_info else 4
+        pins = self.controller.project.pin_count if self.controller.project else 0
+        est = estimate_runtime(result, moves_total=max(40_000, 16_000 * max(0, pins - 13)), threads=threads)
+        low, high = est.seconds_low, est.seconds_high
+        if high >= 60:
+            est_text = f"Runtime: ~{low/60:.1f}–{high/60:.1f} min ({threads} threads)"
+        else:
+            est_text = f"Runtime: ~{low:.0f}–{high:.0f} s ({threads} threads)"
+        self.est_label.configure(text=est_text)
 
     def confirm_mode(self):
         mode = self.mode_var.get()
@@ -427,8 +470,7 @@ class MainWindow(tk.Tk):
         self.log(f"\n[RENDER] {os.path.basename(path)}")
         def job():
             try:
-                out_dir = Path.home() / "Desktop" / "stripboard-renders"
-                out_dir.mkdir(parents=True, exist_ok=True)
+                out_dir = Path(path).parent
                 stem = Path(path).stem
                 cli = Path(__file__).parent.parent / "resources" / "standalone-renderer" / "standalone-renderer" / "cli.js"
                 if not cli.exists():
