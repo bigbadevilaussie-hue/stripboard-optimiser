@@ -403,6 +403,7 @@ class MainWindow(tk.Tk):
 
     def _build_manual_inventory(self):
         """Show every project component and its current placement/rotation."""
+        self.manual_locks_confirmed_var.set(False)
         for widget in self.manual_parts_frame.winfo_children():
             widget.destroy()
         self.manual_part_vars = {}
