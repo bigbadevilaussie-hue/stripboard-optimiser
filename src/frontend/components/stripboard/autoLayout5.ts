@@ -425,7 +425,8 @@ export function computeAutoLayout5(
   const movesN = options?.moves ??
     (options?.timeBudgetMs !== undefined && options?.msPerMoveHint ? plannedMoves(options.timeBudgetMs / options.msPerMoveHint) : capMoves);
   const wBCut = options?.drilledCutsOnly ? W_BCUT_DRILL : W_BCUT;
-  const wWire = options?.routingPreference === "cuts" ? 1 : 8;
+  // Stronger pressure to reduce the number of wire links.
+  const wWire = options?.routingPreference === "cuts" ? 1 : 16;
   const wCut = options?.routingPreference === "cuts" ? 0.25 : 0.01;
   const anyLockedPart = parts.some((p) => p.locked);
   // free board lines a flexible body keeps to any neighbour: what the user
