@@ -191,6 +191,7 @@ class MainWindow(tk.Tk):
         ttk.Radiobutton(solver_settings, text="Allow knife cuts", variable=self.manual_cut_var, value="knife").grid(row=0, column=2, sticky="w")
         self.manual_no_stack_var = tk.BooleanVar(value=True)
         ttk.Checkbutton(solver_settings, text="No stacked wires", variable=self.manual_no_stack_var).grid(row=1, column=0, columnspan=3, sticky="w", pady=(6, 0))
+        tk.Label(solver_settings, text="Rotation and diagonal routing are solver-managed; this solver build has no separate on/off switches for them.", bg=BG_PANEL, fg="#737373", font=("Helvetica Neue", 10), anchor="w").grid(row=1, column=3, columnspan=3, sticky="w", padx=(8, 0), pady=(6, 0))
         self.manual_seeds_var = tk.IntVar(value=4)
         self.manual_seed_base_var = tk.IntVar(value=0)
         self.manual_effort_var = tk.DoubleVar(value=1.0)
