@@ -14,7 +14,7 @@ from stripboard_optimizer.solver.solver_adapter import solve_one, is_valid, rank
 
 PLANS = {
     "full_auto": [(8, 1.0)],
-    "2pass": [(2000, 25000)],
+    "2pass": [(2000, 0.1)],
     "manual": [(4, 1.0)],
 }
 
@@ -140,8 +140,9 @@ class SolveWorker(threading.Thread):
             self.q.put(("candidate", stage, seed, effort, summary, str(path), ok, contestant_name))
             return (summary, str(path), seed, contestant_name, ok)
         except Exception as exc:
-            self.q.put(("log", f"[{label}] ❌ ERROR: {exc}"))
-            return None
+            if self.mode != "2pass":
+                self.q.put(("log", f"[{label}] ❌ ERROR: {exc}"))
+            return (None, None, seed, contestant_name, False)
 
     def _run_two_pass(self, work):
         candidates = self.tournament_candidates
@@ -151,18 +152,22 @@ class SolveWorker(threading.Thread):
         random.SystemRandom().shuffle(names)
         contestant_names = {seed: names[(seed - 1) % len(names)] for seed in seeds}
 
-        self.q.put(("log", f"🏁 PASS 1: {candidates} seeds × 25,000 moves"))
+        self.q.put(("log", f"🏁 PASS 1: {candidates} seeds × 25,000 moves at effort 0.1"))
         with ThreadPoolExecutor(max_workers=self.parallel) as executor:
             results = list(executor.map(
                 lambda seed: self._one(
-                    seed, None, 1, work, contestant_names[seed], moves=25000
+                    seed, 0.1, 1, work, contestant_names[seed]
                 ),
                 seeds,
             ))
-        valid = [result for result in results if result and result[4]]
+        completed = sum(result is not None for result in results)
+        valid = [result for result in results if result and result[0] is not None and result[4]]
         ranked = sorted(valid, key=lambda result: rank_key(result[0], self.routing_preference))
-        self.q.put(("log", f"🏁 PASS 1 COMPLETE: {len(valid)}/{candidates} valid"))
-        if not ranked or self._cancel_event.is_set():
+        if self._cancel_event.is_set():
+            self.q.put(("log", f"⏹ PASS 1 INTERRUPTED: {completed}/{candidates} completed, {len(valid)} valid"))
+            return None
+        self.q.put(("log", f"🏁 PASS 1 COMPLETE: {completed}/{candidates} completed, {len(valid)} valid"))
+        if not ranked:
             return None
 
         finalists = ranked[:finalist_count]
@@ -186,7 +191,10 @@ class SolveWorker(threading.Thread):
                     ),
                     finalist_seeds,
                 ))
-            good = [item for item in round_results if item and item[4]]
+            if self._cancel_event.is_set():
+                self.q.put(("log", f"⏹ PASS 2 ROUND {round_number}/40 — INTERRUPTED"))
+                break
+            good = [item for item in round_results if item and item[0] is not None and item[4]]
             for item in good:
                 previous = best_by_seed.get(item[2])
                 if previous is None or rank_key(item[0], self.routing_preference) < rank_key(previous[0], self.routing_preference):
