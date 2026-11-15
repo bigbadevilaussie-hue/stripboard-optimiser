@@ -73,9 +73,10 @@ class SolveWorker(threading.Thread):
         self.mode = mode
         self.q = q
         self.parallel = parallel or max(1, min(4, (os.cpu_count() or 2) - 1))
-        self.native = native
-        self.drilled = drilled
-        self.no_wire_stacking = no_wire_stacking
+        # Fixed benchmark configuration: native solver, knife cuts, stacking allowed.
+        self.native = True
+        self.drilled = False
+        self.no_wire_stacking = False
         self.routing_preference = routing_preference
         self.manual_seeds = manual_seeds
         self.manual_seed_base = manual_seed_base
@@ -144,28 +145,37 @@ class SolveWorker(threading.Thread):
                 parts = "?"
             diagonals = summary.get("offAxis", "?")
             elapsed = summary.get("ms", "?")
-            price = summary.get('price', summary.get('rate', '?'))
+            price = summary.get("price", summary.get("rate", "?"))
             try:
-                price_text = f"${float(price):,.0f}"
+                price_text = f"${float(price):,.2f}"
             except (TypeError, ValueError):
                 price_text = str(price)
+            conflicts = summary.get("conflicts", "?")
+            incomplete = summary.get("incomplete", "?")
+            geo = summary.get("geo", "?")
+            issues = summary.get("issues") or []
+            issue_count = len(issues) if isinstance(issues, (list, tuple)) else "?"
+            phase = (
+                f"[PASS 1 · {PASS1_MOVES:,} moves]"
+                if stage == 1 else f"[PASS 2 · ROUND {stage - 1:02d}/40 · {int(moves or 0):,} moves]"
+            )
             line = (
-                f"{label}  {'✓' if ok else '✗'}  📐 "
+                f"{phase} {label} · seed {seed:04d} · {'PASS' if ok else 'FAIL'} | "
                 f"{summary.get('rows', '?')}×{summary.get('cols', '?')} | "
-                f"🧩 {parts} | ↗️ {diagonals} | "
-                f"🔌 {summary.get('wires', '?')} | ✂️ {summary.get('cuts', '?')} | "
-                f"⭐ {summary.get('quality', '?')} | ⚠️ | 💰 {price_text}"
+                f"Parts {parts} | Diag {diagonals} | Wires {summary.get('wires', '?')} | "
+                f"Cuts {summary.get('cuts', '?')} | Time {elapsed} ms | "
+                f"Quality {summary.get('quality', '?')} | Conflicts {conflicts} | "
+                f"Incomplete {incomplete} | Geo {geo} | Issues {issue_count} | Price {price_text}"
             )
             if not ok:
                 reasons = []
                 if summary.get("quality") is not None:
-                    reasons.append(f"Q:{summary.get('quality')}")
-                for key in ("conflicts", "incomplete", "geo"):
-                    if summary.get(key):
-                        reasons.append(f"{key.upper()}:{summary.get(key)}")
-                if summary.get("issues"):
-                    reasons.append(f"ISSUES:{len(summary['issues'])}")
-                line += " | FAIL: " + (", ".join(reasons) if reasons else "validation")
+                    reasons.append(f"Q={summary.get('quality')}")
+                reasons.extend((f"CONFLICTS={conflicts}", f"INCOMPLETE={incomplete}",
+                                f"GEO={geo}", f"ISSUES={issue_count}"))
+                if issues and isinstance(issues, (list, tuple)):
+                    reasons.append("DETAILS=" + "; ".join(str(issue) for issue in issues[:3]))
+                line += " | " + " ".join(reasons)
             # Pass 1 only reports qualifiers; Pass 2 retains full PASS/FAIL reporting.
             if stage != 1 or ok:
                 self.q.put(("log", line))
@@ -186,6 +196,7 @@ class SolveWorker(threading.Thread):
         random.SystemRandom().shuffle(names)
         contestant_names = {seed: names[(seed - 1) % len(names)] for seed in seeds}
 
+        self.q.put(("log", f"[SOLVER] Native=ON | drilled cuts=OFF | wire stacking=ALLOWED | routing priority={self.routing_preference}"))
         self.q.put(("log", f"🏁 PASS 1: {candidates} seeds × {PASS1_MOVES:,} moves at effort 0.1"))
         # Collect in completion order. executor.map() yields in seed order, so
         # one slow early seed can hide hundreds of later completed seeds from the GUI.
@@ -275,8 +286,10 @@ class SolveWorker(threading.Thread):
                 self.q.put((
                     "log",
                     f"🏁 PASS 2 ROUND {round_number}/40 — WINNER: "
-                    f"{round_winner[3]} · {round_winner[0].get('wires', '?')}W / "
-                    f"{round_winner[0].get('cuts', '?')}C"
+                    f"{round_winner[3]} (seed {round_winner[2]:04d}) · "
+                    f"{round_winner[0].get('wires', '?')}W / {round_winner[0].get('cuts', '?')}C · "
+                    f"${float(round_winner[0].get('price', round_winner[0].get('rate', 0))):,.2f} · "
+                    f"{round_winner[0].get('ms', '?')} ms"
                 ))
             else:
                 self.q.put(("log", f"🏁 PASS 2 ROUND {round_number}/40 — NO WINNER"))
