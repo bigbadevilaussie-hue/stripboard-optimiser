@@ -616,7 +616,8 @@ class MainWindow(tk.Tk):
         self.log_frame.pack(fill="both", expand=True)
         self.log(f"\n[OPTIMISE] Starting mode: {mode.upper()}")
         if mode == "2pass":
-            self.log("[TOURNAMENT] Pass 1: 200 seeds × 25,000 moves → reject invalid → top 5. Pass 2: same 5 seeds × 50,000 moves total.")
+            self.log("[TOURNAMENT] Pass 1: 200 seeds × 25,000 moves. Pass 2: five finalists × 40 independent budgets from 5,000 to 200,000 moves (5,000-step increments).")
+            self.log("[TOURNAMENT] Every budget starts from the original project JSON using the finalist seed; the best valid board per seed is retained.")
         self.log("[SOLVE] Each seed is an independent starting arrangement; the best fully valid result wins.")
         self.best = None
         self.btn_preview.pack_forget()
@@ -632,6 +633,10 @@ class MainWindow(tk.Tk):
             manual_effort=effort if mode == "manual" else None,
             tournament_candidates=tournament_candidates,
             tournament_finalists=tournament_finalists,
+            output_dir=(
+                Path(self.project_path).with_name(Path(self.project_path).stem + "_work")
+                if mode == "2pass" else None
+            ),
         )
         self.solve_started_at = datetime.now().astimezone()
         self.solve_started_monotonic = time.monotonic()
@@ -689,12 +694,17 @@ class MainWindow(tk.Tk):
                     elif best:
                         self._set_stage("RESULTS")
                         s, path, seed, contestant_name = best
-                        out = Path(self.project_path).with_name(Path(self.project_path).stem + "_solved.json")
-                        out.write_text(Path(path).read_text())
+                        if self.solver and self.solver.mode == "2pass":
+                            out = Path(path)
+                        else:
+                            out = Path(self.project_path).with_name(Path(self.project_path).stem + "_solved.json")
+                            out.write_text(Path(path).read_text())
                         self.best = (s, str(out))
-                        winner = contestant_name or f"seed {seed}"
+                        winner = f"{contestant_name} (seed {seed})" if contestant_name else f"seed {seed}"
                         self.log(f"\n🥇 WINNER: {winner} · {s['rows']}x{s['cols']} · {s['wires']}W / {s['cuts']}C")
                         self.log(f"[BEST] Saved to {out}")
+                        if self.solver and self.solver.mode == "2pass":
+                            self.log("[BEST] Winner is one of the five retained finalist JSON files.")
                         self.btn_preview.pack(side="left", padx=8)
                         self.log("[PREVIEW] Automatically rendering the best valid solution...")
                         self.preview_best()
