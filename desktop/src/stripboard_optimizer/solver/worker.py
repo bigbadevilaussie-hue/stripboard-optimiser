@@ -11,7 +11,7 @@ from stripboard_optimizer.solver.solver_adapter import solve_one, is_valid, rank
 
 PLANS = {
     "full_auto": [(8, 1.0)],
-    "2pass": [(100, 0.1), (5, 3.0)],  # GUI selections override these defaults.
+    "2pass": [(200, 25000), (5, 50000)],  # fixed move budgets; finalist seeds are rerun deeper.
     "manual": [(4, 1.0)],
 }
 
@@ -135,7 +135,7 @@ class SolveWorker(threading.Thread):
         manual_seeds=None,
         manual_seed_base=0,
         manual_effort=None,
-        tournament_candidates=100,
+        tournament_candidates=200,
         tournament_finalists=5,
     ):
         super().__init__(daemon=True)
@@ -185,7 +185,7 @@ class SolveWorker(threading.Thread):
             except ValueError:
                 pass
 
-    def _one(self, seed, effort, stage, work, contestant_name=None):
+    def _one(self, seed, effort, stage, work, contestant_name=None, moves=None):
         if self._cancel_event.is_set():
             return None
         label = contestant_name or f"Seed {seed}"
@@ -226,8 +226,8 @@ class SolveWorker(threading.Thread):
                 plan = [(count, effort)]
                 seeds = list(range(self.manual_seed_base, self.manual_seed_base + count))
             elif self.mode == "2pass":
-                plan = [(self.tournament_candidates, 0.1), (self.tournament_finalists, 3.0)]
-                seeds = list(range(1, self.tournament_candidates + 1))
+                plan = [(200, 25000), (5, 50000)]
+                seeds = list(range(1, 201))
             else:
                 plan = PLANS.get(self.mode, PLANS["full_auto"])
                 seeds = list(range(plan[0][0]))
@@ -248,7 +248,9 @@ class SolveWorker(threading.Thread):
                 with ThreadPoolExecutor(max_workers=self.parallel) as executor:
                     results = list(executor.map(
                         lambda seed: self._one(
-                            seed, effort, stage, work, contestant_names.get(seed)
+                            seed, effort if self.mode != "2pass" else None,
+                            stage, work, contestant_names.get(seed),
+                            moves=effort if self.mode == "2pass" else None
                         ),
                         seeds,
                     ))
