@@ -119,7 +119,7 @@ class SolveWorker(threading.Thread):
     def _one(self, seed, effort, stage, work, contestant_name=None, moves=None):
         if self._cancel_event.is_set():
             return None
-        label = f"{contestant_name} · Seed {seed:04d}" if contestant_name else f"Seed {seed:04d}"
+        label = contestant_name or "Solver"
         try:
             summary, path = solve_one(
                 self.project_json, seed, work,
@@ -144,14 +144,17 @@ class SolveWorker(threading.Thread):
                 parts = "?"
             diagonals = summary.get("offAxis", "?")
             elapsed = summary.get("ms", "?")
+            price = summary.get('price', summary.get('rate', '?'))
+            try:
+                price_text = f"${float(price):,.0f}"
+            except (TypeError, ValueError):
+                price_text = str(price)
             line = (
-                f"[{label}] {'✅ PASS' if ok else '❌ FAIL'} "
-                f"📐 Rows: {summary.get('rows', '?')} | Cols: {summary.get('cols', '?')} | "
-                f"🧩 Parts: {parts} | ↗️ Diag: {diagonals} | "
-                f"🔌 Wires: {summary.get('wires', '?')} | ✂️ Cuts: {summary.get('cuts', '?')} | "
-                f"⏱️ Moves: {elapsed}ms | ⭐ Quality: {summary.get('quality', '?')} | "
-                f"⚠️ Conflicts: {summary.get('conflicts', '?')} | Incomplete: {summary.get('incomplete', '?')} | "
-                f"Geo: {summary.get('geo', '?')} | 💰 Price: {summary.get('price', summary.get('rate', '?'))}"
+                f"{label}  {'✓' if ok else '✗'}  📐 "
+                f"{summary.get('rows', '?')}×{summary.get('cols', '?')} | "
+                f"🧩 {parts} | ↗️ {diagonals} | "
+                f"🔌 {summary.get('wires', '?')} | ✂️ {summary.get('cuts', '?')} | "
+                f"⭐ {summary.get('quality', '?')} | ⚠️ | 💰 {price_text}"
             )
             if not ok:
                 reasons = []
