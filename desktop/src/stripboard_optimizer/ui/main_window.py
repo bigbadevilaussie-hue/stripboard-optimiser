@@ -710,11 +710,12 @@ class MainWindow(tk.Tk):
                         self.log("[SOLVE] Stopped.")
                     elif best:
                         self._set_stage("RESULTS")
-                        s, path, seed = best
+                        s, path, seed, contestant_name = best
                         out = Path(self.project_path).with_name(Path(self.project_path).stem + "_solved.json")
                         out.write_text(Path(path).read_text())
                         self.best = (s, str(out))
-                        self.log(f"\n[BEST] seed {seed}: {s['rows']}x{s['cols']}, wires {s['wires']}, cuts {s['cuts']} (knife {s['knife']}), price {s.get('price', '?')}")
+                        winner = contestant_name or f"seed {seed}"
+                        self.log(f"\n🥇 WINNER: {winner} · {s['rows']}x{s['cols']} · {s['wires']}W / {s['cuts']}C")
                         self.log(f"[BEST] Saved to {out}")
                         self.btn_preview.pack(side="left", padx=8)
                         self.log("[PREVIEW] Automatically rendering the best valid solution...")
