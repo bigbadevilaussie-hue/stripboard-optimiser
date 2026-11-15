@@ -72,6 +72,7 @@ export interface AutoLayout5Options {
   drilledCutsOnly?: boolean;
   // No wire may run on top of another in one channel
   noWireStacking?: boolean;
+  routingPreference?: "wires" | "cuts";
   // Harness-only: log each seed's decoded best (never set by the UI)
   debugSeeds?: boolean;
   // Harness-only: every finalist's skeleton, with the decoder's wiring, before
@@ -424,6 +425,8 @@ export function computeAutoLayout5(
   const movesN = options?.moves ??
     (options?.timeBudgetMs !== undefined && options?.msPerMoveHint ? plannedMoves(options.timeBudgetMs / options.msPerMoveHint) : capMoves);
   const wBCut = options?.drilledCutsOnly ? W_BCUT_DRILL : W_BCUT;
+  const wWire = options?.routingPreference === "cuts" ? 1 : 8;
+  const wCut = options?.routingPreference === "cuts" ? 0.25 : 0.01;
   const anyLockedPart = parts.some((p) => p.locked);
   // free board lines a flexible body keeps to any neighbour: what the user
   // asked for, or what its real width takes anyway, whichever is more
@@ -525,7 +528,7 @@ export function computeAutoLayout5(
       }))),
       flexIdx, rigidIdx, siblingGroups,
       mRow, mCol, lockedRowsCap: lockedRowsCap ?? -1, lockedColsCap: lockedColsCap ?? -1,
-      sidesDef: sideMask(connSides), clrPad, wBCut,
+      sidesDef: sideMask(connSides), clrPad, wBCut, wWire, wCut,
       conns: parts.map((p, i) => (p.isConn && !p.locked ? i : -1)).filter((i) => i >= 0),
       pullNets: pullGroups.map((g) => g.parts),
       pullNet: pullGroups.map((g) => g.net),
@@ -846,7 +849,7 @@ export function computeAutoLayout5(
     return best ? { ...best, exact, exactN } : null;
   }
   // ── finalize through the real completion pipeline ──
-  const finishOpts = { drilledCutsOnly: options?.drilledCutsOnly ?? false, noWireStacking: options?.noWireStacking ?? false };
+  const finishOpts = { drilledCutsOnly: options?.drilledCutsOnly ?? false, noWireStacking: options?.noWireStacking ?? false, routingPreference: options?.routingPreference ?? "wires" };
   const exactOn = !!options?.exactBest && !options?.lab;
   // A routed board (components, cuts, wires) in the shape the explainer
   // draws. Only used by the lab hook.
