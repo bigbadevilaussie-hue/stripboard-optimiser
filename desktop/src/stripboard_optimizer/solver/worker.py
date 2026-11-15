@@ -163,7 +163,9 @@ class SolveWorker(threading.Thread):
                 if summary.get("issues"):
                     reasons.append(f"ISSUES:{len(summary['issues'])}")
                 line += " | FAIL: " + (", ".join(reasons) if reasons else "validation")
-            self.q.put(("log", line))
+            # Pass 1 only reports qualifiers; Pass 2 retains full PASS/FAIL reporting.
+            if stage != 1 or ok:
+                self.q.put(("log", line))
             self.q.put(("candidate", stage, seed, effort, summary, str(path), ok, contestant_name))
             return (summary, str(path), seed, contestant_name, ok)
         except Exception as exc:
