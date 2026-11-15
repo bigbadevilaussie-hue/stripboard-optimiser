@@ -26,7 +26,7 @@ FONT_SANS = ("Helvetica Neue", 12)
 FONT_SANS_BOLD = ("Helvetica Neue", 13, "bold")
 FONT_MONO = ("Menlo", 11)
 
-APP_VERSION = "v1.23"
+APP_VERSION = "v1.24"
 
 class MainWindow(tk.Tk):
     def __init__(self):
@@ -567,6 +567,7 @@ class MainWindow(tk.Tk):
                 self.log(f"[ERROR] Could not prepare the solver input: {exc}")
                 return
 
+        self.board_viewer.select_schematic()
         self.questions_frame.pack_forget()
         self.manual_frame.pack_forget()
         self.log_frame.pack(fill="both", expand=True)
