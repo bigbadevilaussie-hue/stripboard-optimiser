@@ -167,10 +167,56 @@ class MainWindow(tk.Tk):
         ttk.Button(self.q_btn_frame, text="START OPTIMISATION", style="Green.TButton", command=self.start_optimisation).pack(side="right", ipadx=20, ipady=10)
 
         # PANEL 3: MANUAL SETTINGS
-        self.manual_frame = ttk.Frame(self.workflow_frame, style="Panel.TFrame", padding=24)
-        ttk.Label(self.manual_frame, text="Manual Settings", font=FONT_SANS_BOLD, background=BG_PANEL).pack(pady=(0, 20))
-        tk.Label(self.manual_frame, text="(Configure locks, seeds, and weights here)", bg=BG_PANEL, fg="#737373", font=FONT_SANS).pack()
-        ttk.Button(self.manual_frame, text="START OPTIMISATION", style="Green.TButton", command=self.start_optimisation).pack(pady=(30, 0), ipadx=20, ipady=10)
+        self.manual_frame = ttk.Frame(self.workflow_frame, style="Panel.TFrame", padding=16)
+        ttk.Label(self.manual_frame, text="Manual optimisation settings", font=FONT_SANS_BOLD, background=BG_PANEL).pack(anchor="w", pady=(0, 12))
+
+        board_settings = ttk.LabelFrame(self.manual_frame, text="Board dimensions", padding=10)
+        board_settings.pack(fill="x", pady=(0, 10))
+        self.manual_rows_var = tk.IntVar(value=24)
+        self.manual_cols_var = tk.IntVar(value=56)
+        self.manual_lock_rows_var = tk.BooleanVar(value=False)
+        self.manual_lock_cols_var = tk.BooleanVar(value=False)
+        ttk.Label(board_settings, text="Rows").grid(row=0, column=0, sticky="w", padx=(0, 6))
+        ttk.Spinbox(board_settings, from_=1, to=500, width=7, textvariable=self.manual_rows_var).grid(row=0, column=1, sticky="w")
+        ttk.Checkbutton(board_settings, text="Lock rows", variable=self.manual_lock_rows_var).grid(row=0, column=2, sticky="w", padx=(12, 20))
+        ttk.Label(board_settings, text="Columns").grid(row=0, column=3, sticky="w", padx=(0, 6))
+        ttk.Spinbox(board_settings, from_=1, to=500, width=7, textvariable=self.manual_cols_var).grid(row=0, column=4, sticky="w")
+        ttk.Checkbutton(board_settings, text="Lock columns", variable=self.manual_lock_cols_var).grid(row=0, column=5, sticky="w", padx=(12, 0))
+
+        solver_settings = ttk.LabelFrame(self.manual_frame, text="Routing and solver", padding=10)
+        solver_settings.pack(fill="x", pady=(0, 10))
+        self.manual_cut_var = tk.StringVar(value="drilled")
+        ttk.Label(solver_settings, text="Cuts").grid(row=0, column=0, sticky="w")
+        ttk.Radiobutton(solver_settings, text="Drilled only", variable=self.manual_cut_var, value="drilled").grid(row=0, column=1, sticky="w", padx=(8, 12))
+        ttk.Radiobutton(solver_settings, text="Allow knife cuts", variable=self.manual_cut_var, value="knife").grid(row=0, column=2, sticky="w")
+        self.manual_no_stack_var = tk.BooleanVar(value=True)
+        ttk.Checkbutton(solver_settings, text="No stacked wires", variable=self.manual_no_stack_var).grid(row=1, column=0, columnspan=3, sticky="w", pady=(6, 0))
+        self.manual_seeds_var = tk.IntVar(value=4)
+        self.manual_seed_base_var = tk.IntVar(value=0)
+        self.manual_effort_var = tk.DoubleVar(value=1.0)
+        self.manual_threads_var = tk.IntVar(value=max(1, min(4, (os.cpu_count() or 2) - 1)))
+        ttk.Label(solver_settings, text="Seeds").grid(row=2, column=0, sticky="w", pady=(8, 0))
+        ttk.Spinbox(solver_settings, from_=1, to=256, width=7, textvariable=self.manual_seeds_var).grid(row=2, column=1, sticky="w", pady=(8, 0))
+        ttk.Label(solver_settings, text="Starting seed").grid(row=2, column=2, sticky="w", padx=(12, 6), pady=(8, 0))
+        ttk.Spinbox(solver_settings, from_=0, to=2147483647, width=10, textvariable=self.manual_seed_base_var).grid(row=2, column=3, sticky="w", pady=(8, 0))
+        ttk.Label(solver_settings, text="Effort").grid(row=3, column=0, sticky="w", pady=(8, 0))
+        ttk.Spinbox(solver_settings, from_=0.1, to=10.0, increment=0.1, width=7, textvariable=self.manual_effort_var).grid(row=3, column=1, sticky="w", pady=(8, 0))
+        ttk.Label(solver_settings, text="Threads").grid(row=3, column=2, sticky="w", padx=(12, 6), pady=(8, 0))
+        ttk.Spinbox(solver_settings, from_=1, to=max(1, os.cpu_count() or 1), width=7, textvariable=self.manual_threads_var).grid(row=3, column=3, sticky="w", pady=(8, 0))
+
+        parts_box = ttk.LabelFrame(self.manual_frame, text="Component placement locks", padding=8)
+        parts_box.pack(fill="both", expand=True, pady=(0, 10))
+        tk.Label(parts_box, text="Tick Lock to keep a component at its current position and rotation. Unticked parts may be repositioned and rotated by the solver.", bg=BG_PANEL, fg="#737373", font=FONT_SANS, anchor="w").pack(fill="x", pady=(0, 6))
+        parts_canvas = tk.Canvas(parts_box, bg=BG_PANEL, highlightthickness=0, height=190)
+        parts_scroll = ttk.Scrollbar(parts_box, orient="vertical", command=parts_canvas.yview)
+        self.manual_parts_frame = ttk.Frame(parts_canvas, style="Panel.TFrame")
+        self.manual_parts_frame.bind("<Configure>", lambda e: parts_canvas.configure(scrollregion=parts_canvas.bbox("all")))
+        parts_canvas.create_window((0, 0), window=self.manual_parts_frame, anchor="nw")
+        parts_canvas.configure(yscrollcommand=parts_scroll.set)
+        parts_canvas.pack(side="left", fill="both", expand=True)
+        parts_scroll.pack(side="right", fill="y")
+        self.manual_part_vars = {}
+        ttk.Button(self.manual_frame, text="START OPTIMISATION", style="Green.TButton", command=self.start_optimisation).pack(anchor="e", ipadx=20, ipady=8)
 
         self.log_frame.pack(fill="both", expand=True)
         self.log("Ready. Open a project JSON to begin.")
@@ -348,9 +394,41 @@ class MainWindow(tk.Tk):
         self.log(f"[INFO] User selected: {mode.upper()}")
         self.mode_frame.pack_forget()
         if mode == "manual":
+            self._build_manual_inventory()
             self.manual_frame.pack(fill="both", expand=True)
         else:
             self.show_questions()
+
+    def _build_manual_inventory(self):
+        """Show every project component and its current placement/rotation."""
+        for widget in self.manual_parts_frame.winfo_children():
+            widget.destroy()
+        self.manual_part_vars = {}
+        project = self.controller.project
+        self.manual_rows_var.set(project.rows)
+        self.manual_cols_var.set(project.cols)
+        self.manual_lock_rows_var.set(bool(project.locked_rows))
+        self.manual_lock_cols_var.set(bool(project.locked_cols))
+        for index, component in enumerate(project.components):
+            label = component.get("label") or component.get("name") or component.get("id") or f"Component {index + 1}"
+            component_id = component.get("id")
+            pos = component.get("boardPos")
+            if isinstance(pos, dict):
+                location = f"R{pos.get('row', '?') + 1} C{pos.get('col', '?') + 1}"
+            else:
+                location = "not placed"
+            rotation = component.get("rotation", 0)
+            excluded = bool(component.get("boardExcluded"))
+            status = "excluded" if excluded else f"{location} · {rotation}°"
+            var = tk.BooleanVar(value=bool(component.get("locked")))
+            self.manual_part_vars[component_id] = var
+            row = ttk.Frame(self.manual_parts_frame, style="Panel.TFrame")
+            row.pack(fill="x", pady=1)
+            check = ttk.Checkbutton(row, text=f"{label}  [{status}]", variable=var)
+            check.pack(side="left", anchor="w")
+            if not pos or excluded:
+                check.configure(state="disabled")
+                var.set(False)
 
     def show_questions(self):
         self.questions_frame.pack(fill="both", expand=True)
@@ -392,51 +470,106 @@ class MainWindow(tk.Tk):
             tk.Label(self.scrollable_frame, text="No parts are locked.", bg=BG_PANEL, fg=FG_TEXT, font=FONT_SANS).pack(anchor="w")
 
     def start_optimisation(self):
-        self._set_stage("PRE-FLIGHT")
-        self.log(f"\n--- 5. PLACEMENT STRATEGY ---")
+        mode = self.mode_var.get()
         project = self.controller.project
-        unlocked = set()
-        board_change = None
-        if "BOARD" in self.lock_vars:
-            data = self.lock_vars["BOARD"]
-            keep, reason = data["keep"].get(), data["reason"].get()
-            self.log(f"[INFO] Board Lock: Keep={keep} | Reason: {reason}")
-            if keep == "no":
-                self.log(f"[APPLY] Unlocking board. Auto-sizing to {self.estimated_tight[0]}x{self.estimated_tight[1]}.")
-                board_change = self.estimated_tight
-                project.rows, project.cols = self.estimated_tight
-                project.locked_rows = project.locked_cols = False
-        for c in project.components:
-            label = c.get("label") or c.get("name") or "Unknown"
-            if label in self.lock_vars:
-                data = self.lock_vars[label]
+        drilled = False
+        no_wire_stacking = False
+        parallel = None
+
+        if mode == "manual":
+            self._set_stage("PRE-FLIGHT")
+            try:
+                rows = int(self.manual_rows_var.get())
+                cols = int(self.manual_cols_var.get())
+                seeds = int(self.manual_seeds_var.get())
+                seed_base = int(self.manual_seed_base_var.get())
+                effort = float(self.manual_effort_var.get())
+                parallel = int(self.manual_threads_var.get())
+            except (ValueError, tk.TclError):
+                self.log("[ERROR] Manual settings must contain valid numbers.")
+                return
+            if min(rows, cols, seeds, parallel) < 1 or seed_base < 0 or not (0.1 <= effort <= 10.0):
+                self.log("[ERROR] Rows, columns, seeds and threads must be positive; effort must be 0.1–10.0.")
+                return
+
+            try:
+                raw = json.loads(Path(self.project_path).read_text())
+                board = raw.setdefault("board", {})
+                board["rows"], board["cols"] = rows, cols
+                board["lockedRows"] = bool(self.manual_lock_rows_var.get())
+                board["lockedCols"] = bool(self.manual_lock_cols_var.get())
+                drilled = self.manual_cut_var.get() == "drilled"
+                no_wire_stacking = bool(self.manual_no_stack_var.get())
+                for component in raw.get("components", []):
+                    component_id = component.get("id")
+                    if component_id in self.manual_part_vars:
+                        component["locked"] = bool(self.manual_part_vars[component_id].get())
+                job = Path(tempfile.mkdtemp(prefix="sbjob_")) / "project.json"
+                job.write_text(json.dumps(raw))
+            except Exception as exc:
+                self.log(f"[ERROR] Could not prepare manual solver input: {exc}")
+                return
+
+            self.log("\\n--- MANUAL SETTINGS CONFIRMED ---")
+            self.log(f"[INFO] Board: {rows}x{cols} | lock rows={self.manual_lock_rows_var.get()} | lock columns={self.manual_lock_cols_var.get()}")
+            self.log(f"[INFO] Cuts: {'drilled only' if drilled else 'knife cuts allowed'} | no stacked wires={no_wire_stacking}")
+            self.log(f"[INFO] Seeds: {seeds} starting at {seed_base} | effort={effort:g} | threads={parallel}")
+            for component in raw.get("components", []):
+                if component.get("locked") is True:
+                    pos = component.get("boardPos") or {}
+                    self.log(f"[LOCKED] {component.get('label') or component.get('name') or component.get('id')} · id={component.get('id')} · row={pos.get('row')} col={pos.get('col')} rotation={component.get('rotation', 0)}°")
+        else:
+            self._set_stage("PRE-FLIGHT")
+            self.log("\\n--- 5. PLACEMENT STRATEGY ---")
+            unlocked = set()
+            board_change = None
+            if "BOARD" in self.lock_vars:
+                data = self.lock_vars["BOARD"]
                 keep, reason = data["keep"].get(), data["reason"].get()
-                self.log(f"[INFO] Part Lock '{label}': Keep={keep} | Reason: {reason}")
+                self.log(f"[INFO] Board Lock: Keep={keep} | Reason: {reason}")
                 if keep == "no":
-                    c["locked"] = False
-                    unlocked.add(label)
+                    self.log(f"[APPLY] Unlocking board. Auto-sizing to {self.estimated_tight[0]}x{self.estimated_tight[1]}.")
+                    board_change = self.estimated_tight
+                    project.rows, project.cols = self.estimated_tight
+                    project.locked_rows = project.locked_cols = False
+            for component in project.components:
+                label = component.get("label") or component.get("name") or "Unknown"
+                if label in self.lock_vars:
+                    data = self.lock_vars[label]
+                    keep, reason = data["keep"].get(), data["reason"].get()
+                    self.log(f"[INFO] Part Lock '{label}': Keep={keep} | Reason: {reason}")
+                    if keep == "no":
+                        component["locked"] = False
+                        unlocked.add(label)
+            try:
+                raw = json.loads(Path(self.project_path).read_text())
+                if board_change:
+                    raw.setdefault("board", {}).update(rows=board_change[0], cols=board_change[1], lockedRows=False, lockedCols=False)
+                for component in raw.get("components", []):
+                    if (component.get("label") or component.get("name") or "Unknown") in unlocked:
+                        component["locked"] = False
+                job = Path(tempfile.mkdtemp(prefix="sbjob_")) / "project.json"
+                job.write_text(json.dumps(raw))
+            except Exception as exc:
+                self.log(f"[ERROR] Could not prepare the solver input: {exc}")
+                return
+
         self.questions_frame.pack_forget()
         self.manual_frame.pack_forget()
         self.log_frame.pack(fill="both", expand=True)
-        mode = self.mode_var.get()
-        self.log(f"\n[OPTIMISE] Starting mode: {mode.upper()}")
-        try:
-            raw = json.loads(Path(self.project_path).read_text())
-            if board_change:
-                raw.setdefault("board", {}).update(rows=board_change[0], cols=board_change[1], lockedRows=False, lockedCols=False)
-            for c in raw.get("components", []):
-                if (c.get("label") or c.get("name") or "Unknown") in unlocked:
-                    c["locked"] = False
-            job = Path(tempfile.mkdtemp(prefix="sbjob_")) / "project.json"
-            job.write_text(json.dumps(raw))
-        except Exception as e:
-            self.log(f"[ERROR] Could not prepare the solver input: {e}")
-            return
+        self.log(f"\\n[OPTIMISE] Starting mode: {mode.upper()}")
         self.best = None
         self.btn_preview.pack_forget()
         self.btn_cancel.pack_forget()
         self.btn_stop.pack(side="left", padx=8)
-        self.solver = SolveWorker(str(job), mode, self.solver_q)
+        self.solver = SolveWorker(
+            str(job), mode, self.solver_q,
+            parallel=parallel, drilled=drilled,
+            no_wire_stacking=no_wire_stacking,
+            manual_seeds=seeds if mode == "manual" else None,
+            manual_seed_base=seed_base if mode == "manual" else 0,
+            manual_effort=effort if mode == "manual" else None,
+        )
         self.solver.start()
 
     def cancel_solve(self):
