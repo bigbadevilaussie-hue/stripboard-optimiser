@@ -144,6 +144,26 @@ class MainWindow(tk.Tk):
                                 font=FONT_SANS_BOLD, anchor="w", highlightthickness=0, bd=0)
             rb.pack(fill="x", pady=(10, 0))
             tk.Label(self.mode_frame, text=desc, bg=BG_PANEL, fg="#737373", font=FONT_SANS, anchor="w").pack(fill="x", padx=25, pady=(0, 10))
+        tournament_box = ttk.LabelFrame(self.mode_frame, text="2-Pass Tournament settings", padding=10)
+        tournament_box.pack(fill="x", pady=(12, 0), padx=24)
+        self.tournament_candidates_var = tk.StringVar(value="100")
+        self.tournament_finalists_var = tk.StringVar(value="5")
+        ttk.Label(tournament_box, text="Qualifier candidates").grid(row=0, column=0, sticky="w", padx=(0, 10))
+        ttk.Combobox(
+            tournament_box, textvariable=self.tournament_candidates_var,
+            values=("20", "50", "100"), state="readonly", width=8
+        ).grid(row=0, column=1, sticky="w")
+        ttk.Label(tournament_box, text="Advance to final").grid(row=0, column=2, sticky="w", padx=(20, 10))
+        ttk.Combobox(
+            tournament_box, textvariable=self.tournament_finalists_var,
+            values=("3", "5"), state="readonly", width=8
+        ).grid(row=0, column=3, sticky="w")
+        tk.Label(
+            tournament_box,
+            text="Qualifier effort: 0.1 · Final effort: 3.0",
+            bg=BG_PANEL, fg="#737373", font=("Helvetica Neue", 10), anchor="w"
+        ).grid(row=1, column=0, columnspan=4, sticky="w", pady=(6, 0))
+
         ttk.Button(self.mode_frame, text="CONFIRM MODE", style="Green.TButton", command=self.confirm_mode).pack(pady=(30, 0), ipadx=20, ipady=10)
         self.sys_label = ttk.Label(self.mode_frame, text="Detecting CPU…",
                                    background=BG_PANEL, foreground=FG_TEXT, font=FONT_SANS)
@@ -490,6 +510,19 @@ class MainWindow(tk.Tk):
         no_wire_stacking = False
         routing_preference = "wires"
         parallel = None
+        tournament_candidates = 100
+        tournament_finalists = 5
+
+        if mode == "2pass":
+            try:
+                tournament_candidates = int(self.tournament_candidates_var.get())
+                tournament_finalists = int(self.tournament_finalists_var.get())
+            except (ValueError, tk.TclError):
+                self.log("[ERROR] Select a valid tournament size and finalist count.")
+                return
+            if tournament_candidates not in (20, 50, 100) or tournament_finalists not in (3, 5):
+                self.log("[ERROR] Tournament choices must be 20/50/100 candidates and 3/5 finalists.")
+                return
 
         if mode == "manual":
             self._set_stage("PRE-FLIGHT")
@@ -604,6 +637,8 @@ class MainWindow(tk.Tk):
         self.manual_frame.pack_forget()
         self.log_frame.pack(fill="both", expand=True)
         self.log(f"\n[OPTIMISE] Starting mode: {mode.upper()}")
+        if mode == "2pass":
+            self.log(f"[TOURNAMENT] {tournament_candidates} qualifier candidates → top {tournament_finalists} finalists | effort 0.1 → 3.0")
         self.log("[SOLVE] Each seed is an independent starting arrangement; the best fully valid result wins.")
         self.best = None
         self.btn_preview.pack_forget()
@@ -617,6 +652,8 @@ class MainWindow(tk.Tk):
             manual_seeds=seeds if mode == "manual" else None,
             manual_seed_base=seed_base if mode == "manual" else 0,
             manual_effort=effort if mode == "manual" else None,
+            tournament_candidates=tournament_candidates,
+            tournament_finalists=tournament_finalists,
         )
         self.solve_started_at = datetime.now().astimezone()
         self.solve_started_monotonic = time.monotonic()
