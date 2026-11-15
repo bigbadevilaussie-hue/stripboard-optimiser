@@ -19,6 +19,30 @@ PLANS = {
 }
 
 PASS1_MOVES = 25_000
+MAX_FINALISTS = 10
+
+
+def _layout_signature(path):
+    """Return a stable signature for a board arrangement, ignoring run metadata."""
+    saved = json.loads(Path(path).read_text(encoding="utf-8"))
+    board = saved.get("board", {})
+    components = []
+    for component in saved.get("components", []):
+        if component.get("boardExcluded"):
+            continue
+        components.append((
+            str(component.get("id", "")),
+            component.get("boardPos"),
+            component.get("rotation", 0),
+        ))
+    components.sort(key=lambda item: item[0])
+    return json.dumps(
+        {"rows": board.get("rows", saved.get("rows")),
+         "cols": board.get("cols", saved.get("cols")),
+         "components": components},
+        sort_keys=True, separators=(",", ":"),
+    )
+
 
 CONTESTANT_NAMES = [
     "Ada", "Ben", "Cleo", "Dan", "Eva", "Finn", "Gala", "Hank", "Iris", "Jack",
@@ -95,7 +119,7 @@ class SolveWorker(threading.Thread):
     def _one(self, seed, effort, stage, work, contestant_name=None, moves=None):
         if self._cancel_event.is_set():
             return None
-        label = f"Seed {seed:04d}"
+        label = f"{contestant_name} · Seed {seed:04d}" if contestant_name else f"Seed {seed:04d}"
         try:
             summary, path = solve_one(
                 self.project_json, seed, work,
@@ -125,7 +149,9 @@ class SolveWorker(threading.Thread):
                 f"📐 Rows: {summary.get('rows', '?')} | Cols: {summary.get('cols', '?')} | "
                 f"🧩 Parts: {parts} | ↗️ Diag: {diagonals} | "
                 f"🔌 Wires: {summary.get('wires', '?')} | ✂️ Cuts: {summary.get('cuts', '?')} | "
-                f"⏱️ Moves: {elapsed}ms"
+                f"⏱️ Moves: {elapsed}ms | ⭐ Quality: {summary.get('quality', '?')} | "
+                f"⚠️ Conflicts: {summary.get('conflicts', '?')} | Incomplete: {summary.get('incomplete', '?')} | "
+                f"Geo: {summary.get('geo', '?')} | 💰 Price: {summary.get('price', summary.get('rate', '?'))}"
             )
             if not ok:
                 reasons = []
@@ -137,8 +163,7 @@ class SolveWorker(threading.Thread):
                 if summary.get("issues"):
                     reasons.append(f"ISSUES:{len(summary['issues'])}")
                 line += " | FAIL: " + (", ".join(reasons) if reasons else "validation")
-            if self.mode != "2pass":
-                self.q.put(("log", line))
+            self.q.put(("log", line))
             self.q.put(("candidate", stage, seed, effort, summary, str(path), ok, contestant_name))
             return (summary, str(path), seed, contestant_name, ok)
         except Exception as exc:
@@ -150,7 +175,7 @@ class SolveWorker(threading.Thread):
 
     def _run_two_pass(self, work):
         candidates = self.tournament_candidates
-        finalist_count = self.tournament_finalists
+        finalist_count = min(MAX_FINALISTS, max(1, self.tournament_finalists))
         seeds = list(range(1, candidates + 1))
         names = CONTESTANT_NAMES[:]
         random.SystemRandom().shuffle(names)
@@ -162,6 +187,9 @@ class SolveWorker(threading.Thread):
         results = [None] * candidates
         completed = 0
         valid_count = 0
+        duplicate_count = 0
+        seen_layouts = {}
+        unique_valid = []
         with ThreadPoolExecutor(max_workers=self.parallel) as executor:
             futures = {
                 executor.submit(
@@ -177,23 +205,35 @@ class SolveWorker(threading.Thread):
                 if result is not None:
                     completed += 1
                     if result[0] is not None and result[4]:
-                        valid_count += 1
+                        try:
+                            signature = _layout_signature(result[1])
+                        except Exception as exc:
+                            self.q.put(("log", f"[LAYOUT CHECK] Seed {seed:04d}: could not fingerprint board: {exc}"))
+                            signature = f"unreadable-seed-{seed}"
+                        original_seed = seen_layouts.get(signature)
+                        if original_seed is None:
+                            seen_layouts[signature] = seed
+                            unique_valid.append(result)
+                            valid_count += 1
+                        else:
+                            duplicate_count += 1
+                            self.q.put(("log", f"🔁 DUPLICATE: {result[3]} (seed {seed:04d}) matches {contestant_names[original_seed]} (seed {original_seed:04d}); excluded from finalist ranking"))
                     if completed % 20 == 0:
                         self.q.put((
                             "log",
                             f"[PASS 1 PROGRESS] {completed}/{candidates} seeds completed "
-                            f"· {valid_count} valid · latest seed {seed:04d}",
+                            f"· {valid_count} unique valid · {duplicate_count} duplicates · latest seed {seed:04d}",
                         ))
-        valid = [result for result in results if result and result[0] is not None and result[4]]
+        valid = unique_valid
         ranked = sorted(valid, key=lambda result: rank_key(result[0], self.routing_preference))
         if self._cancel_event.is_set():
             self.q.put(("log", f"⏹ PASS 1 INTERRUPTED: {completed}/{candidates} completed, {len(valid)} valid"))
             return None
-        self.q.put(("log", f"🏁 PASS 1 COMPLETE: {completed}/{candidates} completed, {len(valid)} valid"))
+        self.q.put(("log", f"🏁 PASS 1 COMPLETE: {completed}/{candidates} completed, {len(valid)} unique valid, {duplicate_count} duplicates"))
         if not ranked:
             return None
 
-        finalists = ranked[:finalist_count]
+        finalists = ranked[:min(finalist_count, len(ranked))]
         finalist_seeds = [item[2] for item in finalists]
         self.q.put(("log", "➡️ PASS 1 FINALISTS: " + ", ".join(
             f"{contestant_names[s]} (seed {s})" for s in finalist_seeds
