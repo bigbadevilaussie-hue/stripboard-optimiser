@@ -392,9 +392,9 @@ class MainWindow(tk.Tk):
         est = estimate_runtime(result, moves_total=min(1_280_000, max(5_000, 16_000 * max(0, pins - 13))), threads=threads)
         low, high = est.seconds_low, est.seconds_high
         if high >= 60:
-            est_text = f"Runtime: ~{low/60:.1f}–{high/60:.1f} min ({threads} threads)"
+            est_text = f"Runtime per seed: ~{low/60:.1f}–{high/60:.1f} min"
         else:
-            est_text = f"Runtime: ~{low:.0f}–{high:.0f} s ({threads} threads)"
+            est_text = f"Runtime per seed: ~{low:.0f}–{high:.0f} s"
         self.est_label.configure(text=est_text)
 
     def confirm_mode(self):
@@ -554,7 +554,7 @@ class MainWindow(tk.Tk):
                     f"(midpoint {fmt_time(point)}; {batches} batches × up to {parallel} seeds)."
                 )
                 self.log(
-                    f"[TIME] Based on speed probe {self.probe_result.ms_per_decode:.3f} ms/decode, "
+                    f"[TIME] Based on empirical throughput calibration, "
                     f"{moves_per_seed:,} estimated moves/seed and effort {effort:g}; actual routing/locks may vary."
                 )
             else:
