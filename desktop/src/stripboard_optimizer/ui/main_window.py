@@ -32,7 +32,8 @@ class MainWindow(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("Stripboard Optimiser")
-        self.geometry("1100x750")
+        self.geometry("1360x860")
+        self.minsize(1100, 700)
         self.configure(bg=BG_ROOT)
         self.controller = ProjectController()
         self.estimated_tight = (0, 0)
@@ -96,16 +97,38 @@ class MainWindow(tk.Tk):
         self.right_frame = ttk.Frame(self.paned, style="TFrame")
         self.paned.add(self.right_frame, weight=4)
 
-        self.log_frame = ttk.Frame(self.right_frame, style="Panel.TFrame", padding=1)
+        # Persistent workflow area and board preview.
+        self.content_split = ttk.PanedWindow(self.right_frame, orient="horizontal")
+        self.content_split.pack(fill="both", expand=True)
+        self.workflow_frame = ttk.Frame(self.content_split, style="TFrame")
+        self.preview_frame = ttk.Frame(self.content_split, style="Panel.TFrame", padding=8)
+        self.content_split.add(self.workflow_frame, weight=3)
+        self.content_split.add(self.preview_frame, weight=2)
+
+        self.stage_var = tk.StringVar(value="PROJECT")
+        self.stage_labels = {}
+        stage_bar = ttk.Frame(self.workflow_frame, style="TFrame", padding=(4, 0, 4, 10))
+        stage_bar.pack(fill="x")
+        for stage in ("PROJECT", "BOARD", "OPTIMISE", "PRE-FLIGHT", "RESULTS"):
+            label = ttk.Label(stage_bar, text=stage, font=("Helvetica Neue", 10, "bold"),
+                              foreground="#9ca3af", background=BG_ROOT, padding=(8, 6))
+            label.pack(side="left", padx=(0, 4))
+            self.stage_labels[stage] = label
+        self._set_stage("PROJECT")
+        ttk.Label(self.preview_frame, text="BOARD PREVIEW", style="Copper.TLabel").pack(anchor="w", pady=(0, 8))
+
+        self.log_frame = ttk.Frame(self.workflow_frame, style="Panel.TFrame", padding=1)
         self.validation_panel = ValidationPanel(self.log_frame)
         self.validation_panel.pack(fill="both", expand=True)
 
-        self.board_view_frame = ttk.Frame(self.right_frame, style="Panel.TFrame")
+        self.board_view_frame = ttk.Frame(self.preview_frame, style="Panel.TFrame")
         self.board_viewer = BoardViewer(self.board_view_frame, on_close=self.show_log)
+        self.board_view_frame.pack(fill="both", expand=True)
         self.board_viewer.pack(fill="both", expand=True)
+        self.board_viewer.update_image()
 
         # PANEL 1: MODE SELECT
-        self.mode_frame = ttk.Frame(self.right_frame, style="Panel.TFrame", padding=40)
+        self.mode_frame = ttk.Frame(self.workflow_frame, style="Panel.TFrame", padding=24)
         ttk.Label(self.mode_frame, text="Select Optimisation Mode", font=FONT_SANS_BOLD, background=BG_PANEL).pack(pady=(0, 20))
         self.mode_var = tk.StringVar(value="2pass")
         modes = [
@@ -129,7 +152,7 @@ class MainWindow(tk.Tk):
         self.est_label.pack(anchor="w", pady=(0, 0))
 
         # PANEL 2: QUESTIONS (Auto / 2-Pass)
-        self.questions_frame = ttk.Frame(self.right_frame, style="Panel.TFrame", padding=40)
+        self.questions_frame = ttk.Frame(self.workflow_frame, style="Panel.TFrame", padding=24)
         self.canvas = tk.Canvas(self.questions_frame, bg=BG_PANEL, highlightthickness=0)
         self.scrollbar = ttk.Scrollbar(self.questions_frame, orient="vertical", command=self.canvas.yview)
         self.scrollable_frame = ttk.Frame(self.canvas, style="Panel.TFrame")
@@ -144,7 +167,7 @@ class MainWindow(tk.Tk):
         ttk.Button(self.q_btn_frame, text="START OPTIMISATION", style="Green.TButton", command=self.start_optimisation).pack(side="right", ipadx=20, ipady=10)
 
         # PANEL 3: MANUAL SETTINGS
-        self.manual_frame = ttk.Frame(self.right_frame, style="Panel.TFrame", padding=40)
+        self.manual_frame = ttk.Frame(self.workflow_frame, style="Panel.TFrame", padding=24)
         ttk.Label(self.manual_frame, text="Manual Settings", font=FONT_SANS_BOLD, background=BG_PANEL).pack(pady=(0, 20))
         tk.Label(self.manual_frame, text="(Configure locks, seeds, and weights here)", bg=BG_PANEL, fg="#737373", font=FONT_SANS).pack()
         ttk.Button(self.manual_frame, text="START OPTIMISATION", style="Green.TButton", command=self.start_optimisation).pack(pady=(30, 0), ipadx=20, ipady=10)
@@ -152,6 +175,15 @@ class MainWindow(tk.Tk):
         self.log_frame.pack(fill="both", expand=True)
         self.log("Ready. Open a project JSON to begin.")
         self.after(200, self._poll_solver)
+
+    def _set_stage(self, stage):
+        """Update the persistent workflow progress indicator."""
+        self.stage_var.set(stage)
+        order = ("PROJECT", "BOARD", "OPTIMISE", "PRE-FLIGHT", "RESULTS")
+        active = order.index(stage) if stage in order else 0
+        for index, name in enumerate(order):
+            colour = "#047857" if index < active else ("#111827" if index == active else "#9ca3af")
+            self.stage_labels[name].configure(foreground=colour)
 
     def log(self, msg):
         self.validation_panel.log(msg)
@@ -256,6 +288,7 @@ class MainWindow(tk.Tk):
         self.btn_preflight.pack(side="left", padx=8)
 
     def run_preflight(self):
+        self._set_stage("PRE-FLIGHT")
         self.log("\n--- 4. PREFLIGHT ---")
         findings = self.controller.run_preflight()
         self.validation_panel.log_findings(findings)
@@ -265,6 +298,7 @@ class MainWindow(tk.Tk):
             self.btn_mode.pack(side="left", padx=8)
 
     def show_mode_select(self):
+        self._set_stage("OPTIMISE")
         self.log_frame.pack_forget()
         self.mode_frame.pack(fill="both", expand=True)
         self.btn_mode.pack_forget()
@@ -303,6 +337,7 @@ class MainWindow(tk.Tk):
         self.est_label.configure(text=est_text)
 
     def confirm_mode(self):
+        self._set_stage("OPTIMISE")
         mode = self.mode_var.get()
         self.log(f"\n--- 5. MODE SELECT ---")
         self.log(f"[INFO] User selected: {mode.upper()}")
@@ -352,6 +387,7 @@ class MainWindow(tk.Tk):
             tk.Label(self.scrollable_frame, text="No parts are locked.", bg=BG_PANEL, fg=FG_TEXT, font=FONT_SANS).pack(anchor="w")
 
     def start_optimisation(self):
+        self._set_stage("PRE-FLIGHT")
         self.log(f"\n--- 5. PLACEMENT STRATEGY ---")
         project = self.controller.project
         unlocked = set()
@@ -419,6 +455,7 @@ class MainWindow(tk.Tk):
                     if cancelled:
                         self.log("[SOLVE] Stopped.")
                     elif best:
+                        self._set_stage("RESULTS")
                         s, path, seed = best
                         out = Path(self.project_path).with_name(Path(self.project_path).stem + "_solved.json")
                         out.write_text(Path(path).read_text())
@@ -520,15 +557,17 @@ class MainWindow(tk.Tk):
         threading.Thread(target=job, daemon=True).start()
 
     def show_board_view(self):
-        for f in [self.log_frame, self.mode_frame, self.questions_frame, self.manual_frame]:
-            f.pack_forget()
-        self.board_view_frame.pack(fill="both", expand=True)
+        # Keep the preview docked beside the active workflow stage.
+        self._set_stage("RESULTS")
+        self.log_frame.pack_forget()
+        self.mode_frame.pack_forget()
+        self.questions_frame.pack_forget()
+        self.manual_frame.pack_forget()
 
     def show_log(self):
         self.mode_frame.pack_forget()
         self.questions_frame.pack_forget()
         self.manual_frame.pack_forget()
-        self.board_view_frame.pack_forget()
         self.log_frame.pack(fill="both", expand=True)
         self.btn_cancel.pack_forget()
         if not self.controller.project: pass
