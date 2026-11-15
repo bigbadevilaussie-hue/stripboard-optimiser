@@ -65,7 +65,7 @@ export interface PriceBreakdown {
   sibling: number;
 }
 
-export function priceBreakdown(t: BoardTerms, wBCut: number): PriceBreakdown {
+export function priceBreakdown(t: BoardTerms, wBCut: number, wWire = W_WIRE, wCut = W_CUT): PriceBreakdown {
   const { H, W, lockedRowsCap, lockedColsCap } = t;
   const lockOver =
     (lockedColsCap !== undefined ? Math.max(0, W - lockedColsCap) : 0) +
@@ -116,8 +116,8 @@ export function priceBreakdown(t: BoardTerms, wBCut: number): PriceBreakdown {
   let sibling = 0;
   for (const g of t.groups) sibling += W_SIBLING * Math.max(0, g.r1 - g.r0 + (g.c1 - g.c0) - (g.n - 1));
   const price =
-    W_AREA * (physH * physW + aspectOver) + W_WIRE * t.wires + W_WLEN * t.wireLen +
-    W_CUT * t.cuts + wBCut * t.bCuts + W_LOCKOVER * lockOver + connEdge + shaftIn + sibling;
+    W_AREA * (physH * physW + aspectOver) + wWire * t.wires + W_WLEN * t.wireLen +
+    wCut * t.cuts + wBCut * t.bCuts + W_LOCKOVER * lockOver + connEdge + shaftIn + sibling;
   return { price, physH, physW, lockOver, aspectOver, connEdge, shaftIn, sibling };
 }
 
@@ -133,15 +133,20 @@ export class BoardPricer {
   private geom = new Map<string, PartGeom>();
   private groups: string[][];
   private wBCut: number;
+  private wWire: number;
+  private wCut: number;
 
   constructor(
     private componentDefs: ComponentDef[],
     components: Component[],
     private limits: { maxRows?: number; maxCols?: number },
-    private drilledCutsOnly: boolean
+    private drilledCutsOnly: boolean,
+    routingPreference: "wires" | "cuts" = "wires"
   ) {
     this.groups = leadSiblings(components);
     this.wBCut = drilledCutsOnly ? W_BCUT_DRILL : W_BCUT;
+    this.wWire = routingPreference === "wires" ? 8 : 1;
+    this.wCut = routingPreference === "wires" ? 0.01 : 0.25;
   }
 
   private geomOf(c: Component, def: ComponentDef): PartGeom {
@@ -212,7 +217,7 @@ export class BoardPricer {
   }
 
   price(virtual: Component[], rows: number, cols: number, cuts: Cut[], wires: { from: BoardPosition; to: BoardPosition }[]): number {
-    return priceBreakdown(this.terms(virtual, rows, cols, cuts, wires), this.wBCut).price;
+    return priceBreakdown(this.terms(virtual, rows, cols, cuts, wires), this.wBCut, this.wWire, this.wCut).price;
   }
 }
 
@@ -222,7 +227,8 @@ export function priceResult(
   board: { rows: number; cols: number; lockedRows?: boolean; lockedCols?: boolean },
   components: Component[],
   componentDefs: ComponentDef[],
-  drilledCutsOnly = false
+  drilledCutsOnly = false,
+  routingPreference: "wires" | "cuts" = "wires"
 ): number {
   if (!result.boardSize) return Infinity;
   const byId = new Map(result.placements.map((p) => [p.componentId, p]));
@@ -233,6 +239,6 @@ export function priceResult(
   const pricer = new BoardPricer(componentDefs, components, {
     ...(board.lockedRows ? { maxRows: board.rows } : {}),
     ...(board.lockedCols ? { maxCols: board.cols } : {}),
-  }, drilledCutsOnly);
+  }, drilledCutsOnly, routingPreference);
   return pricer.price(virtual, result.boardSize.rows, result.boardSize.cols, result.cuts, result.wires);
 }
