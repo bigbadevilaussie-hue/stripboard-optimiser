@@ -1,4 +1,9 @@
-"""Runtime estimate from a ProbeResult. Pure math, no I/O."""
+"""Empirical wall-time estimate for one v5 solver seed.
+
+Calibration is based on the measured 123-pin, effort-1 desktop run: about
+473 seconds for 12 seeds in three batches on four workers. Each seed is an
+independent Node/WASM process, so threads reduce batch count, not seed time.
+"""
 from dataclasses import dataclass, field
 from .probe import ProbeResult
 
@@ -8,54 +13,36 @@ class RuntimeEstimate:
     seconds_point: float
     seconds_low: float
     seconds_high: float
-    basis: str  # "probe" | "fallback"
+    basis: str
     notes: list[str] = field(default_factory=list)
 
 
-# Parallel overhead on a 4-thread solve is real and not linear. Measured
-# cold-start overhead (node spawn, WASM load) amortises across seeds, so we
-# don't scale it. If you later measure actuals, replace this with a fitted curve.
-_PARALLEL_OVERHEAD = 1.15
+# One observed run: 1.28M capped moves took approximately 155 seconds/seed.
+_SECONDS_PER_MOVE = 155.0 / 1_280_000
+_LOW_FACTOR = 0.65
+_HIGH_FACTOR = 1.50
 
 
 def estimate(probe: ProbeResult,
              moves_total: int,
              threads: int,
              has_locks: bool = False) -> RuntimeEstimate:
-    notes: list[str] = []
-
-    if not probe.ok or probe.ms_per_decode is None:
-        notes.append("No valid probe result — cannot estimate without calibration")
-        if probe.error:
-            notes.append(f"probe error: {probe.error}")
-        return RuntimeEstimate(0.0, 0.0, 0.0, "fallback", notes)
-
+    notes = [
+        "Empirical calibration: one 123-pin, effort-1 run; actual hardware and routing complexity vary.",
+        "Threads affect the number of seed batches, not the duration of an individual seed.",
+    ]
     if moves_total <= 0:
         notes.append("moves_total is zero or negative; nothing to estimate")
-        return RuntimeEstimate(0.0, 0.0, 0.0, "probe", notes)
-
+        return RuntimeEstimate(0.0, 0.0, 0.0, "empirical", notes)
     if threads < 1:
-        threads = 1
         notes.append("threads clamped to 1")
-
-    # Decode ms × moves = single-threaded wall time. Divide by threads for
-    # ideal parallel, then apply the overhead multiplier.
-    single_thread_s = (probe.ms_per_decode * moves_total) / 1000.0
-    parallel_s = (single_thread_s / threads) * _PARALLEL_OVERHEAD
-
-    # Range: ±30% point estimate. Wide because contention and cache effects
-    # on real hardware vary, and because a partly-locked board may spend
-    # more of its time in the finish stage than the anneal.
-    low = parallel_s * 0.7
-    high = parallel_s * 1.6
-
+    point = _SECONDS_PER_MOVE * moves_total
     if has_locks:
-        notes.append("board has locked parts or locked dimensions; estimate may be low")
-
+        notes.append("Locked parts or dimensions can change solve time.")
     return RuntimeEstimate(
-        seconds_point=parallel_s,
-        seconds_low=low,
-        seconds_high=high,
-        basis="probe",
+        seconds_point=point,
+        seconds_low=point * _LOW_FACTOR,
+        seconds_high=point * _HIGH_FACTOR,
+        basis="empirical",
         notes=notes,
     )
