@@ -195,7 +195,7 @@ class MainWindow(tk.Tk):
 
         solver_settings = ttk.LabelFrame(self.manual_frame, text="Routing and solver", padding=10)
         solver_settings.pack(fill="x", pady=(0, 10))
-        self.manual_cut_var = tk.StringVar(value="drilled")
+        self.manual_cut_var = tk.StringVar(value="knife")
         ttk.Label(solver_settings, text="Cuts").grid(row=0, column=0, sticky="w")
         ttk.Radiobutton(solver_settings, text="Drilled only", variable=self.manual_cut_var, value="drilled").grid(row=0, column=1, sticky="w", padx=(8, 12))
         ttk.Radiobutton(solver_settings, text="Allow knife cuts", variable=self.manual_cut_var, value="knife").grid(row=0, column=2, sticky="w")
@@ -203,7 +203,7 @@ class MainWindow(tk.Tk):
         ttk.Label(solver_settings, text="Routing priority").grid(row=2, column=0, sticky="w", pady=(8, 0))
         ttk.Radiobutton(solver_settings, text="Fewer wires", variable=self.manual_routing_preference_var, value="wires").grid(row=2, column=1, sticky="w", pady=(8, 0))
         ttk.Radiobutton(solver_settings, text="Fewer cuts", variable=self.manual_routing_preference_var, value="cuts").grid(row=2, column=2, sticky="w", pady=(8, 0))
-        self.manual_no_stack_var = tk.BooleanVar(value=True)
+        self.manual_no_stack_var = tk.BooleanVar(value=False)
         ttk.Checkbutton(solver_settings, text="No stacked wires", variable=self.manual_no_stack_var).grid(row=1, column=0, columnspan=3, sticky="w", pady=(6, 0))
         tk.Label(solver_settings, text="Rotation and diagonal routing are solver-managed; this solver build has no separate on/off switches for them.", bg=BG_PANEL, fg="#737373", font=("Helvetica Neue", 10), anchor="w").grid(row=1, column=3, columnspan=3, sticky="w", padx=(8, 0), pady=(6, 0))
         self.manual_seeds_var = tk.IntVar(value=12)
@@ -527,8 +527,8 @@ class MainWindow(tk.Tk):
                 board["rows"], board["cols"] = rows, cols
                 board["lockedRows"] = bool(self.manual_lock_rows_var.get())
                 board["lockedCols"] = bool(self.manual_lock_cols_var.get())
-                drilled = self.manual_cut_var.get() == "drilled"
-                no_wire_stacking = bool(self.manual_no_stack_var.get())
+                drilled = False
+                no_wire_stacking = False
                 routing_preference = self.manual_routing_preference_var.get()
                 for component in raw.get("components", []):
                     component_id = component.get("id")
@@ -546,7 +546,7 @@ class MainWindow(tk.Tk):
 
             self.log("\n--- MANUAL SETTINGS CONFIRMED ---")
             self.log(f"[INFO] Board: {rows}x{cols} | lock rows={self.manual_lock_rows_var.get()} | lock columns={self.manual_lock_cols_var.get()}")
-            self.log(f"[INFO] Cuts: {'drilled only' if drilled else 'knife cuts allowed'} | no stacked wires={no_wire_stacking}")
+            self.log("[INFO] Solver constraints: drilled cuts OFF | wire stacking ALLOWED")
             self.log(f"[INFO] Seeds: {seeds} starting at {seed_base} | effort={effort:g} | threads={parallel}")
             self.log("[INFO] Effort 1.0 is the normal search depth; higher values increase moves per seed.")
             if self.probe_result and self.probe_result.ok and self.probe_result.ms_per_decode is not None:
@@ -618,6 +618,7 @@ class MainWindow(tk.Tk):
         if mode == "2pass":
             self.log("[TOURNAMENT] Pass 1: 1,000 seeds × 25,000 moves at effort 0.1. Pass 2: up to 10 unique finalists × 40 independent budgets from 5,000 to 200,000 moves (5,000-step increments).")
             self.log("[TOURNAMENT] Every budget starts from the original project JSON using the finalist seed; the best valid board per seed is retained.")
+        self.log("[SOLVER] Native=ON | drilled cuts=OFF | wire stacking=ALLOWED | routing priority=wires")
         self.log("[SOLVE] Each seed is an independent starting arrangement; the best fully valid result wins.")
         self.best = None
         self.btn_preview.pack_forget()
@@ -625,9 +626,9 @@ class MainWindow(tk.Tk):
         self.btn_stop.pack(side="left", padx=8)
         self.solver = SolveWorker(
             str(job), mode, self.solver_q,
-            parallel=parallel, drilled=drilled,
-            no_wire_stacking=no_wire_stacking,
-            routing_preference=routing_preference,
+            parallel=parallel, native=True, drilled=False,
+            no_wire_stacking=False,
+            routing_preference="wires",
             manual_seeds=seeds if mode == "manual" else None,
             manual_seed_base=seed_base if mode == "manual" else 0,
             manual_effort=effort if mode == "manual" else None,
