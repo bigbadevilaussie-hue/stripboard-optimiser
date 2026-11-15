@@ -11,8 +11,7 @@ from stripboard_optimizer.solver.solver_adapter import solve_one, is_valid, rank
 
 PLANS = {
     "full_auto": [(8, 1.0)],
-    # 100 quick qualifier seeds; rerun the top 5 at high effort.
-    "2pass": [(100, 0.1), (5, 3.0)],
+    "2pass": [(100, 0.1), (5, 3.0)],  # GUI selections override these defaults.
     "manual": [(4, 1.0)],
 }
 
@@ -33,6 +32,8 @@ class SolveWorker(threading.Thread):
         manual_seeds=None,
         manual_seed_base=0,
         manual_effort=None,
+        tournament_candidates=100,
+        tournament_finalists=5,
     ):
         super().__init__(daemon=True)
         self.project_json = str(project_json)
@@ -46,6 +47,8 @@ class SolveWorker(threading.Thread):
         self.manual_seeds = manual_seeds
         self.manual_seed_base = manual_seed_base
         self.manual_effort = manual_effort
+        self.tournament_candidates = tournament_candidates
+        self.tournament_finalists = tournament_finalists
         self.cancelled = False
         self._cancel_event = threading.Event()
         self._procs = []
@@ -118,6 +121,9 @@ class SolveWorker(threading.Thread):
                 effort = self.manual_effort if self.manual_effort is not None else PLANS["manual"][0][1]
                 plan = [(count, effort)]
                 seeds = list(range(self.manual_seed_base, self.manual_seed_base + count))
+            elif self.mode == "2pass":
+                plan = [(self.tournament_candidates, 0.1), (self.tournament_finalists, 3.0)]
+                seeds = list(range(1, self.tournament_candidates + 1))
             else:
                 plan = PLANS.get(self.mode, PLANS["full_auto"])
                 seeds = (
