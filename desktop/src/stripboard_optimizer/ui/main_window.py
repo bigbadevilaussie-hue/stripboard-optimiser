@@ -135,7 +135,7 @@ class MainWindow(tk.Tk):
         modes = [
             ("manual", "Manual (Expert Mode)", "Control every seed and weight manually."),
             ("full_auto", "Auto (Cross your fingers and pray)", "The solver picks the settings and runs a massive sweep."),
-            ("2pass", "2-Pass Tournament (Preferred)", "Run a wide qualifier, then a high-effort Grand Final.")
+            ("2pass", "2-Pass Tournament (Preferred)", "Run 100 fast candidates, then rerun the top 5 at high effort.")
         ]
         for val, label, desc in modes:
             rb = tk.Radiobutton(self.mode_frame, text=label, variable=self.mode_var, value=val,
