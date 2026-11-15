@@ -28,7 +28,7 @@ FONT_SANS = ("Helvetica Neue", 12)
 FONT_SANS_BOLD = ("Helvetica Neue", 13, "bold")
 FONT_MONO = ("Menlo", 11)
 
-APP_VERSION = "v1.31"
+APP_VERSION = "v1.32"
 
 class MainWindow(tk.Tk):
     def __init__(self):
@@ -135,7 +135,7 @@ class MainWindow(tk.Tk):
         modes = [
             ("manual", "Manual (Expert Mode)", "Control every seed and weight manually."),
             ("full_auto", "Auto (Cross your fingers and pray)", "The solver picks the settings and runs a massive sweep."),
-            ("2pass", "2-Pass Tournament (Preferred)", "200 candidates × 25,000 moves; the top 5 receive 50,000 moves.")
+            ("2pass", "2-Pass Tournament (Preferred)", "Pass 1: 2,000 seeds × 25,000 moves at effort 0.1. Pass 2: top 5 finalists.")
         ]
         for val, label, desc in modes:
             rb = tk.Radiobutton(self.mode_frame, text=label, variable=self.mode_var, value=val,
@@ -146,10 +146,10 @@ class MainWindow(tk.Tk):
             tk.Label(self.mode_frame, text=desc, bg=BG_PANEL, fg="#737373", font=FONT_SANS, anchor="w").pack(fill="x", padx=25, pady=(0, 10))
         tournament_box = ttk.LabelFrame(self.mode_frame, text="2-Pass Tournament settings", padding=10)
         tournament_box.pack(fill="x", pady=(12, 0), padx=24)
-        ttk.Label(tournament_box, text="Pass 1: 200 candidates × 25,000 moves").grid(
+        ttk.Label(tournament_box, text="Pass 1: 2,000 seeds × 25,000 moves at effort 0.1").grid(
             row=0, column=0, columnspan=4, sticky="w"
         )
-        ttk.Label(tournament_box, text="Pass 2: top 5 finalists × 50,000 moves").grid(
+        ttk.Label(tournament_box, text="Pass 2: top 5 finalists × 40 rounds, 5,000–200,000 moves").grid(
             row=1, column=0, columnspan=4, sticky="w", pady=(6, 0)
         )
 
