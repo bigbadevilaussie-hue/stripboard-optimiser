@@ -120,7 +120,11 @@ class SolveWorker(threading.Thread):
                 seeds = list(range(self.manual_seed_base, self.manual_seed_base + count))
             else:
                 plan = PLANS.get(self.mode, PLANS["full_auto"])
-                seeds = list(range(plan[0][0]))
+                seeds = (
+                    list(range(1, plan[0][0] + 1))
+                    if self.mode == "2pass"
+                    else list(range(plan[0][0]))
+                )
             good = []
 
             for stage, (count, effort) in enumerate(plan, 1):
