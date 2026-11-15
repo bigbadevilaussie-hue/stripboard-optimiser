@@ -27,6 +27,10 @@ class SolveWorker(threading.Thread):
         parallel=None,
         native=False,
         drilled=False,
+        no_wire_stacking=False,
+        manual_seeds=None,
+        manual_seed_base=0,
+        manual_effort=None,
     ):
         super().__init__(daemon=True)
         self.project_json = str(project_json)
@@ -35,6 +39,10 @@ class SolveWorker(threading.Thread):
         self.parallel = parallel or max(1, min(4, (os.cpu_count() or 2) - 1))
         self.native = native
         self.drilled = drilled
+        self.no_wire_stacking = no_wire_stacking
+        self.manual_seeds = manual_seeds
+        self.manual_seed_base = manual_seed_base
+        self.manual_effort = manual_effort
         self.cancelled = False
         self._cancel_event = threading.Event()
         self._procs = []
@@ -79,6 +87,7 @@ class SolveWorker(threading.Thread):
                 effort=effort,
                 native=self.native,
                 drilled=self.drilled,
+                no_wire_stacking=self.no_wire_stacking,
                 on_log=lambda message: self.q.put(("log", message)),
                 on_progress=lambda current_seed, fraction: self.q.put(
                     ("progress", current_seed, fraction)
@@ -100,8 +109,14 @@ class SolveWorker(threading.Thread):
         best = None
         work = tempfile.mkdtemp(prefix="sbsolve_")
         try:
-            plan = PLANS.get(self.mode, PLANS["full_auto"])
-            seeds = list(range(plan[0][0]))
+            if self.mode == "manual":
+                count = self.manual_seeds or PLANS["manual"][0][0]
+                effort = self.manual_effort if self.manual_effort is not None else PLANS["manual"][0][1]
+                plan = [(count, effort)]
+                seeds = list(range(self.manual_seed_base, self.manual_seed_base + count))
+            else:
+                plan = PLANS.get(self.mode, PLANS["full_auto"])
+                seeds = list(range(plan[0][0]))
             good = []
 
             for stage, (count, effort) in enumerate(plan, 1):
