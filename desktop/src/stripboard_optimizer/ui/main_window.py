@@ -1,6 +1,8 @@
 import tkinter as tk
 from tkinter import ttk, filedialog
 import os, zipfile
+import time
+from datetime import datetime
 import json, queue, shutil, subprocess, tempfile, threading
 from pathlib import Path
 from stripboard_optimizer.ui.project_panel import ProjectPanel
@@ -26,7 +28,7 @@ FONT_SANS = ("Helvetica Neue", 12)
 FONT_SANS_BOLD = ("Helvetica Neue", 13, "bold")
 FONT_MONO = ("Menlo", 11)
 
-APP_VERSION = "v1.28"
+APP_VERSION = "v1.29"
 
 class MainWindow(tk.Tk):
     def __init__(self):
@@ -44,6 +46,8 @@ class MainWindow(tk.Tk):
         self.best = None
         self.sys_info = None
         self.probe_result = None
+        self.solve_started_at = None
+        self.solve_started_monotonic = None
         self.setup_style()
         self.build_ui()
 
@@ -607,6 +611,9 @@ class MainWindow(tk.Tk):
             manual_seed_base=seed_base if mode == "manual" else 0,
             manual_effort=effort if mode == "manual" else None,
         )
+        self.solve_started_at = datetime.now().astimezone()
+        self.solve_started_monotonic = time.monotonic()
+        self.log(f"[TIME] Started: {self.solve_started_at.strftime('%Y-%m-%d %H:%M:%S %Z (%z)')}")
         self.solver.start()
 
     def cancel_solve(self):
@@ -647,6 +654,15 @@ class MainWindow(tk.Tk):
                     self._set_stage("RESULTS")
                 elif m[0] == "done":
                     _, best, cancelled = m
+                    stopped_at = datetime.now().astimezone()
+                    elapsed = (time.monotonic() - self.solve_started_monotonic
+                               if self.solve_started_monotonic is not None else 0.0)
+                    hours, remainder = divmod(int(round(elapsed)), 3600)
+                    minutes, seconds = divmod(remainder, 60)
+                    self.log(f"[TIME] Stopped: {stopped_at.strftime('%Y-%m-%d %H:%M:%S %Z (%z)')}")
+                    self.log(f"[TIME] Actual runtime: {hours:02d}:{minutes:02d}:{seconds:02d}")
+                    self.solve_started_at = None
+                    self.solve_started_monotonic = None
                     self.btn_stop.pack_forget()
                     self.btn_cancel.pack_forget()
                     if cancelled:
