@@ -1,124 +1,104 @@
 # Stripboard Optimiser — Tkinter Desktop GUI
 
-This is the desktop application that wraps the headless v5 solver into a multi-seed, validated optimisation workflow.
+The Tkinter desktop application is the active optimisation interface. It wraps the existing v5 solver through the repository's Node.js harness; it does not reimplement the solver in Python.
 
-## Directory Structure
+## Launch
+
+From the repository root:
+
+```bash
+cd desktop && PYTHONPATH=src python3 -m stripboard_optimizer.main
+```
+
+The GUI is version **v1.36**.
+
+## Runtime requirements
+
+- Python 3 with Tkinter.
+- Node.js available as `node` on PATH.
+- The frontend v5 solver harness: `src/frontend/tests/solver/v5Solve.js`.
+- Built solver output: `src/frontend/tests/solver/out/components/stripboard/autoLayout5.js`.
+- WASM modules: `src/frontend/components/stripboard/v5wasm/v5decode.wasm` and `v5route.wasm`.
+- Board preview additionally uses the bundled standalone renderer and `rsvg-convert`.
+
+The solver adapter checks for the required harness and compiled solver/WASM assets before starting a run. Optional native mode requires its separately built native libraries.
+
+## Current 2PASS tournament
+
+The current two-pass workflow is implemented in `src/stripboard_optimizer/solver/worker.py`.
+
+### Pass 1 — broad seed search
+
+- 1,000 independent seeds by default (seeds 1–1,000).
+- Each seed starts from the original project JSON.
+- 25,000 moves per seed at effort 0.1.
+- A candidate qualifies only when conflicts, incomplete connections and geometry errors are all zero and no issues are reported.
+- Exact duplicate layout signatures are excluded from the finalist pool.
+- Up to 10 unique valid finalists are selected.
+- Progress is logged every 20 completed seeds.
+- Individual PASS results are logged; individual FAIL lines are suppressed in Pass 1. Progress and duplicate notices are still logged.
+
+### Pass 2 — finalist refinement
+
+- Up to 10 Pass 1 finalists are retained.
+- Each finalist uses its original Pass 1 seed.
+- 40 independent move budgets are run: 5,000 to 200,000 moves in 5,000-move increments.
+- Every budget starts from a fresh copy of the original project JSON. It does not continue from the previous budget's saved board.
+- The best valid result per finalist seed is retained.
+- The final retained finalists are ranked and saved as JSON files in the configured output directory.
+
+### Ranking
+
+Default wire-priority ranking is:
+
+1. Lowest jumper-wire count.
+2. Lowest track-cut count.
+3. Lowest solver price.
+
+Cut-priority mode ranks cuts first, then wires, then price. A PASS means the candidate passed the configured validity checks; it does not mean it beats the project benchmark.
+
+## Current benchmark
+
+The Moto-Mate reference layout is **W14/C30**: 14 jumper wires and 30 cuts on a 24 × 56 board. This is the project's current benchmark to beat, not a claim of a globally verified world record.
+
+## Solver and output boundaries
+
+- The Python worker launches one isolated Node harness process per seed/budget run.
+- Each invocation receives its own temporary job directory and project copy.
+- Pass 1 deduplication uses board dimensions plus non-excluded component IDs, positions and rotations. It is a layout fingerprint, not a full electrical-equivalence proof.
+- Tournament output currently saves the final retained finalist JSONs. Do not assume every Pass 1 candidate is archived.
+- The original input JSON is copied into each solver job; the worker does not intentionally use a prior budget's output as the next budget's starting state.
+
+## Directory structure
 
 ```
 desktop/
 ├── pyproject.toml
 ├── README.md
-├── src/
-│   └── stripboard_optimizer/
-│       ├── __init__.py
-│       ├── main.py                # Application entry point
-│       ├── app.py                 # Tkinter init, controller wiring
-│       ├── ui/
-│       │   ├── main_window.py     # Main layout, menus
-│       │   ├── project_panel.py   # Open project, summary
-│       │   ├── settings_panel.py  # Basic optimisation settings
-│       │   ├── advanced_settings.py # Weights
-│       │   ├── progress_panel.py  # Live run progress
-│       │   ├── candidate_panel.py # Candidate list
-│       │   ├── comparison_panel.py # Pareto comparison
-│       │   ├── validation_panel.py # Preflight/validation findings
-│       │   └── dialogs.py         # Reusable dialogs
-│       ├── controllers/
-│       │   ├── project_controller.py
-│       │   ├── optimisation_controller.py
-│       │   └── candidate_controller.py
-│       ├── models/
-│       │   ├── project.py
-│       │   ├── settings.py
-│       │   ├── candidate.py
-│       │   └── run_manifest.py
-│       ├── services/
-│       │   ├── import_service.py
-│       │   ├── preprocessing_service.py
-│       │   ├── optimisation_service.py
-│       │   ├── candidate_service.py
-│       │   ├── ranking_service.py
-│       │   └── export_service.py
-│       ├── solver/
-│       │   ├── solver_adapter.py  # Interface to headless solver
-│       │   ├── worker.py          # One solver run
-│       │   ├── worker_manager.py  # Concurrency
-│       │   └── progress.py
-│       ├── validation/
-│       │   ├── preflight.py
-│       │   ├── structural.py
-│       │   ├── electrical.py
-│       │   ├── mechanical.py
-│       │   └── roundtrip.py
-│       ├── storage/
-│       │   ├── run_store.py
-│       │   ├── candidate_store.py
-│       │   └── manifest_store.py
-│       └── utils/
-│           ├── paths.py
-│           ├── hashing.py
-│           └── logging_config.py
-├── resources/
-│   ├── icons/
-│   └── themes/
-└── tests/
-    ├── test_import.py
-    ├── test_preflight.py
-    ├── test_preprocessing.py
-    ├── test_solver_adapter.py
-    ├── test_worker_isolation.py
-    ├── test_candidate_ranking.py
-    └── test_export_roundtrip.py
+└── src/stripboard_optimizer/
+    ├── main.py
+    ├── ui/
+    ├── controllers/
+    ├── models/
+    ├── services/
+    ├── solver/
+    │   ├── solver_adapter.py
+    │   └── worker.py
+    └── resources/
+        └── standalone-renderer/
 ```
 
-## Module Responsibilities
+The actual repository tree is authoritative; this outline is intentionally limited to the active areas rather than promising modules that may not exist.
 
-- **UI**: Display information, collect input. No solver logic.
-- **Controllers**: Coordinate actions. Pass requests to services.
-- **Models**: Data structures. No UI widgets.
-- **Services**: Import, preprocessing, optimisation, candidate handling, ranking, export. Independent of Tkinter.
-- **Solver**: Interface to the existing C/WASM solver. Do not reimplement it in Python.
-- **Validation**: Preflight, structural, electrical, mechanical, round-trip. Must be callable without GUI.
-- **Storage**: Run directories, candidate files, manifests. Never write into fixtures.
+## Threading
 
-## Tkinter Threading Rules
+- Solver work runs outside the Tkinter event thread.
+- Workers communicate with the GUI through a thread-safe queue.
+- Tkinter updates are performed by the GUI polling loop.
+- Cancellation signals the worker and terminates registered solver processes.
+- Completed work is not a guarantee that every candidate is persistently archived.
 
-- All widget updates must happen on the main thread.
-- Solver workers must never directly update Tkinter widgets.
-- Workers communicate through a thread-safe queue.
-- The GUI polls using root.after().
-- Cancellation must stop new work safely.
-- Completed candidates must survive cancellation.
+## Related documentation
 
-## Directory Separation
-
-```
-test-fixtures/       Immutable original test inputs
-desktop/             Tkinter application source
-runs/                Generated optimisation runs
-```
-
-Each optimisation run gets a unique directory:
-
-```
-runs/
-└── run-<unique-id>/
-    ├── input/
-    ├── workers/
-    ├── candidates/
-    ├── validation/
-    ├── manifest.json
-    └── report.json
-```
-
-## Implementation Stages
-
-1. Working window, project import, preflight report.
-2. Solver adapter and one isolated worker.
-3. Multiple workers, candidate storage, progress reporting.
-4. Candidate comparison, champion selection.
-5. Export and packaging.
-
-## Important Boundary
-
-The root project.md remains the canonical specification. Do not modify the Moto-Mate or Audio-Mate master fixtures. Do not modify the seven preserved KiCad footprints.
+- Root [project.md](../project.md) is the canonical specification and implementation-status record.
+- Root [README.md](../README.md) describes the repository and inherited web application.
