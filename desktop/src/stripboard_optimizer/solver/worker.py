@@ -145,7 +145,7 @@ class SolveWorker(threading.Thread):
             diagonals = summary.get("offAxis", "?")
             elapsed = summary.get("ms", "?")
             line = (
-                f"[{label}] {'✅' if ok else '❌'} "
+                f"[{label}] {'✅ PASS' if ok else '❌ FAIL'} "
                 f"📐 Rows: {summary.get('rows', '?')} | Cols: {summary.get('cols', '?')} | "
                 f"🧩 Parts: {parts} | ↗️ Diag: {diagonals} | "
                 f"🔌 Wires: {summary.get('wires', '?')} | ✂️ Cuts: {summary.get('cuts', '?')} | "
