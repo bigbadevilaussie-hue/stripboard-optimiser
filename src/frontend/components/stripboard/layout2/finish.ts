@@ -51,6 +51,7 @@ export interface Skeleton {
 export interface FinishOptions {
   drilledCutsOnly?: boolean;
   noWireStacking?: boolean;
+  routingPreference?: "wires" | "cuts";
   // Harness switches for the finish-only replay. Unset: as the editor, both
   // finishes and the cheaper board. "fallback": the repaired board when it is
   // valid and clean, else the router's. "only": the repaired board whatever it
@@ -102,8 +103,7 @@ export function finishSkeleton(
   const pricer = new BoardPricer(componentDefs, components, {
     ...(lockedRowsCap !== undefined ? { maxRows: lockedRowsCap } : {}),
     ...(lockedColsCap !== undefined ? { maxCols: lockedColsCap } : {}),
-  }, options?.drilledCutsOnly ?? false);
-  const chooser = new Chooser(routeBoard, componentDefs, nets, netAssignments, false, {}, options?.drilledCutsOnly ?? false, true, options?.noWireStacking ?? false, pricer);
+  }, options?.drilledCutsOnly ?? false, options?.routingPreference ?? "wires");  const chooser = new Chooser(routeBoard, componentDefs, nets, netAssignments, false, {}, options?.drilledCutsOnly ?? false, true, options?.noWireStacking ?? false, pricer);
   chooser.route(comps, H, W, movedIds);
   // rim connectors kept on the rim first; a board that does not route that
   // way (a pin left without a free hole) gets the plain shift instead
@@ -319,7 +319,7 @@ export function finishSkeleton(
       board: lab.board(virt, final.boardSize.rows, final.boardSize.cols, final.cuts, final.wires),
     });
   }
-  const price = priceResult(final, routeBoard, components, componentDefs, options?.drilledCutsOnly ?? false);
+  const price = priceResult(final, routeBoard, components, componentDefs, options?.drilledCutsOnly ?? false, options?.routingPreference ?? "wires");
   const offAxis = final.wires.filter((w) => w.from.col !== w.to.col).length;
   const crossings = wireMessScore(final, comps, componentDefs).crossings;
   const overCap =
@@ -757,7 +757,7 @@ export function finishRepair(
       board: lab.board(virt, final.boardSize.rows, final.boardSize.cols, final.cuts, final.wires),
     });
   }
-  const price = priceResult(final, routeBoard, components, componentDefs, options?.drilledCutsOnly ?? false);
+  const price = priceResult(final, routeBoard, components, componentDefs, options?.drilledCutsOnly ?? false, options?.routingPreference ?? "wires");
   const offAxis = final.wires.filter((x) => x.from.col !== x.to.col).length;
   const crossings = wireMessScore(final, virtual, componentDefs).crossings;
   const stacked = noStack ? final.wires.filter((x, i) => wireStackDepth(x.from, x.to, final.wires.slice(0, i)) > 0).length : 0;
