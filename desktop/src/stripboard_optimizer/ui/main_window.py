@@ -28,7 +28,7 @@ FONT_SANS = ("Helvetica Neue", 12)
 FONT_SANS_BOLD = ("Helvetica Neue", 13, "bold")
 FONT_MONO = ("Menlo", 11)
 
-APP_VERSION = "v1.32"
+APP_VERSION = "v1.33"
 
 class MainWindow(tk.Tk):
     def __init__(self):
@@ -616,7 +616,7 @@ class MainWindow(tk.Tk):
         self.log_frame.pack(fill="both", expand=True)
         self.log(f"\n[OPTIMISE] Starting mode: {mode.upper()}")
         if mode == "2pass":
-            self.log("[TOURNAMENT] Pass 1: 2,000 seeds × 25,000 moves. Pass 2: five finalists × 40 independent budgets from 5,000 to 200,000 moves (5,000-step increments).")
+            self.log("[TOURNAMENT] Pass 1: 2,000 seeds at effort 0.1 (solver-calculated move count). Pass 2: five finalists × 40 independent budgets from 5,000 to 200,000 moves (5,000-step increments).")
             self.log("[TOURNAMENT] Every budget starts from the original project JSON using the finalist seed; the best valid board per seed is retained.")
         self.log("[SOLVE] Each seed is an independent starting arrangement; the best fully valid result wins.")
         self.best = None
