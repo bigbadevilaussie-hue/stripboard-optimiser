@@ -26,7 +26,7 @@ FONT_SANS = ("Helvetica Neue", 12)
 FONT_SANS_BOLD = ("Helvetica Neue", 13, "bold")
 FONT_MONO = ("Menlo", 11)
 
-APP_VERSION = "v1.22"
+APP_VERSION = "v1.23"
 
 class MainWindow(tk.Tk):
     def __init__(self):
@@ -431,7 +431,7 @@ class MainWindow(tk.Tk):
             self.manual_part_vars[component_id] = var
             row = ttk.Frame(self.manual_parts_frame, style="Panel.TFrame")
             row.pack(fill="x", pady=1)
-            check = ttk.Checkbutton(row, text=f"{label}  [ID: {component_id or 'missing'}]  [{status}]", variable=var)
+            check = ttk.Checkbutton(row, text=f"{label}  [{status}]", variable=var)
             check.pack(side="left", anchor="w")
             if not pos or excluded:
                 check.configure(state="disabled")
