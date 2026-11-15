@@ -93,7 +93,7 @@ class SolveWorker(threading.Thread):
     def _one(self, seed, effort, stage, work, contestant_name=None, moves=None):
         if self._cancel_event.is_set():
             return None
-        label = contestant_name or f"Seed {seed:04d}"
+        label = f"Seed {seed:04d}"
         try:
             summary, path = solve_one(
                 self.project_json, seed, work,
@@ -127,7 +127,7 @@ class SolveWorker(threading.Thread):
             )
             if not ok:
                 reasons = []
-                if summary.get("quality") not in (None, 0):
+                if summary.get("quality") is not None:
                     reasons.append(f"Q:{summary.get('quality')}")
                 for key in ("conflicts", "incomplete", "geo"):
                     if summary.get(key):
