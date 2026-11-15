@@ -26,7 +26,7 @@ FONT_SANS = ("Helvetica Neue", 12)
 FONT_SANS_BOLD = ("Helvetica Neue", 13, "bold")
 FONT_MONO = ("Menlo", 11)
 
-APP_VERSION = "v1.27"
+APP_VERSION = "v1.28"
 
 class MainWindow(tk.Tk):
     def __init__(self):
@@ -660,6 +660,8 @@ class MainWindow(tk.Tk):
                         self.log(f"\n[BEST] seed {seed}: {s['rows']}x{s['cols']}, wires {s['wires']}, cuts {s['cuts']} (knife {s['knife']}), price {s.get('price', '?')}")
                         self.log(f"[BEST] Saved to {out}")
                         self.btn_preview.pack(side="left", padx=8)
+                        self.log("[PREVIEW] Automatically rendering the best valid solution...")
+                        self.preview_best()
                     else:
                         self.log("[SOLVE] No valid board found.")
         except queue.Empty:
