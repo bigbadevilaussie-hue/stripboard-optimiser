@@ -4,7 +4,7 @@
 
 Stripboard Optimiser is a development fork of [KarloFunke's Stripboard Editor](https://github.com/KarloFunke/stripboard-editor). The aim is to retain the editor's useful stripboard design workflow while adding a headless optimisation engine, independent layout validation, candidate comparison and a dedicated desktop interface.
 
-This repository is under active development. The existing web editor is the starting application. The optimisation workflow and desktop application described below are the project direction; they should not be assumed to be implemented or production-ready yet.
+The repository contains the inherited web editor plus an operational Tkinter desktop optimiser. The desktop application runs the existing v5 solver through the Node.js harness, supports multi-seed optimisation, validates results, and provides board previews. It is a development tool, not yet a packaged end-user release.
 
 ## Project direction
 
@@ -214,16 +214,27 @@ The repository retains the inherited Docker deployment configuration:
 
 These files belong to the existing web application deployment. They are not the packaging or release process for the planned macOS, Windows and Linux desktop applications.
 
-## Development roadmap
+## Tkinter desktop optimiser
 
-The optimiser work is intended to proceed in stages:
+The active desktop application is the Tkinter GUI in `desktop/`. It is the current optimisation interface; the inherited web GUI is not the tournament interface.
 
-1. **Headless pipeline:** input normalisation, solver execution, candidate preservation and run manifests.
-2. **Validation and ranking:** independent electrical and physical checks, metrics and Pareto-based candidate comparison.
-3. **Desktop GUI:** configure runs, monitor progress, inspect and compare candidates, and export a validated result.
-4. **Distribution:** package standalone applications for macOS, Windows and Linux.
+Launch from the repository root:
 
-See [project.md](project.md) for the complete scope, constraints and acceptance criteria.
+```bash
+cd desktop && PYTHONPATH=src python3 -m stripboard_optimizer.main
+```
+
+The GUI invokes `src/frontend/tests/solver/v5Solve.js` through Node.js and uses the compiled v5 solver/WASM assets. Node.js and the built solver assets must be present. The tournament workflow currently supports:
+
+- **Pass 1:** 1,000 independent seeds, each starting from the original project JSON, with 25,000 moves at effort 0.1.
+- **Pass 1 retention:** only fully valid results qualify. Exact layout duplicates are excluded from the unique finalist pool. The top 10 unique valid layouts are selected using the configured ranking priority.
+- **Pass 2:** each finalist is rerun from the original project JSON with the same seed at 40 independent move budgets: 5,000 through 200,000 in 5,000-step increments. The best valid result per finalist seed is retained.
+- **Ranking:** default priority is fewer jumper wires, then fewer cuts, then lower price; cut-priority mode reverses the first two metrics.
+- **Output:** retained finalist JSON files are saved to the configured tournament output directory, and the winning board is previewed.
+
+The known Moto-Mate reference layout is **14 wires / 30 cuts (W14/C30)**. This is the current project benchmark to beat, not a claim of a verified world record. The current tournament log is an in-progress search and must not be presented as a completed benchmark result.
+
+See [desktop/README.md](desktop/README.md) for the current desktop workflow and [project.md](project.md) for the full specification and implementation status.
 
 ## Credits and licensing
 
