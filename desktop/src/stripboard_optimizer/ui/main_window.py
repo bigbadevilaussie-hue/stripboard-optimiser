@@ -389,7 +389,7 @@ class MainWindow(tk.Tk):
             return
         threads = self.sys_info.recommended_threads if self.sys_info else 4
         pins = self.controller.project.pin_count if self.controller.project else 0
-        est = estimate_runtime(result, moves_total=max(40_000, 16_000 * max(0, pins - 13)), threads=threads)
+        est = estimate_runtime(result, moves_total=min(1_280_000, max(5_000, 16_000 * max(0, pins - 13))), threads=threads)
         low, high = est.seconds_low, est.seconds_high
         if high >= 60:
             est_text = f"Runtime: ~{low/60:.1f}–{high/60:.1f} min ({threads} threads)"
@@ -540,7 +540,7 @@ class MainWindow(tk.Tk):
             self.log("[INFO] Effort 1.0 is the normal search depth; higher values increase moves per seed.")
             if self.probe_result and self.probe_result.ok and self.probe_result.ms_per_decode is not None:
                 pins = project.pin_count if project else 0
-                moves_per_seed = max(40_000, 16_000 * max(0, pins - 13))
+                moves_per_seed = min(1_280_000, max(5_000, 16_000 * max(0, pins - 13)))
                 per_seed = estimate_runtime(self.probe_result, moves_total=moves_per_seed, threads=1)
                 batches = (seeds + parallel - 1) // parallel
                 scale = batches * effort
