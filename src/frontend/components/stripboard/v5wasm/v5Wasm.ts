@@ -30,7 +30,7 @@ export interface WasmModel {
   siblingGroups: number[][];
   mRow: number; mCol: number;
   lockedRowsCap: number; lockedColsCap: number; // -1: free
-  sidesDef: number; clrPad: number; wBCut: number;
+  sidesDef: number; clrPad: number; wBCut: number; wWire: number; wCut: number;
   // the moves: throwable connectors, per net its distinct parts (nets with
   // two or more) and that net's index, half-turn-only per rigid part,
   // both-ways per flex part, rigid parts a rotation changes
@@ -241,7 +241,7 @@ function serialize(m: WasmModel): { ints: Int32Array; dbls: Float64Array } {
   const nSibPi = m.siblingGroups.reduce((n, g) => n + g.length, 0);
   I.push(nP, m.nNets, m.flexIdx.length, m.rigidIdx.length, m.mRow, m.mCol, m.lockedRowsCap, m.lockedColsCap, m.sidesDef, nNP, m.clrPad,
     m.nNets + totalPins, maxK, m.siblingGroups.length, nShapes, nShapePins, nVd, nSibPi);
-  D.push(m.wBCut);
+  D.push(m.wBCut, m.wWire, m.wCut);
   const col = (f: (p: WasmPart) => number) => { for (const p of P) I.push(f(p)); };
   const b = (x: boolean | undefined) => (x ? 1 : 0);
   col((p) => p.kind); col((p) => b(p.locked)); col((p) => b(p.isConn)); col((p) => p.clr); col((p) => p.lines); col((p) => b(p.fat));
