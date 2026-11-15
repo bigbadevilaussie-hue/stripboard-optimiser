@@ -26,7 +26,7 @@ FONT_SANS = ("Helvetica Neue", 12)
 FONT_SANS_BOLD = ("Helvetica Neue", 13, "bold")
 FONT_MONO = ("Menlo", 11)
 
-APP_VERSION = "v1.21"
+APP_VERSION = "v1.22"
 
 class MainWindow(tk.Tk):
     def __init__(self):
@@ -68,6 +68,8 @@ class MainWindow(tk.Tk):
         self.top = ttk.Frame(self, style="TopBar.TFrame", padding=(16, 12))
         self.top.pack(fill="x")
         ttk.Label(self.top, text="stripboard_optimiser", style="TopBarBold.TLabel").pack(side="left")
+        ttk.Label(self.top, text=APP_VERSION, background=BG_TOP_BAR,
+                  foreground="#9ca3af", font=("Helvetica Neue", 10)).pack(side="right", padx=(12, 4))
         self.btn_restart = ttk.Button(self.top, text="Restart", style="Reset.TButton", command=self.reset_app)
         self.btn_restart.pack(side="right", padx=(8, 0))
         self.btn_load = ttk.Button(self.top, text="1. Open Project JSON", style="Green.TButton", command=self.load_project)
@@ -345,6 +347,8 @@ class MainWindow(tk.Tk):
         if not has_errors:
             self.btn_preflight.pack_forget()
             self.btn_mode.pack(side="left", padx=8)
+            if self.project_path:
+                self._render_project_preview(self.project_path)
 
     def show_mode_select(self):
         self._set_stage("OPTIMISE")
@@ -650,6 +654,46 @@ class MainWindow(tk.Tk):
                 self.solver_q.put(("log", "[ERROR] Preview timed out"))
             except Exception as e:
                 self.solver_q.put(("log", f"[ERROR] Preview failed: {e}"))
+        threading.Thread(target=job, daemon=True).start()
+
+    def _render_project_preview(self, path):
+        """Render all three views of the loaded project into the docked preview."""
+        self.log("[PREVIEW] Rendering Front, Back and Schematic...")
+        def job():
+            try:
+                tmp = Path(tempfile.mkdtemp(prefix="sbpreflight_"))
+                cli = Path(__file__).parent.parent / "resources" / "standalone-renderer" / "standalone-renderer" / "cli.js"
+                schematic_cli = Path(__file__).parent.parent / "resources" / "standalone-renderer" / "standalone-renderer" / "schematic" / "cli.js"
+                if not cli.exists() or not schematic_cli.exists():
+                    missing = cli if not cli.exists() else schematic_cli
+                    self.solver_q.put(("log", f"[ERROR] Renderer not found at {missing}"))
+                    return
+                node = shutil.which("node") or "/usr/local/bin/node"
+                r = subprocess.run([node, str(cli), path, "--output", str(tmp)],
+                                   capture_output=True, text=True, timeout=120)
+                if r.returncode != 0:
+                    self.solver_q.put(("log", f"[ERROR] Board renderer failed: {(r.stderr or r.stdout).strip()}"))
+                    return
+                schematic_svg = tmp / "schematic.svg"
+                rs = subprocess.run([node, str(schematic_cli), path, "--output", str(tmp)],
+                                    capture_output=True, text=True, timeout=120)
+                if rs.returncode != 0 or not schematic_svg.exists():
+                    self.solver_q.put(("log", f"[ERROR] Schematic renderer failed: {(rs.stderr or rs.stdout).strip()[:300]}"))
+                    return
+                top_png, copper_png, schematic_png = tmp / "front.png", tmp / "back.png", tmp / "schematic.png"
+                for src, dst in ((tmp / "board-top.svg", top_png),
+                                 (tmp / "board-copper.svg", copper_png),
+                                 (schematic_svg, schematic_png)):
+                    if not src.exists():
+                        raise FileNotFoundError(f"Renderer did not write {src.name}")
+                    subprocess.run(["rsvg-convert", "-w", "2400", "-b", "white",
+                                    "-o", str(dst), str(src)], check=True, timeout=60)
+                self.solver_q.put(("rendered", str(top_png), str(copper_png), str(schematic_png)))
+                self.solver_q.put(("log", "[PREVIEW] Front, Back and Schematic ready. Use the preview controls to switch views."))
+            except subprocess.TimeoutExpired:
+                self.solver_q.put(("log", "[ERROR] Pre-flight preview rendering timed out."))
+            except Exception as exc:
+                self.solver_q.put(("log", f"[ERROR] Pre-flight preview failed: {exc}"))
         threading.Thread(target=job, daemon=True).start()
 
     def render_from_file(self):
