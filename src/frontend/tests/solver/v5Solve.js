@@ -228,7 +228,7 @@ if (logGz) {
   fs.closeSync(logGz);
 }
 const rate = rateResult(res, blankBoard, blankComps, defs, drilled);
-const price = priceResult ? priceResult(res, blankBoard, expandOffBoard(blankComps, defs, asg).components, defs, drilled) : undefined;
+const price = priceResult ? priceResult(res, blankBoard, expandOffBoard(blankComps, defs, asg).components, defs, drilled, routingPreference) : undefined;
 // a fingerprint of the board itself, for bit-identical checks across refactors
 const sig = require("crypto").createHash("sha1").update(JSON.stringify({
   size: res.boardSize,
