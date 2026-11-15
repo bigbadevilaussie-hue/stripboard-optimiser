@@ -198,7 +198,7 @@ class SolveWorker(threading.Thread):
                 drilled=self.drilled,
                 no_wire_stacking=self.no_wire_stacking,
                 routing_preference=self.routing_preference,
-                on_log=lambda message: self.q.put(("log", message)),
+                on_log=(lambda message: self.q.put(("log", message))) if contestant_name is None else None,
                 on_progress=lambda current_seed, fraction: self.q.put(
                     ("progress", current_seed, fraction)
                 ),
