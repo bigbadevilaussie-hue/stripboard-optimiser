@@ -42,6 +42,16 @@ class BoardViewer(ttk.Frame):
         self.canvas_frame.grid_columnconfigure(0, weight=1)
         self.canvas.bind("<Configure>", self.on_resize)
 
+    def clear(self):
+        self.top_png = None
+        self.copper_png = None
+        self.schematic_png = None
+        self.current_image = None
+        self.photo = None
+        self.view_side.set("top")
+        self.rb_schematic.configure(state="disabled")
+        self.update_image()
+
     def load(self, top_png, copper_png, schematic_png=None):
         self.top_png = top_png
         self.copper_png = copper_png
