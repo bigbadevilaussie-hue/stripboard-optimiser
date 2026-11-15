@@ -255,7 +255,7 @@ class SolveWorker(threading.Thread):
 
                 ranked = sorted(
                     stage_good,
-                    key=lambda result: rank_key(result[0], self.routing_preference),
+                    key=lambda result: rank_key(result[0]),
                 )
                 standings = [
                     {
