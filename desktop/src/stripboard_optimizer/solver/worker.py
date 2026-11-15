@@ -14,7 +14,7 @@ from stripboard_optimizer.solver.solver_adapter import solve_one, is_valid, rank
 
 PLANS = {
     "full_auto": [(8, 1.0)],
-    "2pass": [(200, 25000)],
+    "2pass": [(2000, 25000)],
     "manual": [(4, 1.0)],
 }
 
@@ -135,7 +135,8 @@ class SolveWorker(threading.Thread):
                 if summary.get("issues"):
                     reasons.append(f"ISSUES:{len(summary['issues'])}")
                 line += " | FAIL: " + (", ".join(reasons) if reasons else "validation")
-            self.q.put(("log", line))
+            if self.mode != "2pass":
+                self.q.put(("log", line))
             self.q.put(("candidate", stage, seed, effort, summary, str(path), ok, contestant_name))
             return (summary, str(path), seed, contestant_name, ok)
         except Exception as exc:
@@ -169,13 +170,6 @@ class SolveWorker(threading.Thread):
         self.q.put(("log", "➡️ PASS 1 FINALISTS: " + ", ".join(
             f"{contestant_names[s]} (seed {s})" for s in finalist_seeds
         )))
-        self.q.put(("round_results", 1, candidates, len(valid), [
-            {"name": item[3], "seed": item[2], "rank": i + 1,
-             "points": max(0, 100 - i), "wires": item[0].get("wires", "?"),
-             "cuts": item[0].get("cuts", "?")}
-            for i, item in enumerate(ranked)
-        ]))
-
         # Match the CLI tournament: every move-budget run starts from the original
         # input JSON with the same seed; it does not continue from the prior JSON.
         best_by_seed = {item[2]: item for item in finalists}
@@ -200,13 +194,16 @@ class SolveWorker(threading.Thread):
             current_ranked = sorted(
                 good, key=lambda item: rank_key(item[0], self.routing_preference)
             )
-            self.q.put(("log", f"🏁 ROUND {round_number}: {len(good)}/{len(finalist_seeds)} valid"))
-            self.q.put(("round_results", round_number + 1, len(finalist_seeds), len(good), [
-                {"name": item[3], "seed": item[2], "rank": i + 1,
-                 "points": max(0, 100 - i), "wires": item[0].get("wires", "?"),
-                 "cuts": item[0].get("cuts", "?")}
-                for i, item in enumerate(current_ranked)
-            ]))
+            if current_ranked:
+                round_winner = current_ranked[0]
+                self.q.put((
+                    "log",
+                    f"🏁 PASS 2 ROUND {round_number}/40 — WINNER: "
+                    f"{round_winner[3]} · {round_winner[0].get('wires', '?')}W / "
+                    f"{round_winner[0].get('cuts', '?')}C"
+                ))
+            else:
+                self.q.put(("log", f"🏁 PASS 2 ROUND {round_number}/40 — NO WINNER"))
 
         if self._cancel_event.is_set() or not best_by_seed:
             return None
