@@ -417,7 +417,11 @@ class MainWindow(tk.Tk):
             component_id = component.get("id")
             pos = component.get("boardPos")
             if isinstance(pos, dict):
-                location = f"R{pos.get('row', '?') + 1} C{pos.get('col', '?') + 1}"
+                row_number = pos.get("row")
+                col_number = pos.get("col")
+                row_text = row_number + 1 if isinstance(row_number, int) else "?"
+                col_text = col_number + 1 if isinstance(col_number, int) else "?"
+                location = f"R{row_text} C{col_text}"
             else:
                 location = "not placed"
             rotation = component.get("rotation", 0)
@@ -493,7 +497,7 @@ class MainWindow(tk.Tk):
             except (ValueError, tk.TclError):
                 self.log("[ERROR] Manual settings must contain valid numbers.")
                 return
-            if min(rows, cols, seeds, parallel) < 1 or seed_base < 0 or not (0.1 <= effort <= 10.0):
+            if min(rows, cols, seeds, parallel) < 1 or rows > 500 or cols > 500 or seeds > 256 or seed_base < 0 or parallel > (os.cpu_count() or 1) or not (0.1 <= effort <= 10.0):
                 self.log("[ERROR] Rows, columns, seeds and threads must be positive; effort must be 0.1–10.0.")
                 return
 
@@ -519,7 +523,7 @@ class MainWindow(tk.Tk):
                 self.log(f"[ERROR] Could not prepare manual solver input: {exc}")
                 return
 
-            self.log("\\n--- MANUAL SETTINGS CONFIRMED ---")
+            self.log("\n--- MANUAL SETTINGS CONFIRMED ---")
             self.log(f"[INFO] Board: {rows}x{cols} | lock rows={self.manual_lock_rows_var.get()} | lock columns={self.manual_lock_cols_var.get()}")
             self.log(f"[INFO] Cuts: {'drilled only' if drilled else 'knife cuts allowed'} | no stacked wires={no_wire_stacking}")
             self.log(f"[INFO] Seeds: {seeds} starting at {seed_base} | effort={effort:g} | threads={parallel}")
@@ -566,7 +570,7 @@ class MainWindow(tk.Tk):
         self.questions_frame.pack_forget()
         self.manual_frame.pack_forget()
         self.log_frame.pack(fill="both", expand=True)
-        self.log(f"\\n[OPTIMISE] Starting mode: {mode.upper()}")
+        self.log(f"\n[OPTIMISE] Starting mode: {mode.upper()}")
         self.best = None
         self.btn_preview.pack_forget()
         self.btn_cancel.pack_forget()
