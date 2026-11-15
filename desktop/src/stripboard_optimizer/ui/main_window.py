@@ -26,7 +26,7 @@ FONT_SANS = ("Helvetica Neue", 12)
 FONT_SANS_BOLD = ("Helvetica Neue", 13, "bold")
 FONT_MONO = ("Menlo", 11)
 
-APP_VERSION = "v1.25"
+APP_VERSION = "v1.26"
 
 class MainWindow(tk.Tk):
     def __init__(self):
@@ -598,7 +598,22 @@ class MainWindow(tk.Tk):
                     self.log(m[1])
                 elif m[0] == "candidate":
                     _, stage, seed, effort, s, path, ok = m
-                    self.log(f"[SEED] stage {stage} seed {seed} e{effort}: rows {s['rows']} cols {s['cols']} wires {s['wires']} diag {s.get('offAxis', '?')} cuts {s['cuts']} price {s.get('price', '?')} ({s['ms']/1000:.0f}s)")
+                    checks = (
+                        f"conflicts {s.get('conflicts', '?')} | "
+                        f"incomplete {s.get('incomplete', '?')} | "
+                        f"geometry {s.get('geo', '?')}"
+                    )
+                    issues = s.get("issues") or []
+                    issue_text = json.dumps(issues, ensure_ascii=False) if issues else "none"
+                    if len(issue_text) > 500:
+                        issue_text = issue_text[:497] + "..."
+                    self.log(
+                        f"[SEED] stage {stage} seed {seed} e{effort}: "
+                        f"rows {s['rows']} cols {s['cols']} wires {s['wires']} "
+                        f"diag {s.get('offAxis', '?')} cuts {s['cuts']} "
+                        f"price {s.get('price', '?')} ({s['ms']/1000:.0f}s)"
+                    )
+                    self.log(f"[CHECK] seed {seed}: {checks} | issues: {issue_text}")
                 elif m[0] == "rendered":
                     _, top_png, copper_png, schematic_png = m
                     self.board_viewer.load(top_png, copper_png, schematic_png)
