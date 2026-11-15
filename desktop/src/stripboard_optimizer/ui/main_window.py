@@ -26,7 +26,7 @@ FONT_SANS = ("Helvetica Neue", 12)
 FONT_SANS_BOLD = ("Helvetica Neue", 13, "bold")
 FONT_MONO = ("Menlo", 11)
 
-APP_VERSION = "v1.26"
+APP_VERSION = "v1.27"
 
 class MainWindow(tk.Tk):
     def __init__(self):
@@ -189,7 +189,7 @@ class MainWindow(tk.Tk):
         self.manual_no_stack_var = tk.BooleanVar(value=True)
         ttk.Checkbutton(solver_settings, text="No stacked wires", variable=self.manual_no_stack_var).grid(row=1, column=0, columnspan=3, sticky="w", pady=(6, 0))
         tk.Label(solver_settings, text="Rotation and diagonal routing are solver-managed; this solver build has no separate on/off switches for them.", bg=BG_PANEL, fg="#737373", font=("Helvetica Neue", 10), anchor="w").grid(row=1, column=3, columnspan=3, sticky="w", padx=(8, 0), pady=(6, 0))
-        self.manual_seeds_var = tk.IntVar(value=4)
+        self.manual_seeds_var = tk.IntVar(value=12)
         self.manual_seed_base_var = tk.IntVar(value=0)
         self.manual_effort_var = tk.DoubleVar(value=1.0)
         self.manual_threads_var = tk.IntVar(value=max(1, min(4, (os.cpu_count() or 2) - 1)))
@@ -527,6 +527,28 @@ class MainWindow(tk.Tk):
             self.log(f"[INFO] Board: {rows}x{cols} | lock rows={self.manual_lock_rows_var.get()} | lock columns={self.manual_lock_cols_var.get()}")
             self.log(f"[INFO] Cuts: {'drilled only' if drilled else 'knife cuts allowed'} | no stacked wires={no_wire_stacking}")
             self.log(f"[INFO] Seeds: {seeds} starting at {seed_base} | effort={effort:g} | threads={parallel}")
+            self.log("[INFO] Effort 1.0 is the normal search depth; higher values increase moves per seed.")
+            if self.probe_result and self.probe_result.ok and self.probe_result.ms_per_decode is not None:
+                pins = project.pin_count if project else 0
+                moves_per_seed = max(40_000, 16_000 * max(0, pins - 13))
+                per_seed = estimate_runtime(self.probe_result, moves_total=moves_per_seed, threads=1)
+                batches = (seeds + parallel - 1) // parallel
+                scale = batches * effort
+                low, high = per_seed.seconds_low * scale, per_seed.seconds_high * scale
+                point = per_seed.seconds_point * scale
+                def fmt_time(seconds):
+                    seconds = int(round(seconds))
+                    return f"{seconds // 60}m {seconds % 60:02d}s" if seconds >= 60 else f"{seconds}s"
+                self.log(
+                    f"[TIME] Estimated runtime {fmt_time(low)}–{fmt_time(high)} "
+                    f"(midpoint {fmt_time(point)}; {batches} batches × up to {parallel} seeds)."
+                )
+                self.log(
+                    f"[TIME] Based on speed probe {self.probe_result.ms_per_decode:.3f} ms/decode, "
+                    f"{moves_per_seed:,} estimated moves/seed and effort {effort:g}; actual routing/locks may vary."
+                )
+            else:
+                self.log("[TIME] Runtime estimate unavailable: speed probe has not completed or failed.")
             for component in raw.get("components", []):
                 if component.get("locked") is True:
                     pos = component.get("boardPos") or {}
@@ -572,6 +594,7 @@ class MainWindow(tk.Tk):
         self.manual_frame.pack_forget()
         self.log_frame.pack(fill="both", expand=True)
         self.log(f"\n[OPTIMISE] Starting mode: {mode.upper()}")
+        self.log("[SOLVE] Each seed is an independent starting arrangement; the best fully valid result wins.")
         self.best = None
         self.btn_preview.pack_forget()
         self.btn_cancel.pack_forget()
@@ -613,7 +636,11 @@ class MainWindow(tk.Tk):
                         f"diag {s.get('offAxis', '?')} cuts {s['cuts']} "
                         f"price {s.get('price', '?')} ({s['ms']/1000:.0f}s)"
                     )
-                    self.log(f"[CHECK] seed {seed}: {checks} | issues: {issue_text}")
+                    self.log(
+                        f"[CHECK] seed {seed}: quality {s.get('quality', '?')} | "
+                        f"{checks} | valid={'yes' if ok else 'no'}"
+                    )
+                    self.log(f"[ROUTER] seed {seed}: {len(issues)} unresolved issue(s): {issue_text}")
                 elif m[0] == "rendered":
                     _, top_png, copper_png, schematic_png = m
                     self.board_viewer.load(top_png, copper_png, schematic_png)
