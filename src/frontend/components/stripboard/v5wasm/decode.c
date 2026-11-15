@@ -97,7 +97,7 @@ enum { SH_OTHER = 0, SH_AXIAL = 1, SH_CAN = 2, SH_LED = 3 };
 // ── model (written by the TypeScript side, v5Wasm.ts serialize) ──
 
 static i32 nP, nNets, nFlex, nRigid, mRow, mCol, lockRowsCap, lockColsCap, sidesDef, nNP, clrPad, maxNet, maxK, nSib;
-static double wBCut;
+static double wBCut, wWire, wCut;
 static i32 *pKind, *pLocked, *pIsConn, *pClr, *pLines, *pFat, *pIdx, *pSides, *pLockY0, *pLockY1, *pLockX, *pLockRot, *pLockFlexH, *pShapeBase;
 static i32 *fNa, *fNb, *fMinS, *fMaxS, *fCanH, *fDc0, *fVdOff, *fHasSpec, *fShape, *fMark;
 static double *fLen, *fR;
@@ -255,7 +255,7 @@ EXPORT(v5_init) i32 *v5_init(i32 *mi, double *md) {
   nP = ri(); nNets = ri(); nFlex = ri(); nRigid = ri(); mRow = ri(); mCol = ri();
   lockRowsCap = ri(); lockColsCap = ri(); sidesDef = ri(); nNP = ri(); clrPad = ri(); maxNet = ri(); maxK = ri(); nSib = ri();
   i32 nShapes = ri(), nShapePins = ri(), nVd = ri(), nSibPi = ri();
-  wBCut = F[fd++];
+  wBCut = F[fd++]; wWire = F[fd++]; wCut = F[fd++];
   pKind = rarr(nP); pLocked = rarr(nP); pIsConn = rarr(nP); pClr = rarr(nP); pLines = rarr(nP); pFat = rarr(nP);
   pIdx = rarr(nP); pSides = rarr(nP); pLockY0 = rarr(nP); pLockY1 = rarr(nP); pLockX = rarr(nP); pLockRot = rarr(nP); pLockFlexH = rarr(nP); pShapeBase = rarr(nP);
   fNa = rarr(nP); fNb = rarr(nP); fMinS = rarr(nP); fMaxS = rarr(nP); fCanH = rarr(nP); fDc0 = rarr(nP);
@@ -1322,8 +1322,8 @@ static i32 decode(void) {
   }
 
   double price =
-    W_AREA * (physH * physW + aspectOver) + W_WIRE * wires + W_WLEN * wireLen +
-    W_CUT * cuts + wBCut * bCuts + W_LOCKOVER * lockOver + connEdge + shaftIn + sibling;
+    W_AREA * (physH * physW + aspectOver) + wWire * wires + W_WLEN * wireLen +
+    wCut * cuts + wBCut * bCuts + W_LOCKOVER * lockOver + connEdge + shaftIn + sibling;
   double eBase = price + overlapBad * 500 + geoBad * 450 + ringBad * 120 + spanBad * 60 + starved * 20 + starvedHard * 450;
   double hardPen = overlapBad * 500 + geoBad * 450 + starvedHard * 450;
 
@@ -1653,7 +1653,7 @@ static void mlRecord(i32 it, i32 out, i32 best, const i32 *b, const double *bD, 
     r[13] = b[15] + b[16] - a[15] - a[16];
     r[14] = bD[1] - aD[1];
     r[15] = b[9] - a[9];
-    r[16] = bD[0] - aD[0] - (W_AREA * r[8] + W_WIRE * r[9] + W_WLEN * r[10] + W_CUT * r[11] + wBCut * r[12] + r[14] + 20 * r[15]);
+    r[16] = bD[0] - aD[0] - (W_AREA * r[8] + wWire * r[9] + W_WLEN * r[10] + wCut * r[11] + wBCut * r[12] + r[14] + 20 * r[15]);
     r[17] = b[11] - a[11]; r[18] = b[12] - a[12]; r[19] = b[10] - a[10];
   }
   if (++mlN == ML_CAP) mlFlush();
