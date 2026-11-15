@@ -671,27 +671,28 @@ class MainWindow(tk.Tk):
                 if m[0] == "log":
                     self.log(m[1])
                 elif m[0] == "candidate":
-                    _, stage, seed, effort, s, path, ok = m
-                    checks = (
-                        f"conflicts {s.get('conflicts', '?')} | "
-                        f"incomplete {s.get('incomplete', '?')} | "
-                        f"geometry {s.get('geo', '?')}"
-                    )
-                    issues = s.get("issues") or []
-                    issue_text = json.dumps(issues, ensure_ascii=False) if issues else "none"
-                    if len(issue_text) > 500:
-                        issue_text = issue_text[:497] + "..."
+                    _, stage, seed, effort, s, path, ok, contestant_name = m
+                    name = contestant_name or f"Seed {seed}"
+                    status = "✅" if ok else "❌"
                     self.log(
-                        f"[SEED] stage {stage} seed {seed} e{effort}: "
-                        f"rows {s['rows']} cols {s['cols']} wires {s['wires']} "
-                        f"diag {s.get('offAxis', '?')} cuts {s['cuts']} "
-                        f"price {s.get('price', '?')} ({s['ms']/1000:.0f}s)"
+                        f"{status} {name} · {s.get('wires', '?')}W / "
+                        f"{s.get('cuts', '?')}C"
                     )
-                    self.log(
-                        f"[CHECK] seed {seed}: quality {s.get('quality', '?')} | "
-                        f"{checks} | valid={'yes' if ok else 'no'}"
-                    )
-                    self.log(f"[ROUTER] seed {seed}: {len(issues)} unresolved issue(s): {issue_text}")
+                elif m[0] == "round_results":
+                    _, stage, standings = m
+                    if not standings:
+                        self.log(f"⚠️ Round {stage}: no valid boards")
+                    else:
+                        self.log(f"🏆 Round {stage} results:")
+                        for item in standings[:5]:
+                            medal = ("🥇", "🥈", "🥉")[item["rank"] - 1] if item["rank"] <= 3 else " "
+                            self.log(
+                                f"  {medal} {item['name']} · {item['wires']}W / "
+                                f"{item['cuts']}C · {item['points']} pts"
+                            )
+                        if stage == 1:
+                            qualifiers = ", ".join(x["name"] for x in standings[:self.solver.tournament_finalists])
+                            self.log(f"➡️ Finalists: {qualifiers}")
                 elif m[0] == "rendered":
                     _, top_png, copper_png, schematic_png = m
                     self.board_viewer.load(top_png, copper_png, schematic_png)
