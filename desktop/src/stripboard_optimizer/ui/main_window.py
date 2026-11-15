@@ -202,7 +202,7 @@ class MainWindow(tk.Tk):
         self.manual_routing_preference_var = tk.StringVar(value="wires")
         ttk.Label(solver_settings, text="Routing priority").grid(row=2, column=0, sticky="w", pady=(8, 0))
         ttk.Radiobutton(solver_settings, text="Fewer wires", variable=self.manual_routing_preference_var, value="wires").grid(row=2, column=1, sticky="w", pady=(8, 0))
-        ttk.Radiobutton(solver_settings, text="Fewer cuts", variable=self.manual_routing_preference_var, value="cuts").grid(row=2, column=2, sticky="w", pady=(8, 0))
+        ttk.Radiobutton(solver_settings, text="Fewer cuts (disabled)", variable=self.manual_routing_preference_var, value="cuts", state="disabled").grid(row=2, column=2, sticky="w", pady=(8, 0))
         self.manual_no_stack_var = tk.BooleanVar(value=False)
         ttk.Checkbutton(solver_settings, text="No stacked wires (disabled)", variable=self.manual_no_stack_var, state="disabled").grid(row=1, column=0, columnspan=3, sticky="w", pady=(6, 0))
         tk.Label(solver_settings, text="Rotation and diagonal routing are solver-managed; this solver build has no separate on/off switches for them.", bg=BG_PANEL, fg="#737373", font=("Helvetica Neue", 10), anchor="w").grid(row=1, column=3, columnspan=3, sticky="w", padx=(8, 0), pady=(6, 0))
