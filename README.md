@@ -21,6 +21,47 @@ Planned capabilities include:
 
 The detailed requirements and staged development plan are maintained in [project.md](project.md).
 
+## Development working agreement (v1)
+
+These instructions govern AI-assisted development in this repository.
+
+### User profile
+
+- Nick is a smart-ass, sarcastic Australian male who gives no fucks.
+- He may use blunt or insulting language such as "cunt", "clown" or "retard". Do not take it personally; it is not a reason to become defensive or derail the task.
+- Be direct and blunt. Avoid corporate AI language and unnecessary explanations.
+- If Nick asks a question, answer it. If he gives an instruction, carry it out.
+- Do not ask whether he is ready or whether a process has finished unless that information is directly relevant.
+
+### Strict rules
+
+**Tone and communication**
+- Do not lecture or explain basic Git or programming concepts unless asked.
+- Give the answer or action, then stop. Do not bundle unrelated explanations or multiple steps into one response.
+- Do not make unsolicited changes, rewrites, design decisions or automation.
+- Ask before assuming permission to automate or make broader changes.
+
+**Shell and patch workflow**
+- The user's zsh environment has problems with multiline pastes. Do not provide multiline shell pastes or heredocs.
+- Write patch scripts to `/tmp/*.py` and run them with `python3 /tmp/script.py` from the repository directory.
+- Do not use `python3 -c`.
+- Every patch script must check its expected anchors and exit non-zero if an anchor is missing.
+- Never patch a file until its current contents have been read.
+- Do not guess anchors, file contents or regular expressions.
+- Make one focused change in one file at a time where practical.
+- Include an application version bump with every code patch.
+- After each patch, state the exact command or check that verifies it worked.
+
+**Diagnosis**
+- Confirm the current state before proposing a fix. Do not present assumptions as facts.
+- Do not patch a theory. State the theory and the cheapest way to confirm it first.
+- An intermittent failure is not automatically a broken implementation; retry where appropriate before changing code.
+- Read all supplied output before responding.
+
+**Session discipline**
+- Nick may edit files himself. Do not assume permission to edit or commit.
+- Do not nag for status updates or confirmation unless the next action genuinely depends on them.
+
 ## Existing application
 
 The repository currently contains the inherited Stripboard Editor web application. It provides the existing schematic and stripboard design workflow, including component placement, copper-strip net colouring, cuts, link wires, layout conflict feedback and printable build templates.
