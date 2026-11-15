@@ -85,17 +85,12 @@ class MainWindow(tk.Tk):
         self.btn_render_save.pack(side="right", padx=(8, 0))
 
         tk.Frame(self, bg="#e5e7eb", height=1).pack(fill="x")
-        self.paned = ttk.PanedWindow(self, orient="horizontal")
-        self.paned.pack(fill="both", expand=True, padx=16, pady=16)
-        left_wrapper = ttk.Frame(self.paned, style="TFrame")
-        self.paned.add(left_wrapper, weight=1)
-        self.project_panel = ProjectPanel(left_wrapper)
-        self.project_panel.pack(fill="both", expand=True)
-        version_label = tk.Label(left_wrapper, text=APP_VERSION, bg=BG_ROOT, fg="#9ca3af", font=("Helvetica Neue", 10))
-        version_label.pack(side="bottom", anchor="w", pady=(8, 0), padx=4)
+        # Retain the project panel object for existing project metadata updates,
+        # but do not display the redundant left-hand sidebar.
+        self.project_panel = ProjectPanel(self)
 
-        self.right_frame = ttk.Frame(self.paned, style="TFrame")
-        self.paned.add(self.right_frame, weight=4)
+        self.right_frame = ttk.Frame(self, style="TFrame")
+        self.right_frame.pack(fill="both", expand=True, padx=16, pady=16)
 
         # Persistent workflow area and board preview.
         self.content_split = ttk.PanedWindow(self.right_frame, orient="horizontal")
