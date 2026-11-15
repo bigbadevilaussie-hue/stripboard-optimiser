@@ -62,6 +62,12 @@ class BoardViewer(ttk.Frame):
             self.view_side.set("top")
         self.update_image()
 
+    def select_schematic(self):
+        """Switch the preview to the schematic when optimisation begins."""
+        if self.schematic_png and os.path.exists(self.schematic_png):
+            self.view_side.set("schematic")
+            self.update_image()
+
     def toggle_zoom(self):
         self.zoom_mode = not self.zoom_mode
         self.btn_zoom.configure(text="Fit" if self.zoom_mode else "100%")
