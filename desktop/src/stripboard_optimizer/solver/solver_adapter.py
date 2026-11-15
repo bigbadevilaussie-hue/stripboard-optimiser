@@ -102,7 +102,7 @@ def solve_one(
     ]
     if moves is not None:
         command.extend(["--moves", str(int(moves))])
-    else:
+    if effort is not None:
         command.extend(["--effort", str(effort)])
     if native:
         command.extend(["--native", "1"])
