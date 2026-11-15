@@ -190,7 +190,6 @@ class SolveWorker(threading.Thread):
             return None
         label = contestant_name or f"Seed {seed}"
         try:
-            self.q.put(("log", f"[ROUND {stage}] START {label} | seed={seed} | effort={effort:g} | input=original project"))
             summary, path = solve_one(
                 self.project_json,
                 seed,
@@ -208,15 +207,13 @@ class SolveWorker(threading.Thread):
                 unregister_process=self._unregister_process,
             )
             ok = is_valid(summary)
-            status = "VALID" if ok else "INVALID"
-            self.q.put(("log", f"[ROUND {stage}] DONE {label} | {status} | runtime={summary.get('ms', '?')}ms | {summary.get('wires', '?')}W/{summary.get('cuts', '?')}C | conflicts={summary.get('conflicts', '?')} | incomplete={summary.get('incomplete', '?')} | geo={summary.get('geo', '?')} | issues={summary.get('issues', [])} | saved={path}"))
+            if ok:
+                self.q.put(("log", f"✅ {label} · {summary.get('wires', '?')}W / {summary.get('cuts', '?')}C"))
             self.q.put(
                 ("candidate", stage, seed, effort, summary, str(path), ok, contestant_name)
             )
             return (summary, str(path), seed, contestant_name, ok)
         except Exception as exc:
-            if not self._cancel_event.is_set():
-                self.q.put(("log", f"[ROUND {stage}] ERROR {label} | seed={seed} | effort={effort:g} | {type(exc).__name__}: {exc}"))
             return None
 
     def run(self):
@@ -247,9 +244,6 @@ class SolveWorker(threading.Thread):
                 if self._cancel_event.is_set():
                     break
 
-                self.q.put(("log", f"========== ROUND {stage} START | contestants={len(seeds)} | effort={effort:g} =========="))
-                if stage == 2:
-                    self.q.put(("log", "[ROUND 2] IMPORTANT: this is currently a fresh solve from the original project using finalist seeds; it is not a continuation from the saved Round 1 layout."))
 
                 with ThreadPoolExecutor(max_workers=self.parallel) as executor:
                     results = list(executor.map(
@@ -269,16 +263,7 @@ class SolveWorker(threading.Thread):
                 )
                 all_valid.extend(stage_good)
 
-                valid_rate = (100.0 * len(stage_good) / len(seeds)) if seeds else 0.0
-                self.q.put(("log", f"========== ROUND {stage} SUMMARY =========="))
-                self.q.put(("log", f"[ROUND {stage}] contestants={len(seeds)} | completed={len(completed)} | valid={len(stage_good)} | invalid={stage_invalid} | errors={stage_errors} | valid_rate={valid_rate:.1f}%"))
-                if ranked:
-                    best_round = ranked[0]
-                    worst_round = ranked[-1]
-                    self.q.put(("log", f"[ROUND {stage}] BEST: {best_round[3]} | seed={best_round[2]} | {best_round[0].get('wires', '?')}W/{best_round[0].get('cuts', '?')}C"))
-                    self.q.put(("log", f"[ROUND {stage}] WORST VALID: {worst_round[3]} | seed={worst_round[2]} | {worst_round[0].get('wires', '?')}W/{worst_round[0].get('cuts', '?')}C"))
-                else:
-                    self.q.put(("log", f"[ROUND {stage}] No valid boards in this round."))
+                self.q.put(("log", f"🏁 ROUND {stage}: {len(stage_good)}/{len(seeds)} PASSED"))
 
                 standings = [
                     {
@@ -296,9 +281,7 @@ class SolveWorker(threading.Thread):
 
                 if stage == 1 and stage < len(plan):
                     finalists = ranked[:plan[stage][0]]
-                    self.q.put(("log", f"[ROUND 1] Advancing {len(finalists)} finalists."))
-                    for finalist in finalists:
-                        self.q.put(("log", f"[FINALIST] {finalist[3]} | seed={finalist[2]} | {finalist[0].get('wires', '?')}W/{finalist[0].get('cuts', '?')}C | saved={finalist[1]}"))
+                    self.q.put(("log", f"➡️ {len(finalists)} valid finalists advancing"))
                     seeds = [result[2] for result in finalists]
                     if not seeds:
                         self.q.put(("log", "[TOURNAMENT] No valid qualifiers; stopping before Round 2."))
@@ -309,14 +292,10 @@ class SolveWorker(threading.Thread):
                     all_valid,
                     key=lambda result: rank_key(result[0], self.routing_preference),
                 )
-                self.q.put(("log", f"[TOURNAMENT] CHAMPION: {best[3]} | seed={best[2]} | {best[0].get('wires', '?')}W/{best[0].get('cuts', '?')}C"))
-                if len(plan) > 1 and best in finalists:
-                    self.q.put(("log", "[TOURNAMENT] Champion is a retained Round 1 finalist; Round 2 did not beat it."))
+                self.q.put(("log", f"🏆 BEST PASS: {best[3]} · {best[0].get('wires', '?')}W / {best[0].get('cuts', '?')}C"))
                 best = best[:4]
-            elif not self._cancel_event.is_set():
-                self.q.put(("log", "[TOURNAMENT] No valid board found in any round."))
-        except Exception as exc:
-            self.q.put(("log", f"[SOLVE] Worker failed: {exc}"))
+        except Exception:
+            pass
         finally:
             self.cancelled = self._cancel_event.is_set()
             self.q.put(("done", best, self.cancelled))
