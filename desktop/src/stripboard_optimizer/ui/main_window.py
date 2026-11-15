@@ -702,7 +702,9 @@ class MainWindow(tk.Tk):
                             out.write_text(Path(path).read_text())
                         self.best = (s, str(out))
                         winner = f"{contestant_name} (seed {seed})" if contestant_name else f"seed {seed}"
-                        self.log(f"\n🥇 WINNER: {winner} · {s['rows']}x{s['cols']} · {s['wires']}W / {s['cuts']}C")
+                        self.log(f"\n🥇 FINAL RESULT: {winner} · {s['rows']}×{s['cols']} · "
+                                 f"{s['wires']}W / {s['cuts']}C · "
+                                 f"${float(s.get('price', s.get('rate', 0))):,.2f} · VALID")
                         self.log(f"[BEST] Saved to {out}")
                         if self.solver and self.solver.mode == "2pass":
                             self.log("[BEST] Winner is saved in the retained finalist JSON files.")
