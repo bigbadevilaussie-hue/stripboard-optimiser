@@ -310,8 +310,9 @@ class SolveWorker(threading.Thread):
                     key=lambda result: rank_key(result[0], self.routing_preference),
                 )
                 self.q.put(("log", f"[TOURNAMENT] CHAMPION: {best[3]} | seed={best[2]} | {best[0].get('wires', '?')}W/{best[0].get('cuts', '?')}C"))
-                if len(plan) > 1 and best in finalists and len(all_valid) > len(finalists):
-                    self.q.put(("log", "[TOURNAMENT] Champion is a Round 1 finalist fallback; Round 2 did not produce a better valid board."))
+                if len(plan) > 1 and best in finalists:
+                    self.q.put(("log", "[TOURNAMENT] Champion is a retained Round 1 finalist; Round 2 did not beat it."))
+                best = best[:4]
             elif not self._cancel_event.is_set():
                 self.q.put(("log", "[TOURNAMENT] No valid board found in any round."))
         except Exception as exc:
