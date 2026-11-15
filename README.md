@@ -8,9 +8,9 @@ The repository contains the inherited web editor plus an operational Tkinter des
 
 ## Project direction
 
-The goal is to help turn an existing circuit layout into a more practical, compact and buildable stripboard design.
+The desktop optimiser now provides a working multi-seed tournament around the existing v5 solver. The broader goal remains to turn an existing circuit layout into a more practical, compact and buildable stripboard design.
 
-Planned capabilities include:
+Further development and release capabilities include:
 
 - **Optimise layouts:** run repeatable optimisation attempts with configurable effort, random seeds and worker count.
 - **Respect design constraints:** preserve fixed components, excluded components, board dimensions and placement restrictions.
@@ -66,7 +66,7 @@ These instructions govern AI-assisted development in this repository.
 
 The repository currently contains the inherited Stripboard Editor web application. It provides the existing schematic and stripboard design workflow, including component placement, copper-strip net colouring, cuts, link wires, layout conflict feedback and printable build templates.
 
-The current application is a web application built with Next.js and Django. The planned desktop optimiser is a separate development goal; this README does not imply that a desktop build or the complete optimisation pipeline is already available.
+The inherited web application is built with Next.js and Django. The separate Tkinter desktop optimiser is the active multi-seed optimisation interface; it is operational but not yet packaged as a standalone end-user release.
 
 ## Running the existing web editor locally
 
