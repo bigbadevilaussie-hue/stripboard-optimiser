@@ -1,7 +1,7 @@
 """Background worker for running isolated v5 solver seeds."""
 
 import os
-import shutil
+import random
 import tempfile
 import threading
 from concurrent.futures import ThreadPoolExecutor
@@ -14,6 +14,109 @@ PLANS = {
     "2pass": [(100, 0.1), (5, 3.0)],  # GUI selections override these defaults.
     "manual": [(4, 1.0)],
 }
+
+CONTESTANT_NAMES = [
+    "Ada",
+    "Ben",
+    "Cleo",
+    "Dan",
+    "Eva",
+    "Finn",
+    "Gala",
+    "Hank",
+    "Iris",
+    "Jack",
+    "Kip",
+    "Luna",
+    "Max",
+    "Nora",
+    "Oto",
+    "Pax",
+    "Quinn",
+    "Rex",
+    "Sage",
+    "Tess",
+    "Uma",
+    "Vance",
+    "Wren",
+    "Xander",
+    "Yara",
+    "Zoe",
+    "Abe",
+    "Bess",
+    "Caleb",
+    "Drew",
+    "Elke",
+    "Fritz",
+    "Gideon",
+    "Hazel",
+    "Isla",
+    "Jonas",
+    "Kira",
+    "Liam",
+    "Milo",
+    "Neve",
+    "Onyx",
+    "Piper",
+    "Rico",
+    "Selma",
+    "Toby",
+    "Vera",
+    "Wyatt",
+    "Zack",
+    "Alma",
+    "Brock",
+    "Cora",
+    "Dante",
+    "Elsa",
+    "Felix",
+    "Gemma",
+    "Hugo",
+    "Ivy",
+    "Jude",
+    "Kofi",
+    "Leo",
+    "Maeve",
+    "Nash",
+    "Orla",
+    "Phoebe",
+    "Remi",
+    "Soren",
+    "Thea",
+    "Val",
+    "Winn",
+    "Zion",
+    "Ari",
+    "Blaze",
+    "Clem",
+    "Delia",
+    "Ember",
+    "Fox",
+    "Gage",
+    "Hollis",
+    "Ida",
+    "Jinx",
+    "Kobe",
+    "Lane",
+    "Mika",
+    "Nico",
+    "Opal",
+    "Pike",
+    "Reed",
+    "Sloane",
+    "Tate",
+    "Veda",
+    "West",
+    "Zane",
+    "Amber",
+    "Brooke",
+    "Chase",
+    "Dawn",
+    "Echo",
+    "Finn II",
+    "Grey",
+    "Hope"
+]
 
 
 class SolveWorker(threading.Thread):
@@ -82,7 +185,7 @@ class SolveWorker(threading.Thread):
             except ValueError:
                 pass
 
-    def _one(self, seed, effort, stage, work):
+    def _one(self, seed, effort, stage, work, contestant_name=None):
         if self._cancel_event.is_set():
             return None
         try:
@@ -104,12 +207,13 @@ class SolveWorker(threading.Thread):
             )
             ok = is_valid(summary)
             self.q.put(
-                ("candidate", stage, seed, effort, summary, str(path), ok)
+                ("candidate", stage, seed, effort, summary, str(path), ok, contestant_name)
             )
-            return (summary, str(path), seed) if ok else None
+            return (summary, str(path), seed, contestant_name) if ok else None
         except Exception as exc:
             if not self._cancel_event.is_set():
-                self.q.put(("log", f"[ERROR] seed {seed}: {exc}"))
+                label = contestant_name or f"seed {seed}"
+                self.q.put(("log", f"[ERROR] {label}: {exc}"))
             return None
 
     def run(self):
@@ -126,44 +230,59 @@ class SolveWorker(threading.Thread):
                 seeds = list(range(1, self.tournament_candidates + 1))
             else:
                 plan = PLANS.get(self.mode, PLANS["full_auto"])
-                seeds = (
-                    list(range(1, plan[0][0] + 1))
-                    if self.mode == "2pass"
-                    else list(range(plan[0][0]))
-                )
-            good = []
+                seeds = list(range(plan[0][0]))
 
+            contestant_names = {}
+            if self.mode == "2pass":
+                shuffled_names = CONTESTANT_NAMES[:]
+                random.SystemRandom().shuffle(shuffled_names)
+                contestant_names = dict(zip(seeds, shuffled_names))
+
+            final_stage_good = []
             for stage, (count, effort) in enumerate(plan, 1):
                 if self._cancel_event.is_set():
                     break
 
-                self.q.put(
-                    (
-                        "log",
-                        f"[SOLVE] Stage {stage}: {len(seeds)} seeds at effort {effort}",
-                    )
-                )
+                self.q.put(("log", f"🏁 Round {stage}: {len(seeds)} contestants"))
                 with ThreadPoolExecutor(max_workers=self.parallel) as executor:
                     results = executor.map(
-                        lambda seed: self._one(seed, effort, stage, work),
+                        lambda seed: self._one(
+                            seed, effort, stage, work, contestant_names.get(seed)
+                        ),
                         seeds,
                     )
                     stage_good = [result for result in results if result]
 
-                good.extend(stage_good)
+                ranked = sorted(
+                    stage_good,
+                    key=lambda result: rank_key(result[0], self.routing_preference),
+                )
+                standings = [
+                    {
+                        "name": result[3] or f"Seed {result[2]}",
+                        "seed": result[2],
+                        "rank": position + 1,
+                        "points": max(0, 100 - position),
+                        "wires": result[0].get("wires", "?"),
+                        "cuts": result[0].get("cuts", "?"),
+                    }
+                    for position, result in enumerate(ranked)
+                ]
+                if not self._cancel_event.is_set():
+                    self.q.put(("round_results", stage, standings))
+
+                final_stage_good = ranked
                 if stage < len(plan):
-                    next_count = plan[stage][0]
-                    seeds = [
-                        result[2]
-                        for result in sorted(
-                            stage_good, key=lambda result: rank_key(result[0], self.routing_preference)
-                        )[:next_count]
-                    ]
+                    finalists = ranked[:plan[stage][0]]
+                    seeds = [result[2] for result in finalists]
                     if not seeds:
                         break
 
-            if good and not self._cancel_event.is_set():
-                best = min(good, key=lambda result: rank_key(result[0], self.routing_preference))
+            if final_stage_good and not self._cancel_event.is_set():
+                best = min(
+                    final_stage_good,
+                    key=lambda result: rank_key(result[0], self.routing_preference),
+                )
         except Exception as exc:
             self.q.put(("log", f"[SOLVE] Worker failed: {exc}"))
         finally:
