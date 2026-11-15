@@ -14,7 +14,7 @@ from stripboard_optimizer.solver.solver_adapter import solve_one, is_valid, rank
 
 PLANS = {
     "full_auto": [(8, 1.0)],
-    "2pass": [(2000, 0.1)],
+    "2pass": [(1000, 0.1)],
     "manual": [(4, 1.0)],
 }
 
@@ -65,8 +65,8 @@ class SolveWorker(threading.Thread):
     def __init__(
         self, project_json, mode, q, parallel=None, native=False, drilled=False,
         no_wire_stacking=False, routing_preference="wires", manual_seeds=None,
-        manual_seed_base=0, manual_effort=None, tournament_candidates=200,
-        tournament_finalists=5, output_dir=None,
+        manual_seed_base=0, manual_effort=None, tournament_candidates=1000,
+        tournament_finalists=10, output_dir=None,
     ):
         super().__init__(daemon=True)
         self.project_json = str(project_json)
