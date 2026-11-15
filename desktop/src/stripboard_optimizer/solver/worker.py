@@ -156,16 +156,15 @@ class SolveWorker(threading.Thread):
             issues = summary.get("issues") or []
             issue_count = len(issues) if isinstance(issues, (list, tuple)) else "?"
             phase = (
-                f"[PASS 1 · {PASS1_MOVES:,} moves]"
-                if stage == 1 else f"[PASS 2 · ROUND {stage - 1:02d}/40 · {int(moves or 0):,} moves]"
+                "🏁 P1"
+                if stage == 1 else f"⚔️ P2·R{stage - 1:02d}"
             )
+            status = "✅" if ok else "❌"
             line = (
-                f"{phase} {label} · seed {seed:04d} · {'PASS' if ok else 'FAIL'} | "
-                f"{summary.get('rows', '?')}×{summary.get('cols', '?')} | "
-                f"Parts {parts} | Diag {diagonals} | Wires {summary.get('wires', '?')} | "
-                f"Cuts {summary.get('cuts', '?')} | Time {elapsed} ms | "
-                f"Quality {summary.get('quality', '?')} | Conflicts {conflicts} | "
-                f"Incomplete {incomplete} | Geo {geo} | Issues {issue_count} | Price {price_text}"
+                f"{phase} {label} #{seed:04d} {status} · "
+                f"📐{summary.get('rows', '?')}×{summary.get('cols', '?')} · "
+                f"🔌{summary.get('wires', '?')} · ✂️{summary.get('cuts', '?')} · "
+                f"⏱{elapsed}ms · 💰{price_text}"
             )
             if not ok:
                 reasons = []
@@ -234,12 +233,6 @@ class SolveWorker(threading.Thread):
                         else:
                             duplicate_count += 1
                             self.q.put(("log", f"🔁 DUPLICATE: {result[3]} (seed {seed:04d}) matches {contestant_names[original_seed]} (seed {original_seed:04d}); excluded from finalist ranking"))
-                    if completed % 20 == 0:
-                        self.q.put((
-                            "log",
-                            f"[PASS 1 PROGRESS] {completed}/{candidates} seeds completed "
-                            f"· {valid_count} unique valid · {duplicate_count} duplicates · latest seed {seed:04d}",
-                        ))
         valid = unique_valid
         ranked = sorted(valid, key=lambda result: rank_key(result[0], self.routing_preference))
         if self._cancel_event.is_set():
