@@ -218,13 +218,49 @@ These files belong to the existing web application deployment. They are not the 
 
 The active desktop application is the Tkinter GUI in `desktop/`. It is the current optimisation interface; the inherited web GUI is not the tournament interface.
 
-Launch from the repository root:
+### Build and launch on macOS (Intel)
+
+The Tk GUI is the desktop optimiser. On the Intel Mac, build the native Node addon and its two C libraries from `src/frontend`, then launch the GUI from `desktop`.
+
+Requirements: Node.js, Python 3, Clang, the Node.js development header at `/usr/local/include/node/node_api.h`, and the compiled v5 JavaScript/WASM solver assets.
+
+Build the native solver (run from the repository root):
+
+```bash
+cd src/frontend
+clang -O3 -fPIC -dynamiclib -o tests/solver/native/build/libv5decode.so components/stripboard/v5wasm/decode.c -lm
+clang -O3 -fPIC -dynamiclib -o tests/solver/native/build/libv5route.so components/stripboard/v5wasm/route.c -lm
+clang -O2 -bundle -undefined dynamic_lookup -I/usr/local/include/node -o tests/solver/native/build/v5native.node tests/solver/native/addon.c
+```
+
+Launch the Tk GUI:
+
+```bash
+cd ../../desktop
+PYTHONPATH=src python3 -m stripboard_optimizer.main
+```
+
+Or, from the repository root, launch it directly with:
 
 ```bash
 cd desktop && PYTHONPATH=src python3 -m stripboard_optimizer.main
 ```
 
-The GUI invokes `src/frontend/tests/solver/v5Solve.js` through Node.js and uses the compiled v5 solver/WASM assets. Node.js and the built solver assets must be present. The tournament workflow currently supports:
+**Native mode is mandatory.** The desktop solver adapter forces `native=True`, passes `--native 1` to the Node harness, and checks that all three native build files exist before starting a solve. It does not fall back to WASM-only solving. The WASM files are still required by the harness for module setup, but the native addon replaces the decoder and router implementations during the solve.
+
+At the start of a tournament, the GUI log must show:
+
+```text
+[SOLVER] Native=ON | drilled cuts=OFF | wire stacking=ALLOWED | routing priority=wires
+```
+
+If the native build is incomplete, the solver stops with a missing-native-files error rather than silently running in WASM mode. After building, the three files should exist in `src/frontend/tests/solver/native/build/`:
+
+- `v5native.node`
+- `libv5decode.so`
+- `libv5route.so`
+
+The tournament workflow currently supports:
 
 - **Pass 1:** 1,000 independent seeds, each starting from the original project JSON, with 25,000 moves at effort 0.1.
 - **Pass 1 retention:** only fully valid results qualify. Exact layout duplicates are excluded from the unique finalist pool. The top 10 unique valid layouts are selected using the configured ranking priority.
