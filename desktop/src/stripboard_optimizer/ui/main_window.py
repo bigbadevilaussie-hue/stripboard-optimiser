@@ -28,7 +28,7 @@ FONT_SANS = ("Helvetica Neue", 12)
 FONT_SANS_BOLD = ("Helvetica Neue", 13, "bold")
 FONT_MONO = ("Menlo", 11)
 
-APP_VERSION = "v1.30"
+APP_VERSION = "v1.31"
 
 class MainWindow(tk.Tk):
     def __init__(self):
@@ -499,7 +499,7 @@ class MainWindow(tk.Tk):
         no_wire_stacking = False
         routing_preference = "wires"
         parallel = None
-        tournament_candidates = 200
+        tournament_candidates = 2000
         tournament_finalists = 5
 
         if mode == "manual":
@@ -616,7 +616,7 @@ class MainWindow(tk.Tk):
         self.log_frame.pack(fill="both", expand=True)
         self.log(f"\n[OPTIMISE] Starting mode: {mode.upper()}")
         if mode == "2pass":
-            self.log("[TOURNAMENT] Pass 1: 200 seeds × 25,000 moves. Pass 2: five finalists × 40 independent budgets from 5,000 to 200,000 moves (5,000-step increments).")
+            self.log("[TOURNAMENT] Pass 1: 2,000 seeds × 25,000 moves. Pass 2: five finalists × 40 independent budgets from 5,000 to 200,000 moves (5,000-step increments).")
             self.log("[TOURNAMENT] Every budget starts from the original project JSON using the finalist seed; the best valid board per seed is retained.")
         self.log("[SOLVE] Each seed is an independent starting arrangement; the best fully valid result wins.")
         self.best = None
@@ -704,7 +704,7 @@ class MainWindow(tk.Tk):
                         self.log(f"\n🥇 WINNER: {winner} · {s['rows']}x{s['cols']} · {s['wires']}W / {s['cuts']}C")
                         self.log(f"[BEST] Saved to {out}")
                         if self.solver and self.solver.mode == "2pass":
-                            self.log("[BEST] Winner is one of the five retained finalist JSON files.")
+                            self.log("[BEST] Winner is saved in the retained finalist JSON files.")
                         self.btn_preview.pack(side="left", padx=8)
                         self.log("[PREVIEW] Automatically rendering the best valid solution...")
                         self.preview_best()
