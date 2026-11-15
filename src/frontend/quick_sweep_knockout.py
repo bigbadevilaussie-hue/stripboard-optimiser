@@ -151,6 +151,10 @@ def run_one(stage: str, seed: int, moves: int, args: argparse.Namespace,
             "geometry": geometry_errors == 0,
             "off_axis": off_axis == 0,
         }
+        if args.required_rows:
+            checks["required_rows"] = rows == args.required_rows
+        if args.required_cols:
+            checks["required_cols"] = cols == args.required_cols
         missing = [name for name, value in checks.items()
                    if value is False and report.get({
                        "geometry": "geo", "off_axis": "offAxis"
@@ -199,8 +203,6 @@ def main() -> int:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--project", type=Path, required=True,
                    help="source project JSON; copied to the solver corpus as projects/<id>.json")
-    p.add_argument("--solver-data", type=Path, default=Path("src/frontend/tests/solver"),
-                   help="directory containing the solver's projects/ corpus")
     p.add_argument("--project-id", type=int, default=0)
     p.add_argument("--node", default="node")
     p.add_argument("--drilled", type=int, choices=(0, 1), default=1)
@@ -220,11 +222,8 @@ def main() -> int:
     args = p.parse_args()
 
     args.project = args.project.resolve()
-    args.solver_data = args.solver_data.resolve()
     if not args.project.is_file():
         p.error(f"project does not exist: {args.project}")
-    if not args.solver_data.is_dir():
-        p.error(f"solver-data directory does not exist: {args.solver_data}")
     if args.quick_seeds < 1 or args.advance < 1 or args.finalists < 1 or args.workers < 1:
         p.error("quick-seeds, advance, finalists and workers must be positive")
     if not SOLVER.is_file():
@@ -249,10 +248,9 @@ def main() -> int:
     run_dir = (args.output / run_id).resolve()
     run_dir.mkdir(parents=True, exist_ok=False)
 
-    # Immutable input snapshot shared by workers. The solver only reads the
-    # project corpus; each run writes its candidate to a unique --save path.
+    # v5Solve reads only data/projects/<id>.json. Snapshot just that immutable
+    # project rather than copying the entire solver harness.
     data_snapshot = run_dir / "input-data"
-    shutil.copytree(args.solver_data, data_snapshot)
     project_target = data_snapshot / "projects" / f"{args.project_id}.json"
     project_target.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(args.project, project_target)
@@ -264,7 +262,6 @@ def main() -> int:
         "project_sha256": sha256(args.project),
         "solver": str(SOLVER),
         "solver_sha256": sha256(SOLVER),
-        "solver_data": str(args.solver_data),
         "solver_data_project_id": args.project_id,
         "settings": {k: str(v) if isinstance(v, Path) else v for k, v in vars(args).items()},
         "results": [],
