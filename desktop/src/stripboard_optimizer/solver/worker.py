@@ -140,6 +140,8 @@ class SolveWorker(threading.Thread):
             self.q.put(("candidate", stage, seed, effort, summary, str(path), ok, contestant_name))
             return (summary, str(path), seed, contestant_name, ok)
         except Exception as exc:
+            if self.mode == "2pass" and self._cancel_event.is_set():
+                return None
             if self.mode != "2pass":
                 self.q.put(("log", f"[{label}] ❌ ERROR: {exc}"))
             return (None, None, seed, contestant_name, False)
