@@ -871,3 +871,51 @@ Before accepting any solver, preprocessing, routing or export change:
   protected project properties with the original fixtures.
 
 A lower weighted solver score alone is not a passing regression result.
+
+
+## 26. Current desktop implementation — 2PASS tournament
+
+This section records the implemented Tkinter workflow as inspected in `desktop/src/stripboard_optimizer/solver/worker.py` and `solver_adapter.py`. It supplements the broader target specification above; it does not mark every requirement in Sections 1–25 as complete.
+
+### 26.1 Current run plan
+
+The desktop GUI exposes a `2PASS` tournament mode with these current constants:
+
+| Stage | Current behaviour |
+|---|---|
+| Pass 1 seed count | 1,000 (GUI-configurable tournament candidate count; default 1,000) |
+| Pass 1 effort | 0.1 |
+| Pass 1 move budget | 25,000 moves per seed |
+| Pass 1 seed range | 1–1,000 |
+| Pass 1 qualification | `is_valid`: zero conflicts, zero incomplete connections, zero geometry errors, and no reported issues |
+| Duplicate handling | Exact layout signature uses board rows/columns and sorted non-excluded component IDs, board positions and rotations; duplicate signatures are excluded from finalist ranking |
+| Finalist limit | Up to 10 unique valid layouts |
+| Pass 2 budgets | 40 separate budgets: 5,000, 10,000 … 200,000 moves, in 5,000-move increments |
+| Pass 2 seed | Each finalist retains its Pass 1 seed |
+| Pass 2 starting state | Every budget starts from a fresh copy of the original project JSON; budgets do not continue from the previous budget's output |
+| Per-seed retention | Best valid Pass 2 result for each finalist seed is retained according to the active ranking key |
+
+Pass 1 progress is emitted every 20 completed seeds. Pass 1 contestant log lines show passing results only; progress summaries and duplicate notices remain visible. Pass 2 continues to report its contestant PASS/FAIL results.
+
+### 26.2 Ranking
+
+The current default `wires` ranking key is `(wire count, cut count, price)`. The `cuts` preference uses `(cut count, wire count, price)`. The solver's weighted price is therefore a tie-breaker after the selected routing priority, not the sole tournament ranking criterion.
+
+A PASS is based on the validity flags above. The PASS label does not mean the result beats the reference benchmark or is the best result in the tournament.
+
+### 26.3 Current reference benchmark
+
+The Moto-Mate reference fixture `moto14wires30cuts.json` is recorded in the standalone-renderer parity documentation as a 24 × 56 board with 14 jumper wires and 30 cuts. The project benchmark to beat is therefore **W14/C30**. Treat this as the current project reference result; do not describe it as a globally verified world record.
+
+The tournament's observed intermediate results are not a replacement for this baseline. For example, a Pass 1 result of W38/C54 is valid if it passes validation, but it does not beat W14/C30 on either metric.
+
+### 26.4 Operational boundaries and known gaps
+
+- The desktop GUI is the active tournament interface. The inherited Next.js/Django web application remains a separate application.
+- The desktop solver adapter requires Node.js, the v5 harness, compiled `autoLayout5.js`, and the v5 decode/route WASM files. Optional native mode has additional platform-specific build requirements.
+- The current tournament retains the best valid result per finalist seed and saves the final finalist JSONs. It is not a general-purpose archival store of every valid Pass 1 candidate.
+- The current duplicate fingerprint compares placement identity and board dimensions; it does not claim electrical or geometric equivalence beyond that signature.
+- A completed run, persistent run manifest, full Pareto archive, independent round-trip audit and cross-platform packaged installers remain separate release requirements unless verified in code and tests.
+- The current GUI version is v1.36.
+
+When implementation changes, update this section from the actual source and tests. Do not convert target requirements elsewhere in this specification into claims of implemented behaviour without evidence.
