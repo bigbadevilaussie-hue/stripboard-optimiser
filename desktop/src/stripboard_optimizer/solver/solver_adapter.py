@@ -63,6 +63,7 @@ def solve_one(
     native=False,
     drilled=False,
     no_wire_stacking=False,
+    routing_preference="wires",
     on_log=None,
     on_progress=None,
     register_process=None,
@@ -106,6 +107,7 @@ def solve_one(
         command.extend(["--drilled", "1"])
     if no_wire_stacking:
         command.extend(["--nostack", "1"])
+    command.extend(["--routing-preference", routing_preference])
 
     proc = subprocess.Popen(
         command,
@@ -195,10 +197,11 @@ def is_valid(summary):
     )
 
 
-def rank_key(summary):
-    """Lower price, then fewer wires and cuts, wins the desktop's current policy."""
-    return (
-        summary.get("price", summary.get("rate", 1e9)),
-        summary.get("wires", 1e9),
-        summary.get("cuts", 1e9),
-    )
+def rank_key(summary, routing_preference="wires"):
+    """Rank valid boards by the requested routing priority, then price."""
+    wires = summary.get("wires", 1e9)
+    cuts = summary.get("cuts", 1e9)
+    price = summary.get("price", summary.get("rate", 1e9))
+    if routing_preference == "cuts":
+        return (cuts, wires, price)
+    return (wires, cuts, price)
