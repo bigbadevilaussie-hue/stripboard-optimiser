@@ -28,7 +28,7 @@ FONT_SANS = ("Helvetica Neue", 12)
 FONT_SANS_BOLD = ("Helvetica Neue", 13, "bold")
 FONT_MONO = ("Menlo", 11)
 
-APP_VERSION = "v1.29"
+APP_VERSION = "v1.30"
 
 class MainWindow(tk.Tk):
     def __init__(self):
@@ -190,6 +190,10 @@ class MainWindow(tk.Tk):
         ttk.Label(solver_settings, text="Cuts").grid(row=0, column=0, sticky="w")
         ttk.Radiobutton(solver_settings, text="Drilled only", variable=self.manual_cut_var, value="drilled").grid(row=0, column=1, sticky="w", padx=(8, 12))
         ttk.Radiobutton(solver_settings, text="Allow knife cuts", variable=self.manual_cut_var, value="knife").grid(row=0, column=2, sticky="w")
+        self.manual_routing_preference_var = tk.StringVar(value="wires")
+        ttk.Label(solver_settings, text="Routing priority").grid(row=2, column=0, sticky="w", pady=(8, 0))
+        ttk.Radiobutton(solver_settings, text="Fewer wires", variable=self.manual_routing_preference_var, value="wires").grid(row=2, column=1, sticky="w", pady=(8, 0))
+        ttk.Radiobutton(solver_settings, text="Fewer cuts", variable=self.manual_routing_preference_var, value="cuts").grid(row=2, column=2, sticky="w", pady=(8, 0))
         self.manual_no_stack_var = tk.BooleanVar(value=True)
         ttk.Checkbutton(solver_settings, text="No stacked wires", variable=self.manual_no_stack_var).grid(row=1, column=0, columnspan=3, sticky="w", pady=(6, 0))
         tk.Label(solver_settings, text="Rotation and diagonal routing are solver-managed; this solver build has no separate on/off switches for them.", bg=BG_PANEL, fg="#737373", font=("Helvetica Neue", 10), anchor="w").grid(row=1, column=3, columnspan=3, sticky="w", padx=(8, 0), pady=(6, 0))
@@ -197,14 +201,14 @@ class MainWindow(tk.Tk):
         self.manual_seed_base_var = tk.IntVar(value=0)
         self.manual_effort_var = tk.DoubleVar(value=1.0)
         self.manual_threads_var = tk.IntVar(value=max(1, min(4, (os.cpu_count() or 2) - 1)))
-        ttk.Label(solver_settings, text="Seeds").grid(row=2, column=0, sticky="w", pady=(8, 0))
-        ttk.Spinbox(solver_settings, from_=1, to=256, width=7, textvariable=self.manual_seeds_var).grid(row=2, column=1, sticky="w", pady=(8, 0))
-        ttk.Label(solver_settings, text="Starting seed").grid(row=2, column=2, sticky="w", padx=(12, 6), pady=(8, 0))
-        ttk.Spinbox(solver_settings, from_=0, to=2147483647, width=10, textvariable=self.manual_seed_base_var).grid(row=2, column=3, sticky="w", pady=(8, 0))
-        ttk.Label(solver_settings, text="Effort").grid(row=3, column=0, sticky="w", pady=(8, 0))
-        ttk.Spinbox(solver_settings, from_=0.1, to=10.0, increment=0.1, width=7, textvariable=self.manual_effort_var).grid(row=3, column=1, sticky="w", pady=(8, 0))
-        ttk.Label(solver_settings, text="Threads").grid(row=3, column=2, sticky="w", padx=(12, 6), pady=(8, 0))
-        ttk.Spinbox(solver_settings, from_=1, to=max(1, os.cpu_count() or 1), width=7, textvariable=self.manual_threads_var).grid(row=3, column=3, sticky="w", pady=(8, 0))
+        ttk.Label(solver_settings, text="Seeds").grid(row=3, column=0, sticky="w", pady=(8, 0))
+        ttk.Spinbox(solver_settings, from_=1, to=256, width=7, textvariable=self.manual_seeds_var).grid(row=3, column=1, sticky="w", pady=(8, 0))
+        ttk.Label(solver_settings, text="Starting seed").grid(row=3, column=2, sticky="w", padx=(12, 6), pady=(8, 0))
+        ttk.Spinbox(solver_settings, from_=0, to=2147483647, width=10, textvariable=self.manual_seed_base_var).grid(row=3, column=3, sticky="w", pady=(8, 0))
+        ttk.Label(solver_settings, text="Effort").grid(row=4, column=0, sticky="w", pady=(8, 0))
+        ttk.Spinbox(solver_settings, from_=0.1, to=10.0, increment=0.1, width=7, textvariable=self.manual_effort_var).grid(row=4, column=1, sticky="w", pady=(8, 0))
+        ttk.Label(solver_settings, text="Threads").grid(row=4, column=2, sticky="w", padx=(12, 6), pady=(8, 0))
+        ttk.Spinbox(solver_settings, from_=1, to=max(1, os.cpu_count() or 1), width=7, textvariable=self.manual_threads_var).grid(row=4, column=3, sticky="w", pady=(8, 0))
 
         parts_box = ttk.LabelFrame(self.manual_frame, text="Component placement locks", padding=8)
         parts_box.pack(fill="both", expand=True, pady=(0, 10))
@@ -484,6 +488,7 @@ class MainWindow(tk.Tk):
         project = self.controller.project
         drilled = False
         no_wire_stacking = False
+        routing_preference = "wires"
         parallel = None
 
         if mode == "manual":
@@ -513,6 +518,7 @@ class MainWindow(tk.Tk):
                 board["lockedCols"] = bool(self.manual_lock_cols_var.get())
                 drilled = self.manual_cut_var.get() == "drilled"
                 no_wire_stacking = bool(self.manual_no_stack_var.get())
+                routing_preference = self.manual_routing_preference_var.get()
                 for component in raw.get("components", []):
                     component_id = component.get("id")
                     if component_id in self.manual_part_vars:
@@ -607,6 +613,7 @@ class MainWindow(tk.Tk):
             str(job), mode, self.solver_q,
             parallel=parallel, drilled=drilled,
             no_wire_stacking=no_wire_stacking,
+            routing_preference=routing_preference,
             manual_seeds=seeds if mode == "manual" else None,
             manual_seed_base=seed_base if mode == "manual" else 0,
             manual_effort=effort if mode == "manual" else None,
