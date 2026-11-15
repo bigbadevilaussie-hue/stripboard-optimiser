@@ -28,6 +28,7 @@ class SolveWorker(threading.Thread):
         native=False,
         drilled=False,
         no_wire_stacking=False,
+        routing_preference="wires",
         manual_seeds=None,
         manual_seed_base=0,
         manual_effort=None,
@@ -40,6 +41,7 @@ class SolveWorker(threading.Thread):
         self.native = native
         self.drilled = drilled
         self.no_wire_stacking = no_wire_stacking
+        self.routing_preference = routing_preference
         self.manual_seeds = manual_seeds
         self.manual_seed_base = manual_seed_base
         self.manual_effort = manual_effort
@@ -88,6 +90,7 @@ class SolveWorker(threading.Thread):
                 native=self.native,
                 drilled=self.drilled,
                 no_wire_stacking=self.no_wire_stacking,
+                routing_preference=self.routing_preference,
                 on_log=lambda message: self.q.put(("log", message)),
                 on_progress=lambda current_seed, fraction: self.q.put(
                     ("progress", current_seed, fraction)
@@ -142,7 +145,7 @@ class SolveWorker(threading.Thread):
                     seeds = [
                         result[2]
                         for result in sorted(
-                            stage_good, key=lambda result: rank_key(result[0])
+                            stage_good, key=lambda result: rank_key(result[0], self.routing_preference)
                         )[:next_count]
                     ]
                     if not seeds:
