@@ -60,6 +60,7 @@ def solve_one(
     work,
     node="node",
     effort=1.0,
+    moves=None,
     native=False,
     drilled=False,
     no_wire_stacking=False,
@@ -77,7 +78,7 @@ def solve_one(
         raise FileNotFoundError(f"Solver input JSON not found: {project_json}")
 
     work = Path(work).expanduser().resolve()
-    job = work / f"s{seed}_e{effort:g}"
+    job = work / (f"s{seed}_m{int(moves)}" if moves is not None else f"s{seed}_e{effort:g}")
     projects = job / "projects"
     projects.mkdir(parents=True, exist_ok=True)
 
@@ -94,13 +95,15 @@ def solve_one(
         "1",
         "--seed",
         str(seed),
-        "--effort",
-        str(effort),
         "--save",
         str(save_file),
         "--progress",
         "1",
     ]
+    if moves is not None:
+        command.extend(["--moves", str(int(moves))])
+    else:
+        command.extend(["--effort", str(effort)])
     if native:
         command.extend(["--native", "1"])
     if drilled:
