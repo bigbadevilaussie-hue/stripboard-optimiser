@@ -498,8 +498,8 @@ class MainWindow(tk.Tk):
                         self.solver_q.put(("log", f"[ERROR] Renderer did not write {src.name}"))
                         return
                     subprocess.run(["rsvg-convert", "-o", str(dst), str(src)], check=True, timeout=60)
-                self.solver_q.put(("log", f"[PREVIEW] Rendered {top_png} and {copper_png}"))
-                subprocess.run(["open", str(top_png), str(copper_png)])
+                self.solver_q.put(("rendered", str(top_png), str(copper_png), None))
+                self.solver_q.put(("log", f"[PREVIEW] Board preview updated from {Path(path).name}."))
             except subprocess.TimeoutExpired:
                 self.solver_q.put(("log", "[ERROR] Preview timed out"))
             except Exception as e:
