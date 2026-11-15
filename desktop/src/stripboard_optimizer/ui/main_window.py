@@ -241,6 +241,7 @@ class MainWindow(tk.Tk):
         path = filedialog.askopenfilename(filetypes=[("KiCad Footprints", "*.zip")])
         if not path: return
         self.controller.load_zip(path)
+        self._set_stage("BOARD")
         self.btn_zip.pack_forget()
         self.log(f"\n--- 3. KICAD FOOTPRINTS: {os.path.basename(path)} ---")
         for name, (pads, w, h) in self.controller.zip_footprints.items():
@@ -448,6 +449,10 @@ class MainWindow(tk.Tk):
                     _, stage, seed, effort, s, path, ok = m
                     tag = "OK " if ok else "BAD"
                     self.log(f"[{tag}] stage {stage} seed {seed} e{effort}: {s['rows']}x{s['cols']} wires {s['wires']} cuts {s['cuts']} price {s.get('price', '?')} ({s['ms']/1000:.0f}s)")
+                elif m[0] == "rendered":
+                    _, top_png, copper_png, schematic_png = m
+                    self.board_viewer.load(top_png, copper_png, schematic_png)
+                    self._set_stage("RESULTS")
                 elif m[0] == "done":
                     _, best, cancelled = m
                     self.btn_stop.pack_forget()
@@ -550,8 +555,9 @@ class MainWindow(tk.Tk):
                 if have_schematic:
                     saved += f", {schematic_png.name}"
                 self.solver_q.put(("log", f"[RENDER] Saved {saved}"))
-                self.board_viewer.load(str(top_png), str(copper_png), str(schematic_png) if have_schematic else None)
-                self.show_board_view()
+                self.solver_q.put(("rendered", str(top_png), str(copper_png),
+                                    str(schematic_png) if have_schematic else None))
+                self.solver_q.put(("log", "[RESULTS] Board preview refreshed."))
             except Exception as e:
                 self.solver_q.put(("log", f"[ERROR] Render failed: {e}"))
         threading.Thread(target=job, daemon=True).start()
@@ -559,10 +565,10 @@ class MainWindow(tk.Tk):
     def show_board_view(self):
         # Keep the preview docked beside the active workflow stage.
         self._set_stage("RESULTS")
-        self.log_frame.pack_forget()
         self.mode_frame.pack_forget()
         self.questions_frame.pack_forget()
         self.manual_frame.pack_forget()
+        self.log_frame.pack(fill="both", expand=True)
 
     def show_log(self):
         self.mode_frame.pack_forget()
