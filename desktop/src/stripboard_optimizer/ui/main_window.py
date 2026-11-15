@@ -190,6 +190,10 @@ class MainWindow(tk.Tk):
 
     def reset_app(self):
         self.controller = ProjectController()
+        self.project_path = None
+        self.best = None
+        self._set_stage("PROJECT")
+        self.board_viewer.clear()
         self.validation_panel.report.delete(1.0, tk.END)
         self.log("Ready. Open a project JSON to begin.")
         for frame in [self.log_frame, self.mode_frame, self.questions_frame, self.manual_frame]:
