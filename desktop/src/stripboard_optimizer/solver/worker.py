@@ -11,7 +11,8 @@ from stripboard_optimizer.solver.solver_adapter import solve_one, is_valid, rank
 
 PLANS = {
     "full_auto": [(8, 1.0)],
-    "2pass": [(12, 0.3), (3, 3.0)],
+    # 100 quick qualifier seeds; rerun the top 5 at high effort.
+    "2pass": [(100, 0.1), (5, 3.0)],
     "manual": [(4, 1.0)],
 }
 
