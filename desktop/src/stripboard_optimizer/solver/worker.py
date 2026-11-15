@@ -18,6 +18,8 @@ PLANS = {
     "manual": [(4, 1.0)],
 }
 
+PASS1_MOVES = 25_000
+
 CONTESTANT_NAMES = [
     "Ada", "Ben", "Cleo", "Dan", "Eva", "Finn", "Gala", "Hank", "Iris", "Jack",
     "Kip", "Luna", "Max", "Nora", "Oto", "Pax", "Quinn", "Rex", "Sage", "Tess",
@@ -97,7 +99,7 @@ class SolveWorker(threading.Thread):
         try:
             summary, path = solve_one(
                 self.project_json, seed, work,
-                effort=effort if moves is None else 1.0,
+                effort=effort,
                 moves=moves, native=self.native, drilled=self.drilled,
                 no_wire_stacking=self.no_wire_stacking,
                 routing_preference=self.routing_preference,
@@ -154,11 +156,11 @@ class SolveWorker(threading.Thread):
         random.SystemRandom().shuffle(names)
         contestant_names = {seed: names[(seed - 1) % len(names)] for seed in seeds}
 
-        self.q.put(("log", f"🏁 PASS 1: {candidates} seeds at effort 0.1 (move count calculated by solver)"))
+        self.q.put(("log", f"🏁 PASS 1: {candidates} seeds × {PASS1_MOVES:,} moves at effort 0.1"))
         with ThreadPoolExecutor(max_workers=self.parallel) as executor:
             results = list(executor.map(
                 lambda seed: self._one(
-                    seed, 0.1, 1, work, contestant_names[seed]
+                    seed, 0.1, 1, work, contestant_names[seed], moves=PASS1_MOVES
                 ),
                 seeds,
             ))
