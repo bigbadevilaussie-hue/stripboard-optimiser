@@ -6,7 +6,7 @@ import random
 import shutil
 import tempfile
 import threading
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 from stripboard_optimizer.solver.solver_adapter import solve_one, is_valid, rank_key
@@ -157,14 +157,33 @@ class SolveWorker(threading.Thread):
         contestant_names = {seed: names[(seed - 1) % len(names)] for seed in seeds}
 
         self.q.put(("log", f"🏁 PASS 1: {candidates} seeds × {PASS1_MOVES:,} moves at effort 0.1"))
+        # Collect in completion order. executor.map() yields in seed order, so
+        # one slow early seed can hide hundreds of later completed seeds from the GUI.
+        results = [None] * candidates
+        completed = 0
+        valid_count = 0
         with ThreadPoolExecutor(max_workers=self.parallel) as executor:
-            results = list(executor.map(
-                lambda seed: self._one(
-                    seed, 0.1, 1, work, contestant_names[seed], moves=PASS1_MOVES
-                ),
-                seeds,
-            ))
-        completed = sum(result is not None for result in results)
+            futures = {
+                executor.submit(
+                    self._one, seed, 0.1, 1, work, contestant_names[seed],
+                    moves=PASS1_MOVES,
+                ): seed
+                for seed in seeds
+            }
+            for future in as_completed(futures):
+                seed = futures[future]
+                result = future.result()
+                results[seed - 1] = result
+                if result is not None:
+                    completed += 1
+                    if result[0] is not None and result[4]:
+                        valid_count += 1
+                    if completed % 20 == 0:
+                        self.q.put((
+                            "log",
+                            f"[PASS 1 PROGRESS] {completed}/{candidates} seeds completed "
+                            f"· {valid_count} valid · latest seed {seed:04d}",
+                        ))
         valid = [result for result in results if result and result[0] is not None and result[4]]
         ranked = sorted(valid, key=lambda result: rank_key(result[0], self.routing_preference))
         if self._cancel_event.is_set():
