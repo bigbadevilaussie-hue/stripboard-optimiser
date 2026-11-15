@@ -671,19 +671,15 @@ class MainWindow(tk.Tk):
                 if m[0] == "log":
                     self.log(m[1])
                 elif m[0] == "candidate":
-                    _, stage, seed, effort, s, path, ok, contestant_name = m
-                    name = contestant_name or f"Seed {seed}"
-                    status = "✅" if ok else "❌"
-                    self.log(
-                        f"{status} {name} · {s.get('wires', '?')}W / "
-                        f"{s.get('cuts', '?')}C"
-                    )
+                    # Round standings are printed once, after all contestants finish.
+                    pass
                 elif m[0] == "round_results":
-                    _, stage, standings = m
+                    _, stage, total, valid_count, standings = m
+                    self.log(f"🏁 Round {stage}: {valid_count}/{total} valid")
                     if not standings:
-                        self.log(f"⚠️ Round {stage}: no valid boards")
+                        self.log("⚠️ No valid boards")
                     else:
-                        self.log(f"🏆 Round {stage} results:")
+                        self.log("🏆 Top 5:")
                         for item in standings[:5]:
                             medal = ("🥇", "🥈", "🥉")[item["rank"] - 1] if item["rank"] <= 3 else " "
                             self.log(
