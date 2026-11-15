@@ -269,7 +269,7 @@ class SolveWorker(threading.Thread):
                     for position, result in enumerate(ranked)
                 ]
                 if not self._cancel_event.is_set():
-                    self.q.put(("round_results", stage, standings))
+                    self.q.put(("round_results", stage, len(seeds), len(stage_good), standings))
 
                 final_stage_good = ranked
                 if stage < len(plan):
