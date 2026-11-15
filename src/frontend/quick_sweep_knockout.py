@@ -210,6 +210,9 @@ def main() -> int:
     p.add_argument("--advance", type=int, default=32)
     p.add_argument("--knockout-moves", type=int, default=25000)
     p.add_argument("--finalists", type=int, default=4)
+    p.add_argument("--endurance-min", type=int, default=5000)
+    p.add_argument("--endurance-max", type=int, default=200000)
+    p.add_argument("--endurance-step", type=int, default=5000)
     p.add_argument("--workers", type=int, default=max(1, (os.cpu_count() or 2) - 1))
     p.add_argument("--timeout", type=int, default=900)
     p.add_argument("--required-rows", type=int, default=0)
@@ -224,6 +227,8 @@ def main() -> int:
         p.error(f"project does not exist: {args.project}")
     if args.quick_seeds < 1 or args.advance < 1 or args.finalists < 1 or args.workers < 1:
         p.error("quick-seeds, advance, finalists and workers must be positive")
+    if args.endurance_min < 1 or args.endurance_max < args.endurance_min or args.endurance_step < 1:
+        p.error("endurance range must be positive and max >= min")
     if not SOLVER.is_file():
         p.error(f"v5Solve.js not found in repository: {SOLVER}")
 
@@ -330,7 +335,7 @@ def main() -> int:
             return 3
 
     finalists = bracket
-    endurance_budgets = list(range(5000, 200001, 5000))
+    endurance_budgets = list(range(args.endurance_min, args.endurance_max + 1, args.endurance_step))
     endurance = stage("ENDURANCE", [
         (seed, moves) for seed in finalists for moves in endurance_budgets
     ])
