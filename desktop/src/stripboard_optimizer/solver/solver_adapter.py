@@ -62,6 +62,7 @@ def solve_one(
     effort=1.0,
     native=False,
     drilled=False,
+    no_wire_stacking=False,
     on_log=None,
     on_progress=None,
     register_process=None,
@@ -103,6 +104,8 @@ def solve_one(
         command.extend(["--native", "1"])
     if drilled:
         command.extend(["--drilled", "1"])
+    if no_wire_stacking:
+        command.extend(["--nostack", "1"])
 
     proc = subprocess.Popen(
         command,
