@@ -28,7 +28,7 @@ FONT_SANS = ("Helvetica Neue", 12)
 FONT_SANS_BOLD = ("Helvetica Neue", 13, "bold")
 FONT_MONO = ("Menlo", 11)
 
-APP_VERSION = "v1.33"
+APP_VERSION = "v1.34"
 
 class MainWindow(tk.Tk):
     def __init__(self):
@@ -146,7 +146,7 @@ class MainWindow(tk.Tk):
             tk.Label(self.mode_frame, text=desc, bg=BG_PANEL, fg="#737373", font=FONT_SANS, anchor="w").pack(fill="x", padx=25, pady=(0, 10))
         tournament_box = ttk.LabelFrame(self.mode_frame, text="2-Pass Tournament settings", padding=10)
         tournament_box.pack(fill="x", pady=(12, 0), padx=24)
-        ttk.Label(tournament_box, text="Pass 1: 2,000 seeds at effort 0.1 (solver-calculated moves)").grid(
+        ttk.Label(tournament_box, text="Pass 1: 2,000 seeds × 25,000 moves at effort 0.1").grid(
             row=0, column=0, columnspan=4, sticky="w"
         )
         ttk.Label(tournament_box, text="Pass 2: top 5 finalists × 40 rounds, 5,000–200,000 moves").grid(
@@ -616,7 +616,7 @@ class MainWindow(tk.Tk):
         self.log_frame.pack(fill="both", expand=True)
         self.log(f"\n[OPTIMISE] Starting mode: {mode.upper()}")
         if mode == "2pass":
-            self.log("[TOURNAMENT] Pass 1: 2,000 seeds at effort 0.1 (solver-calculated move count). Pass 2: five finalists × 40 independent budgets from 5,000 to 200,000 moves (5,000-step increments).")
+            self.log("[TOURNAMENT] Pass 1: 2,000 seeds × 25,000 moves at effort 0.1. Pass 2: five finalists × 40 independent budgets from 5,000 to 200,000 moves (5,000-step increments).")
             self.log("[TOURNAMENT] Every budget starts from the original project JSON using the finalist seed; the best valid board per seed is retained.")
         self.log("[SOLVE] Each seed is an independent starting arrangement; the best fully valid result wins.")
         self.best = None
