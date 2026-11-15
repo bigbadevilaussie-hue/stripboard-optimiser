@@ -28,7 +28,7 @@ FONT_SANS = ("Helvetica Neue", 12)
 FONT_SANS_BOLD = ("Helvetica Neue", 13, "bold")
 FONT_MONO = ("Menlo", 11)
 
-APP_VERSION = "v1.37"
+APP_VERSION = "v1.38"
 
 class MainWindow(tk.Tk):
     def __init__(self):
@@ -197,14 +197,14 @@ class MainWindow(tk.Tk):
         solver_settings.pack(fill="x", pady=(0, 10))
         self.manual_cut_var = tk.StringVar(value="knife")
         ttk.Label(solver_settings, text="Cuts").grid(row=0, column=0, sticky="w")
-        ttk.Radiobutton(solver_settings, text="Drilled only", variable=self.manual_cut_var, value="drilled").grid(row=0, column=1, sticky="w", padx=(8, 12))
-        ttk.Radiobutton(solver_settings, text="Allow knife cuts", variable=self.manual_cut_var, value="knife").grid(row=0, column=2, sticky="w")
+        ttk.Radiobutton(solver_settings, text="Drilled only (disabled)", variable=self.manual_cut_var, value="drilled", state="disabled").grid(row=0, column=1, sticky="w", padx=(8, 12))
+        ttk.Radiobutton(solver_settings, text="Allow knife cuts", variable=self.manual_cut_var, value="knife", state="disabled").grid(row=0, column=2, sticky="w")
         self.manual_routing_preference_var = tk.StringVar(value="wires")
         ttk.Label(solver_settings, text="Routing priority").grid(row=2, column=0, sticky="w", pady=(8, 0))
         ttk.Radiobutton(solver_settings, text="Fewer wires", variable=self.manual_routing_preference_var, value="wires").grid(row=2, column=1, sticky="w", pady=(8, 0))
         ttk.Radiobutton(solver_settings, text="Fewer cuts", variable=self.manual_routing_preference_var, value="cuts").grid(row=2, column=2, sticky="w", pady=(8, 0))
         self.manual_no_stack_var = tk.BooleanVar(value=False)
-        ttk.Checkbutton(solver_settings, text="No stacked wires", variable=self.manual_no_stack_var).grid(row=1, column=0, columnspan=3, sticky="w", pady=(6, 0))
+        ttk.Checkbutton(solver_settings, text="No stacked wires (disabled)", variable=self.manual_no_stack_var, state="disabled").grid(row=1, column=0, columnspan=3, sticky="w", pady=(6, 0))
         tk.Label(solver_settings, text="Rotation and diagonal routing are solver-managed; this solver build has no separate on/off switches for them.", bg=BG_PANEL, fg="#737373", font=("Helvetica Neue", 10), anchor="w").grid(row=1, column=3, columnspan=3, sticky="w", padx=(8, 0), pady=(6, 0))
         self.manual_seeds_var = tk.IntVar(value=12)
         self.manual_seed_base_var = tk.IntVar(value=0)
