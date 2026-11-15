@@ -281,7 +281,7 @@ class SolveWorker(threading.Thread):
             if final_stage_good and not self._cancel_event.is_set():
                 best = min(
                     final_stage_good,
-                    key=lambda result: rank_key(result[0], self.routing_preference),
+                    key=lambda result: rank_key(result[0]),
                 )
         except Exception as exc:
             self.q.put(("log", f"[SOLVE] Worker failed: {exc}"))
