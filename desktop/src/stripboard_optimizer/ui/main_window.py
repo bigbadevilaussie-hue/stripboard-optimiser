@@ -26,7 +26,7 @@ FONT_SANS = ("Helvetica Neue", 12)
 FONT_SANS_BOLD = ("Helvetica Neue", 13, "bold")
 FONT_MONO = ("Menlo", 11)
 
-APP_VERSION = "v1.24"
+APP_VERSION = "v1.25"
 
 class MainWindow(tk.Tk):
     def __init__(self):
@@ -598,8 +598,7 @@ class MainWindow(tk.Tk):
                     self.log(m[1])
                 elif m[0] == "candidate":
                     _, stage, seed, effort, s, path, ok = m
-                    tag = "OK " if ok else "BAD"
-                    self.log(f"[{tag}] stage {stage} seed {seed} e{effort}: {s['rows']}x{s['cols']} wires {s['wires']} cuts {s['cuts']} price {s.get('price', '?')} ({s['ms']/1000:.0f}s)")
+                    self.log(f"[SEED] stage {stage} seed {seed} e{effort}: rows {s['rows']} cols {s['cols']} wires {s['wires']} diag {s.get('offAxis', '?')} cuts {s['cuts']} price {s.get('price', '?')} ({s['ms']/1000:.0f}s)")
                 elif m[0] == "rendered":
                     _, top_png, copper_png, schematic_png = m
                     self.board_viewer.load(top_png, copper_png, schematic_png)
