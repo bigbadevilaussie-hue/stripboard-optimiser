@@ -216,6 +216,8 @@ class MainWindow(tk.Tk):
         parts_canvas.pack(side="left", fill="both", expand=True)
         parts_scroll.pack(side="right", fill="y")
         self.manual_part_vars = {}
+        self.manual_locks_confirmed_var = tk.BooleanVar(value=False)
+        ttk.Checkbutton(self.manual_frame, text="I have reviewed the component list and confirmed every locked placement.", variable=self.manual_locks_confirmed_var).pack(anchor="w", pady=(0, 8))
         ttk.Button(self.manual_frame, text="START OPTIMISATION", style="Green.TButton", command=self.start_optimisation).pack(anchor="e", ipadx=20, ipady=8)
 
         self.log_frame.pack(fill="both", expand=True)
@@ -424,11 +426,10 @@ class MainWindow(tk.Tk):
             self.manual_part_vars[component_id] = var
             row = ttk.Frame(self.manual_parts_frame, style="Panel.TFrame")
             row.pack(fill="x", pady=1)
-            check = ttk.Checkbutton(row, text=f"{label}  [{status}]", variable=var)
+            check = ttk.Checkbutton(row, text=f"{label}  [ID: {component_id or 'missing'}]  [{status}]", variable=var)
             check.pack(side="left", anchor="w")
             if not pos or excluded:
                 check.configure(state="disabled")
-                var.set(False)
 
     def show_questions(self):
         self.questions_frame.pack(fill="both", expand=True)
@@ -478,6 +479,9 @@ class MainWindow(tk.Tk):
 
         if mode == "manual":
             self._set_stage("PRE-FLIGHT")
+            if not self.manual_locks_confirmed_var.get():
+                self.log("[BLOCKED] Review the component list and confirm the locked placements before starting.")
+                return
             try:
                 rows = int(self.manual_rows_var.get())
                 cols = int(self.manual_cols_var.get())
@@ -503,7 +507,11 @@ class MainWindow(tk.Tk):
                 for component in raw.get("components", []):
                     component_id = component.get("id")
                     if component_id in self.manual_part_vars:
-                        component["locked"] = bool(self.manual_part_vars[component_id].get())
+                        locked = bool(self.manual_part_vars[component_id].get())
+                        if locked and (not component.get("boardPos") or component.get("boardExcluded")):
+                            self.log(f"[BLOCKED] {component.get('label') or component.get('name') or component_id} is marked locked but has no placeable board position.")
+                            return
+                        component["locked"] = locked
                 job = Path(tempfile.mkdtemp(prefix="sbjob_")) / "project.json"
                 job.write_text(json.dumps(raw))
             except Exception as exc:
