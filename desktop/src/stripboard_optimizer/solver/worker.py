@@ -154,7 +154,7 @@ class SolveWorker(threading.Thread):
         random.SystemRandom().shuffle(names)
         contestant_names = {seed: names[(seed - 1) % len(names)] for seed in seeds}
 
-        self.q.put(("log", f"🏁 PASS 1: {candidates} seeds × 25,000 moves at effort 0.1"))
+        self.q.put(("log", f"🏁 PASS 1: {candidates} seeds at effort 0.1 (move count calculated by solver)"))
         with ThreadPoolExecutor(max_workers=self.parallel) as executor:
             results = list(executor.map(
                 lambda seed: self._one(
