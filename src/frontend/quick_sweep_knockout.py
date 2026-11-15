@@ -199,7 +199,7 @@ def main() -> int:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--project", type=Path, required=True,
                    help="source project JSON; copied to the solver corpus as projects/<id>.json")
-    p.add_argument("--solver-data", type=Path, default=Path("tests/solver"),
+    p.add_argument("--solver-data", type=Path, default=Path("src/frontend/tests/solver"),
                    help="directory containing the solver's projects/ corpus")
     p.add_argument("--project-id", type=int, default=0)
     p.add_argument("--node", default="node")
