@@ -307,8 +307,10 @@ class SolveWorker(threading.Thread):
             saved_finalists.append((item[0], str(destination), seed, item[3]))
         self.q.put(("log", f"📁 FINALISTS SAVED: {len(saved_finalists)} JSON files in {self.output_dir}"))
         winner = saved_finalists[0]
-        self.q.put(("log", f"🏆 WINNER: {winner[3]} · {winner[0].get('rows')}x{winner[0].get('cols')} · "
-                           f"{winner[0].get('wires')}W / {winner[0].get('cuts')}C"))
+        self.q.put(("log", f"🏆 OVERALL WINNER: {winner[3]} (seed {winner[2]:04d}) · "
+                           f"{winner[0].get('rows')}×{winner[0].get('cols')} · "
+                           f"{winner[0].get('wires')}W / {winner[0].get('cuts')}C · "
+                           f"${float(winner[0].get('price', winner[0].get('rate', 0))):,.2f} · VALID"))
         return winner
 
     def run(self):
