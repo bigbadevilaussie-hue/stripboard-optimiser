@@ -152,7 +152,7 @@ class SolveWorker(threading.Thread):
                         break
 
             if good and not self._cancel_event.is_set():
-                best = min(good, key=lambda result: rank_key(result[0]))
+                best = min(good, key=lambda result: rank_key(result[0], self.routing_preference))
         except Exception as exc:
             self.q.put(("log", f"[SOLVE] Worker failed: {exc}"))
         finally:
