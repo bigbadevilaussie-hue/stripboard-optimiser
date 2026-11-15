@@ -6,6 +6,7 @@
 //        [--speedprobe <n>]  only time n decodes of random genomes (prints probeMs)
 //        [--progress 1]      print the anneal's progress reports with their time (stderr)
 //        [--effort <x>]      moves = the pin-count formula times x (the editor's effort; --time then only guards)
+//        [--routing-preference wires|cuts] favour fewer wires or fewer cuts
 //        [--drilled 1]       drilled cuts only
 //        [--nostack 1]       no wire stacking
 //        [--protect 1]       strip groups are never dissolved by the decoder (contradicting proposals refused)
@@ -65,6 +66,7 @@ const speedProbe = argVal("speedprobe") ? Number(argVal("speedprobe")) : undefin
 const onProgress = argVal("progress") === "1" ? (p) => console.error(`progress ${p.frac.toFixed(3)} ${((performance.now() - tProg) / 1000).toFixed(2)}s`) : undefined;
 const drilled = argVal("drilled") === "1";
 const noStack = argVal("nostack") === "1";
+const routingPreference = argVal("routing-preference") === "cuts" ? "cuts" : "wires";
 const exact = argVal("exact") === "1";
 const protect = argVal("protect") === "1";
 // the decoder and the wire router in WebAssembly ("1" also means the default
@@ -206,6 +208,7 @@ try {
     ...(effort !== undefined ? { effort } : {}),
     ...(drilled ? { drilledCutsOnly: true } : {}),
     ...(noStack ? { noWireStacking: true } : {}),
+    routingPreference,
     ...(exact ? { exactBest: true } : {}),
     ...(protect ? { protectTies: true } : {}),
     ...wasmOpts,
