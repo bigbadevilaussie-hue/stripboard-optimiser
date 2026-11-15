@@ -148,18 +148,16 @@ def run_one(stage: str, seed: int, moves: int, args: argparse.Namespace,
             "quality": quality == 0,
             "conflicts": conflicts == 0,
             "incomplete": incomplete == 0,
-            "geometry": geometry_errors == 0,
-            "off_axis": off_axis == 0,
+            "geo": geometry_errors == 0,
+            "offAxis": off_axis == 0,
         }
         if args.required_rows:
-            checks["required_rows"] = rows == args.required_rows
+            checks["rows"] = rows == args.required_rows
         if args.required_cols:
-            checks["required_cols"] = cols == args.required_cols
+            checks["cols"] = cols == args.required_cols
         missing = [name for name, value in checks.items()
-                   if value is False and report.get({
-                       "geometry": "geo", "off_axis": "offAxis"
-                   }.get(name, name)) is None]
-        reasons = [f"{name}={report.get({'geometry': 'geo', 'off_axis': 'offAxis'}.get(name, name))}"
+                   if value is False and report.get(name) is None]
+        reasons = [f"{name}={report.get(name)}"
                    for name, ok in checks.items() if not ok]
         if missing:
             reasons.append("missing validation fields: " + ", ".join(missing))
@@ -262,7 +260,6 @@ def main() -> int:
         "project_sha256": sha256(args.project),
         "solver": str(SOLVER),
         "solver_sha256": sha256(SOLVER),
-        "solver_data_project_id": args.project_id,
         "settings": {k: str(v) if isinstance(v, Path) else v for k, v in vars(args).items()},
         "results": [],
     }
