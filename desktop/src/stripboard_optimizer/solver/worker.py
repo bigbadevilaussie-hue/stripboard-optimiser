@@ -20,7 +20,7 @@ PLANS = {
 }
 
 PASS1_MOVES = 25_000
-MAX_FINALISTS = 10000
+MAX_FINALISTS = 10000  # effectively unlimited
 
 
 def _layout_signature(path):
@@ -67,7 +67,7 @@ class SolveWorker(threading.Thread):
         self, project_json, mode, q, parallel=None, native=False, drilled=False,
         no_wire_stacking=False, routing_preference="wires", manual_seeds=None,
         manual_seed_base=0, manual_effort=None, tournament_candidates=2000,
-        tournament_finalists=10, output_dir=None,
+        tournament_finalists=10000, output_dir=None,
     ):
         super().__init__(daemon=True)
         self.project_json = str(project_json)

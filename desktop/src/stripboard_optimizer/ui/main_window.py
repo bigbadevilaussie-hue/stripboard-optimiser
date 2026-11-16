@@ -509,7 +509,7 @@ class MainWindow(tk.Tk):
         routing_preference = "wires"
         parallel = None
         tournament_candidates = 2000
-        tournament_finalists = 10
+        tournament_finalists = 10000
 
         if mode == "manual":
             self._set_stage("PRE-FLIGHT")
