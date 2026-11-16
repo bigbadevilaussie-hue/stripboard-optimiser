@@ -19,7 +19,7 @@ PLANS = {
     "manual": [(4, 1.0)],
 }
 
-PASS1_MOVES = 25_000
+PASS1_MOVES = 10_000
 MAX_FINALISTS = 10000  # effectively unlimited
 
 
@@ -145,7 +145,7 @@ class SolveWorker(threading.Thread):
                 summary["offAxis"] = 999 # Fail safe
             # --------------------------------
             
-            ok = (summary.get("quality") == 0 and summary.get("offAxis", 0) <= 2)
+            ok = (summary.get("quality") == 0 and summary.get("offAxis", 0) == 0)
             try:
                 saved = json.loads(Path(path).read_text(encoding="utf-8"))
                 parts = sum(
@@ -208,7 +208,7 @@ class SolveWorker(threading.Thread):
         contestant_names = {seed: names[(seed - 1) % len(names)] for seed in seeds}
 
         self.q.put(("log", f"[SOLVER] Native=ON | drilled cuts=ON | wire stacking=ALLOWED | routing priority={self.routing_preference}"))
-        self.q.put(("log", f"🏁 PASS 1: {candidates} seeds × {PASS1_MOVES:,} moves at effort 0.1"))
+        self.q.put(("log", f"🏁 PASS 1: {candidates} seeds × {PASS1_MOVES:,} moves (strict Q0, 0 diag)"))
         try:
             _jd = json.loads(Path(self.project_json).read_text(encoding="utf-8"))
             _b = _jd.get("board", {})
@@ -242,7 +242,7 @@ class SolveWorker(threading.Thread):
                     completed += 1
                     if (result[0] is not None
                             and result[0].get("quality") == 0
-                            and result[0].get("offAxis", 0) <= 2
+                            and result[0].get("offAxis", 0) == 0
                             and (not _lk or (result[0].get("rows") == _er and result[0].get("cols") == _ec))):
                         try:
                             signature = _layout_signature(result[1])
@@ -271,24 +271,50 @@ class SolveWorker(threading.Thread):
         self.q.put(("log", "➡️ PASS 1 FINALISTS: " + ", ".join(
             f"{contestant_names[s]} (seed {s})" for s in finalist_seeds
         )))
+        
+        # SAVE ALL PASS 1 QUALIFIERS
+        try:
+            if self.output_dir:
+                pass1_dir = self.output_dir.parent / (self.output_dir.name + "_pass1")
+                pass1_dir.mkdir(parents=True, exist_ok=True)
+                saved_count = 0
+                for item in finalists:
+                    seed = item[2]
+                    src = item[1]
+                    if src and Path(src).exists():
+                        dst = pass1_dir / f"seed_{seed:04d}.json"
+                        shutil.copy2(src, dst)
+                        saved_count += 1
+                self.q.put(("log", f"💾 PASS 1 SAVED: {saved_count} JSON files in {pass1_dir}"))
+        except Exception as exc:
+            self.q.put(("log", f"[SAVE ERROR] {exc}"))
+        # -----------------------------
+
         # Match the CLI tournament: every move-budget run starts from the original
         # input JSON with the same seed; it does not continue from the prior JSON.
         best_by_seed = {}
-        budgets = [25000]
-        for round_number, moves in enumerate(budgets, 1):
+        budgets = list(range(25000, 100001, 5000))
+        pass2_dir = self.output_dir.parent / (self.output_dir.name + "_pass2") if self.output_dir else None
+        if pass2_dir:
+            pass2_dir.mkdir(parents=True, exist_ok=True)
+            for old in pass2_dir.glob("*.json"):
+                old.unlink()
+        total_survivors = 0
+        budget_winners = []
+        for moves in budgets:
             if self._cancel_event.is_set():
                 break
-            self.q.put(("log", f"⚔️ PASS 2: Auditing {len(finalist_seeds)} qualifiers at {moves:,} moves"))
+            self.q.put(("log", f"⚔️ PASS 2: {moves:,} moves — auditing {len(finalist_seeds)} qualifiers"))
             with ThreadPoolExecutor(max_workers=self.parallel) as executor:
                 round_results = list(executor.map(
                     lambda seed: self._one(
-                        seed, None, round_number + 1, work,
+                        seed, None, 2, work,
                         contestant_names[seed], moves=moves,
                     ),
                     finalist_seeds,
                 ))
             if self._cancel_event.is_set():
-                self.q.put(("log", f"⏹ PASS 2 — INTERRUPTED"))
+                self.q.put(("log", f"⏹ PASS 2 — INTERRUPTED at {moves:,}"))
                 break
             def _p2v(i):
                 if not i or i[0] is None: return False
@@ -298,11 +324,36 @@ class SolveWorker(threading.Thread):
                 if _lk:
                     if s.get("rows") != _er or s.get("cols") != _ec: return False
                 return True
-            
             good = [item for item in round_results if _p2v(item)]
             for item in good:
-                best_by_seed[item[2]] = item
-
+                seed = item[2]
+                w = item[0].get("wires", 0)
+                c = item[0].get("cuts", 0)
+                p = item[0].get("price", 0)
+                total_survivors += 1
+                if pass2_dir:
+                    dest = pass2_dir / f"s{seed:04d}_m{moves//1000}k_{w}W_{c}C.json"
+                    try:
+                        shutil.copy2(item[1], dest)
+                    except Exception:
+                        pass
+                prev = best_by_seed.get(seed)
+                if prev is None or (w, c, p) < (prev[0].get("wires", 1e9), prev[0].get("cuts", 1e9), prev[0].get("price", 1e9)):
+                    best_by_seed[seed] = item
+            if good:
+                ranked = sorted(good, key=lambda i: rank_key(i[0], self.routing_preference))
+                winner = ranked[0]
+                w = winner[0].get("wires", 0)
+                c = winner[0].get("cuts", 0)
+                p = winner[0].get("price", 0)
+                budget_winners.append((moves, winner[3], winner[2], w, c, p))
+                self.q.put(("log", f"  🏆 {moves//1000}k WINNER: {winner[3]} (seed {winner[2]:04d}) · {w}W / {c}C · ${float(p):,.2f} · {len(good)} valid"))
+            else:
+                self.q.put(("log", f"  💀 {moves//1000}k NO WINNER"))
+        self.q.put(("log", f"🏁 PASS 2 COMPLETE: {total_survivors} valid runs, {len(best_by_seed)} unique seeds"))
+        if budget_winners:
+            best_global = min(budget_winners, key=lambda x: (x[3], x[4], x[5]))
+            self.q.put(("log", f"👑 GLOBAL BEST: {best_global[1]} (seed {best_global[2]:04d}) @ {best_global[0]//1000}k · {best_global[3]}W / {best_global[4]}C · ${best_global[5]:,.2f}"))
         if self._cancel_event.is_set() or not best_by_seed:
             return None
 

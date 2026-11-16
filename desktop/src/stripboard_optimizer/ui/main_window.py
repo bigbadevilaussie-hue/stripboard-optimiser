@@ -28,7 +28,7 @@ FONT_SANS = ("Helvetica Neue", 12)
 FONT_SANS_BOLD = ("Helvetica Neue", 13, "bold")
 FONT_MONO = ("Menlo", 11)
 
-APP_VERSION = "v1.54"
+APP_VERSION = "v1.55"
 
 class MainWindow(tk.Tk):
     def __init__(self):
@@ -412,7 +412,7 @@ class MainWindow(tk.Tk):
         cores = sys_info.physical_cores or sys_info.logical_cores or 1
         model = sys_info.cpu_model or "unknown CPU"
         ram = f"{sys_info.total_ram_gb:.0f} GB" if sys_info.total_ram_gb else "RAM unknown"
-        self.sys_label.configure(text=f"CPU: {model} · {cores} cores · {ram}")
+        pass
 
         def worker():
             result = run_speed_probe(self.project_path, decodes=10)
@@ -423,7 +423,7 @@ class MainWindow(tk.Tk):
     def _on_probe_result(self, result):
         self.probe_result = result
         if not result.ok or result.ms_per_decode is None:
-            self.est_label.configure(text=f"Runtime: unknown (probe failed: {result.error or 'no data'})")
+            pass
             return
         threads = self.sys_info.recommended_threads if self.sys_info else 4
         pins = self.controller.project.pin_count if self.controller.project else 0
@@ -433,7 +433,7 @@ class MainWindow(tk.Tk):
             est_text = f"Runtime per seed: ~{low/60:.1f}–{high/60:.1f} min"
         else:
             est_text = f"Runtime per seed: ~{low:.0f}–{high:.0f} s"
-        self.est_label.configure(text=est_text)
+        pass
 
     def confirm_mode(self):
         self._set_stage("OPTIMISE")
