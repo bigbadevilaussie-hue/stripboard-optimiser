@@ -28,7 +28,7 @@ FONT_SANS = ("Helvetica Neue", 12)
 FONT_SANS_BOLD = ("Helvetica Neue", 13, "bold")
 FONT_MONO = ("Menlo", 11)
 
-APP_VERSION = "v1.40"
+APP_VERSION = "v1.43"
 
 class MainWindow(tk.Tk):
     def __init__(self):
@@ -103,8 +103,8 @@ class MainWindow(tk.Tk):
         self.content_split.pack(fill="both", expand=True)
         self.workflow_frame = ttk.Frame(self.content_split, style="TFrame")
         self.preview_frame = ttk.Frame(self.content_split, style="Panel.TFrame", padding=8)
-        self.content_split.add(self.workflow_frame, weight=3)
-        self.content_split.add(self.preview_frame, weight=2)
+        self.content_split.add(self.workflow_frame, weight=1)
+        self.content_split.add(self.preview_frame, weight=1)
 
         self.stage_var = tk.StringVar(value="PROJECT")
         self.stage_labels = {}
@@ -135,7 +135,7 @@ class MainWindow(tk.Tk):
         modes = [
             ("manual", "Manual (Expert Mode)", "Control every seed and weight manually."),
             ("full_auto", "Auto (Cross your fingers and pray)", "The solver picks the settings and runs a massive sweep."),
-            ("2pass", "2-Pass Tournament (Preferred)", "Pass 1: 1,000 seeds at effort 0.1. Pass 2: up to 10 unique finalists.")
+            ("2pass", "2-Pass Tournament (Preferred)", "Pass 1: 2,000 seeds at effort 0.1. Pass 2: up to 10 unique finalists.")
         ]
         for val, label, desc in modes:
             rb = tk.Radiobutton(self.mode_frame, text=label, variable=self.mode_var, value=val,
@@ -146,7 +146,7 @@ class MainWindow(tk.Tk):
             tk.Label(self.mode_frame, text=desc, bg=BG_PANEL, fg="#737373", font=FONT_SANS, anchor="w").pack(fill="x", padx=25, pady=(0, 10))
         tournament_box = ttk.LabelFrame(self.mode_frame, text="2-Pass Tournament settings", padding=10)
         tournament_box.pack(fill="x", pady=(12, 0), padx=24)
-        ttk.Label(tournament_box, text="Pass 1: 1,000 seeds × 25,000 moves at effort 0.1").grid(
+        ttk.Label(tournament_box, text="Pass 1: 2,000 seeds × 25,000 moves at effort 0.1").grid(
             row=0, column=0, columnspan=4, sticky="w"
         )
         ttk.Label(tournament_box, text="Pass 2: up to 10 unique finalists × 40 rounds, 5,000–200,000 moves").grid(
@@ -167,6 +167,7 @@ class MainWindow(tk.Tk):
         self.scrollbar = ttk.Scrollbar(self.questions_frame, orient="vertical", command=self.canvas.yview)
         self.scrollable_frame = ttk.Frame(self.canvas, style="Panel.TFrame")
         self.scrollable_frame.bind("<Configure>", lambda e: self.canvas.configure(scrollregion=self.canvas.bbox("all")))
+        self.canvas.bind("<Configure>", lambda e: self.canvas.itemconfig(self.canvas.find_all()[0], width=e.width))
         self.canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
         self.canvas.configure(yscrollcommand=self.scrollbar.set)
         self.canvas.pack(side="left", fill="both", expand=True)
@@ -193,8 +194,9 @@ class MainWindow(tk.Tk):
         ttk.Spinbox(board_settings, from_=1, to=500, width=7, textvariable=self.manual_cols_var).grid(row=0, column=4, sticky="w")
         ttk.Checkbutton(board_settings, text="Lock columns", variable=self.manual_lock_cols_var).grid(row=0, column=5, sticky="w", padx=(12, 0))
 
-        solver_settings = ttk.LabelFrame(self.manual_frame, text="Routing and solver", padding=10)
-        solver_settings.pack(fill="x", pady=(0, 10))
+        self.solver_settings_frame = ttk.LabelFrame(self.manual_frame, text="Routing and solver", padding=10)
+        self.solver_settings_frame.pack(fill="x", pady=(0, 10))
+        solver_settings = self.solver_settings_frame
         self.manual_cut_var = tk.StringVar(value="knife")
         ttk.Label(solver_settings, text="Cuts").grid(row=0, column=0, sticky="w")
         ttk.Radiobutton(solver_settings, text="Drilled only (disabled)", variable=self.manual_cut_var, value="drilled", state="disabled").grid(row=0, column=1, sticky="w", padx=(8, 12))
@@ -414,6 +416,11 @@ class MainWindow(tk.Tk):
         self.mode_frame.pack_forget()
         if mode == "manual":
             self._build_manual_inventory()
+            for widget in self.manual_frame.winfo_children():
+                if isinstance(widget, ttk.Label) and widget.cget("text") == "2-Pass Tournament settings":
+                    widget.configure(text="Manual optimisation settings")
+            # Restore solver settings for manual mode
+            self.solver_settings_frame.pack(fill="x", pady=(0, 10), after=self.manual_frame.winfo_children()[0])
             self.manual_frame.pack(fill="both", expand=True)
         else:
             self.show_questions()
@@ -454,44 +461,19 @@ class MainWindow(tk.Tk):
                 check.configure(state="disabled")
 
     def show_questions(self):
-        self.questions_frame.pack(fill="both", expand=True)
-        project = self.controller.project
-        for widget in self.scrollable_frame.winfo_children():
-            widget.destroy()
-        self.lock_vars = {}
-        if project.locked_rows or project.locked_cols:
-            frame = ttk.Frame(self.scrollable_frame, style="Panel.TFrame")
-            frame.pack(fill="x", pady=(0, 20))
-            tk.Label(frame, text=f"Keep Board Dimensions Locked ({project.rows}x{project.cols})?", bg=BG_PANEL, fg=FG_TEXT, font=FONT_SANS_BOLD).pack(anchor="w")
-            keep_var = tk.StringVar(value="yes")
-            tk.Radiobutton(frame, text="Yes", variable=keep_var, value="yes", bg=BG_PANEL, fg=FG_TEXT).pack(anchor="w")
-            tk.Radiobutton(frame, text="No (Unlock and auto-size)", variable=keep_var, value="no", bg=BG_PANEL, fg=FG_TEXT).pack(anchor="w")
-            tk.Label(frame, text="Why was it locked? (e.g., physical case limit, cosmetic)", bg=BG_PANEL, fg=FG_TEXT, font=FONT_SANS).pack(anchor="w", pady=(5,0))
-            reason_entry = tk.Entry(frame, width=50)
-            reason_entry.pack(anchor="w")
-            self.lock_vars["BOARD"] = {"keep": keep_var, "reason": reason_entry}
-        else:
-            tk.Label(self.scrollable_frame, text="Board dimensions are not locked.", bg=BG_PANEL, fg=FG_TEXT, font=FONT_SANS).pack(anchor="w", pady=(0, 20))
-        placed = [c for c in project.components if c.get("boardPos")]
-        locked = [c for c in placed if c.get("locked") is True]
-        if locked:
-            tk.Label(self.scrollable_frame, text="Locked Parts:", bg=BG_PANEL, fg=FG_TEXT, font=FONT_SANS_BOLD).pack(anchor="w", pady=(10, 5))
-            for c in locked:
-                label = c.get("label") or c.get("name") or "Unknown"
-                frame = ttk.Frame(self.scrollable_frame, style="Panel.TFrame")
-                frame.pack(fill="x", pady=(5, 10))
-                tk.Label(frame, text=f"Keep {label} locked?", bg=BG_PANEL, fg=FG_TEXT, font=FONT_SANS_BOLD).pack(anchor="w")
-                keep_var = tk.StringVar(value="yes")
-                tk.Radiobutton(frame, text="Yes", variable=keep_var, value="yes", bg=BG_PANEL, fg=FG_TEXT).pack(anchor="w")
-                tk.Radiobutton(frame, text="No (Unlock and scramble)", variable=keep_var, value="no", bg=BG_PANEL, fg=FG_TEXT).pack(anchor="w")
-                tk.Label(frame, text="Reason:", bg=BG_PANEL, fg=FG_TEXT, font=FONT_SANS).pack(anchor="w", pady=(5,0))
-                reason_var = tk.StringVar(value="edge/case/cosmetic")
-                reason_entry = ttk.Combobox(frame, textvariable=reason_var, values=["edge", "case", "cosmetic", "mistake"])
-                reason_entry.pack(anchor="w")
-                self.lock_vars[label] = {"keep": keep_var, "reason": reason_entry}
-        else:
-            tk.Label(self.scrollable_frame, text="No parts are locked.", bg=BG_PANEL, fg=FG_TEXT, font=FONT_SANS).pack(anchor="w")
-
+        # We reuse the manual_frame UI entirely, since it has the exact layout we want.
+        # It will just populate the widgets and display them.
+        self._build_manual_inventory()
+        
+        # Change the label to say 2-Pass
+        for widget in self.manual_frame.winfo_children():
+            if isinstance(widget, ttk.Label) and "Manual optimisation settings" in widget.cget("text"):
+                widget.configure(text="2-Pass Tournament settings")
+        
+        # Hide the background solver settings
+        self.solver_settings_frame.pack_forget()
+        
+        self.manual_frame.pack(fill="both", expand=True)
     def start_optimisation(self):
         mode = self.mode_var.get()
         project = self.controller.project
@@ -576,34 +558,34 @@ class MainWindow(tk.Tk):
                     self.log(f"[LOCKED] {component.get('label') or component.get('name') or component.get('id')} · id={component.get('id')} · row={pos.get('row')} col={pos.get('col')} rotation={component.get('rotation', 0)}°")
         else:
             self._set_stage("PRE-FLIGHT")
-            self.log("\\n--- 5. PLACEMENT STRATEGY ---")
-            unlocked = set()
-            board_change = None
-            if "BOARD" in self.lock_vars:
-                data = self.lock_vars["BOARD"]
-                keep, reason = data["keep"].get(), data["reason"].get()
-                self.log(f"[INFO] Board Lock: Keep={keep} | Reason: {reason}")
-                if keep == "no":
-                    self.log(f"[APPLY] Unlocking board. Auto-sizing to {self.estimated_tight[0]}x{self.estimated_tight[1]}.")
-                    board_change = self.estimated_tight
-                    project.rows, project.cols = self.estimated_tight
-                    project.locked_rows = project.locked_cols = False
-            for component in project.components:
-                label = component.get("label") or component.get("name") or "Unknown"
-                if label in self.lock_vars:
-                    data = self.lock_vars[label]
-                    keep, reason = data["keep"].get(), data["reason"].get()
-                    self.log(f"[INFO] Part Lock '{label}': Keep={keep} | Reason: {reason}")
-                    if keep == "no":
-                        component["locked"] = False
-                        unlocked.add(label)
+            if not self.manual_locks_confirmed_var.get():
+                self.log("[BLOCKED] Review the component list and confirm the locked placements before starting.")
+                return
+            try:
+                rows = int(self.manual_rows_var.get())
+                cols = int(self.manual_cols_var.get())
+            except (ValueError, tk.TclError):
+                self.log("[ERROR] Board settings must contain valid numbers.")
+                return
+                
+            self.log("--- 5. PLACEMENT STRATEGY ---")
+            self.log(f"[INFO] Board dimensions set to {rows}x{cols} (Lock Rows: {self.manual_lock_rows_var.get()}, Lock Cols: {self.manual_lock_cols_var.get()})")
+            
             try:
                 raw = json.loads(Path(self.project_path).read_text())
-                if board_change:
-                    raw.setdefault("board", {}).update(rows=board_change[0], cols=board_change[1], lockedRows=False, lockedCols=False)
+                board = raw.setdefault("board", {})
+                board["rows"], board["cols"] = rows, cols
+                board["lockedRows"] = bool(self.manual_lock_rows_var.get())
+                board["lockedCols"] = bool(self.manual_lock_cols_var.get())
+                
                 for component in raw.get("components", []):
-                    if (component.get("label") or component.get("name") or "Unknown") in unlocked:
-                        component["locked"] = False
+                    component_id = component.get("id")
+                    if component_id in self.manual_part_vars:
+                        locked = bool(self.manual_part_vars[component_id].get())
+                        if locked and (not component.get("boardPos") or component.get("boardExcluded")):
+                            self.log(f"[BLOCKED] {component.get('label') or component.get('name') or component_id} is marked locked but has no placeable board position.")
+                            return
+                        component["locked"] = locked
                 job = Path(tempfile.mkdtemp(prefix="sbjob_")) / "project.json"
                 job.write_text(json.dumps(raw))
             except Exception as exc:
@@ -616,7 +598,7 @@ class MainWindow(tk.Tk):
         self.log_frame.pack(fill="both", expand=True)
         self.log(f"\n[OPTIMISE] Starting mode: {mode.upper()}")
         if mode == "2pass":
-            self.log("[TOURNAMENT] Pass 1: 1,000 seeds × 25,000 moves at effort 0.1. Pass 2: up to 10 unique finalists × 40 independent budgets from 5,000 to 200,000 moves (5,000-step increments).")
+            self.log("[TOURNAMENT] Pass 1: 2,000 seeds × 25,000 moves at effort 0.1. Pass 2: up to 10 unique finalists × 40 independent budgets from 5,000 to 200,000 moves (5,000-step increments).")
             self.log("[TOURNAMENT] Every budget starts from the original project JSON using the finalist seed; the best valid board per seed is retained.")
         self.log("[SOLVER] Native=ON | drilled cuts=ON | wire stacking=ALLOWED | routing priority=wires")
         self.log("[SOLVE] Each seed is an independent starting arrangement; the best fully valid result wins.")
