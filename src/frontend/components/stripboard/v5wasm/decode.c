@@ -85,7 +85,7 @@ static inline i32 jsRound(double a) { return (i32)__builtin_floor(a + 0.5); }
 #define W_WLEN 0.4
 #define W_CUT 0.05
 #define W_TALL 2.0
-#define W_LOCKOVER 150.0
+#define W_LOCKOVER 5000.0
 #define W_SIBLING 0.5
 #define CONN_FULL 30.0
 #define MM_PER_HOLE 2.54
