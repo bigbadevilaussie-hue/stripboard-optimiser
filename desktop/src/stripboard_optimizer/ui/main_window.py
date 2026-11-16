@@ -28,7 +28,7 @@ FONT_SANS = ("Helvetica Neue", 12)
 FONT_SANS_BOLD = ("Helvetica Neue", 13, "bold")
 FONT_MONO = ("Menlo", 11)
 
-APP_VERSION = "v1.45"
+APP_VERSION = "v1.49"
 
 class MainWindow(tk.Tk):
     def __init__(self):
@@ -364,8 +364,49 @@ class MainWindow(tk.Tk):
         self.validation_panel.log_findings(findings)
         has_errors = any(f.severity == "ERROR" for f in findings)
         if not has_errors:
+            try:
+                merged_path = Path(self.project_path).parent / (Path(self.project_path).stem + "_merged.json")
+                merged_path.write_text(json.dumps(self.controller.project.raw_data, indent=2))
+                self.log(f"[MERGE] Saved updated project to {merged_path}")
+            except Exception as exc:
+                self.log(f"[MERGE ERROR] {exc}")
             self.btn_preflight.pack_forget()
             self.btn_mode.pack(side="left", padx=8)
+            
+            # --- INJECT MISSING BUILT-IN DEFS ---
+            try:
+                raw = self.controller.project.raw_data
+                defs = raw.setdefault("componentDefs", [])
+                existing = {d["id"] for d in defs}
+                
+                builtins = [
+                    {"id":"def-connector-2","name":"2-Pin Connector","width":2,"height":1,"pins":[{"id":"1","name":"1","offsetRow":0,"offsetCol":0},{"id":"2","name":"2","offsetRow":0,"offsetCol":1}]},
+                    {"id":"def-switch","name":"Kill Switch","width":3,"height":2,"pins":[{"id":"1","name":"1","offsetRow":0,"offsetCol":0},{"id":"2","name":"2","offsetRow":0,"offsetCol":2}]},
+                    {"id":"def-fuse","name":"Fuse","width":2,"height":1,"pins":[{"id":"1","name":"1","offsetRow":0,"offsetCol":0},{"id":"2","name":"2","offsetRow":0,"offsetCol":1}]},
+                    {"id":"def-diode","name":"Diode","width":2,"height":1,"pins":[{"id":"a","name":"A","offsetRow":0,"offsetCol":0},{"id":"k","name":"K","offsetRow":0,"offsetCol":1}]},
+                    {"id":"def-cap-polarized","name":"Polarized Capacitor","width":2,"height":1,"pins":[{"id":"+","name":"+","offsetRow":0,"offsetCol":0},{"id":"-","name":"-","offsetRow":0,"offsetCol":1}]},
+                    {"id":"def-capacitor","name":"Capacitor","width":2,"height":1,"pins":[{"id":"1","name":"1","offsetRow":0,"offsetCol":0},{"id":"2","name":"2","offsetRow":0,"offsetCol":1}]},
+                    {"id":"def-resistor","name":"Resistor","width":2,"height":1,"pins":[{"id":"1","name":"1","offsetRow":0,"offsetCol":0},{"id":"2","name":"2","offsetRow":0,"offsetCol":1}]},
+                    {"id":"def-inductor","name":"Inductor","width":2,"height":1,"pins":[{"id":"1","name":"1","offsetRow":0,"offsetCol":0},{"id":"2","name":"2","offsetRow":0,"offsetCol":1}]},
+                    {"id":"def-npn","name":"NPN Transistor","width":2,"height":2,"pins":[{"id":"b","name":"B","offsetRow":0,"offsetCol":0},{"id":"c","name":"C","offsetRow":1,"offsetCol":0},{"id":"e","name":"E","offsetRow":1,"offsetCol":1}]},
+                    {"id":"def-pmos","name":"P-Channel MOSFET","width":2,"height":2,"pins":[{"id":"g","name":"G","offsetRow":0,"offsetCol":0},{"id":"d","name":"D","offsetRow":1,"offsetCol":0},{"id":"s","name":"S","offsetRow":1,"offsetCol":1}]},
+                    {"id":"def-zener","name":"Zener Diode","width":2,"height":1,"pins":[{"id":"a","name":"A","offsetRow":0,"offsetCol":0},{"id":"k","name":"K","offsetRow":0,"offsetCol":1}]},
+                    {"id":"def-led","name":"LED","width":2,"height":1,"pins":[{"id":"a","name":"A","offsetRow":0,"offsetCol":0},{"id":"k","name":"K","offsetRow":0,"offsetCol":1}]},
+                    {"id":"def-pushbutton","name":"Pushbutton","width":2,"height":2,"pins":[{"id":"1","name":"1","offsetRow":0,"offsetCol":0},{"id":"2","name":"2","offsetRow":0,"offsetCol":1},{"id":"3","name":"3","offsetRow":1,"offsetCol":0},{"id":"4","name":"4","offsetRow":1,"offsetCol":1}]}
+                ]
+                added = 0
+                for b in builtins:
+                    if b["id"] not in existing:
+                        defs.append(b)
+                        existing.add(b["id"])
+                        added += 1
+                if added > 0:
+                    self.log(f"[MERGE] Injected {added} built-in definitions into raw_data.")
+                    # We do NOT need to save it to disk, start_optimisation uses raw_data directly.
+            except Exception as e:
+                self.log(f"[MERGE ERROR] Could not inject built-ins: {e}")
+            # -----------------------------------
+            
             if self.project_path:
                 self._render_project_preview(self.project_path)
 
@@ -504,7 +545,7 @@ class MainWindow(tk.Tk):
                 return
 
             try:
-                raw = json.loads(Path(self.project_path).read_text())
+                raw = json.loads(json.dumps(self.controller.project.raw_data))
                 board = raw.setdefault("board", {})
                 board["rows"], board["cols"] = rows, cols
                 board["lockedRows"] = bool(self.manual_lock_rows_var.get())

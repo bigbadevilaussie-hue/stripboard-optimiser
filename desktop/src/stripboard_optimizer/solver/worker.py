@@ -1,3 +1,4 @@
+APP_VERSION = "v1.49"
 """Background worker for running isolated v5 solver seeds."""
 
 import json
@@ -19,7 +20,7 @@ PLANS = {
 }
 
 PASS1_MOVES = 25_000
-MAX_FINALISTS = 10
+MAX_FINALISTS = 10000
 
 
 def _layout_signature(path):
@@ -262,12 +263,12 @@ class SolveWorker(threading.Thread):
         )))
         # Match the CLI tournament: every move-budget run starts from the original
         # input JSON with the same seed; it does not continue from the prior JSON.
-        best_by_seed = {item[2]: item for item in finalists}
-        budgets = range(5000, 200001, 5000)
+        best_by_seed = {}
+        budgets = [25000]
         for round_number, moves in enumerate(budgets, 1):
             if self._cancel_event.is_set():
                 break
-            self.q.put(("log", f"⚔️ PASS 2 ROUND {round_number}/40: {moves:,} moves"))
+            self.q.put(("log", f"⚔️ PASS 2: Auditing {len(finalist_seeds)} qualifiers at {moves:,} moves"))
             with ThreadPoolExecutor(max_workers=self.parallel) as executor:
                 round_results = list(executor.map(
                     lambda seed: self._one(
@@ -277,7 +278,7 @@ class SolveWorker(threading.Thread):
                     finalist_seeds,
                 ))
             if self._cancel_event.is_set():
-                self.q.put(("log", f"⏹ PASS 2 ROUND {round_number}/40 — INTERRUPTED"))
+                self.q.put(("log", f"⏹ PASS 2 — INTERRUPTED"))
                 break
             def _p2v(i):
                 if not i or i[0] is None: return False
@@ -287,26 +288,10 @@ class SolveWorker(threading.Thread):
                 if _lk:
                     if s.get("rows") != _er or s.get("cols") != _ec: return False
                 return True
+            
             good = [item for item in round_results if _p2v(item)]
             for item in good:
-                previous = best_by_seed.get(item[2])
-                if previous is None or rank_key(item[0], self.routing_preference) < rank_key(previous[0], self.routing_preference):
-                    best_by_seed[item[2]] = item
-            current_ranked = sorted(
-                good, key=lambda item: rank_key(item[0], self.routing_preference)
-            )
-            if current_ranked:
-                round_winner = current_ranked[0]
-                self.q.put((
-                    "log",
-                    f"🏁 PASS 2 ROUND {round_number}/40 — WINNER: "
-                    f"{round_winner[3]} (seed {round_winner[2]:04d}) · "
-                    f"{round_winner[0].get('wires', '?')}W / {round_winner[0].get('cuts', '?')}C · "
-                    f"${float(round_winner[0].get('price', round_winner[0].get('rate', 0))):,.2f} · "
-                    f"{round_winner[0].get('ms', '?')} ms"
-                ))
-            else:
-                self.q.put(("log", f"🏁 PASS 2 ROUND {round_number}/40 — NO WINNER"))
+                best_by_seed[item[2]] = item
 
         if self._cancel_event.is_set() or not best_by_seed:
             return None
