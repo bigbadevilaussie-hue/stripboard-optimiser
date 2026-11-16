@@ -134,7 +134,7 @@ class SolveWorker(threading.Thread):
                 register_process=self._register_process,
                 unregister_process=self._unregister_process,
             )
-            ok = (summary.get("quality") == 0)
+            ok = (summary.get("quality") == 0 and summary.get("offAxis", 0) == 0)
             try:
                 saved = json.loads(Path(path).read_text(encoding="utf-8"))
                 parts = sum(
@@ -229,7 +229,10 @@ class SolveWorker(threading.Thread):
                 results[seed - 1] = result
                 if result is not None:
                     completed += 1
-                    if result[0] is not None and result[0].get("quality") == 0:
+                    if (result[0] is not None
+                            and result[0].get("quality") == 0
+                            and result[0].get("offAxis", 0) == 0
+                            and (not _lk or (result[0].get("rows") == _er and result[0].get("cols") == _ec))):
                         try:
                             signature = _layout_signature(result[1])
                         except Exception as exc:
@@ -311,7 +314,7 @@ class SolveWorker(threading.Thread):
         final_ranked = sorted(
             best_by_seed.values(),
             key=lambda item: rank_key(item[0], self.routing_preference),
-        )[:finalist_count]
+        )[:10]
         if self.output_dir is None:
             raise RuntimeError("No persistent output directory was supplied for tournament results.")
         self.output_dir.mkdir(parents=True, exist_ok=True)
