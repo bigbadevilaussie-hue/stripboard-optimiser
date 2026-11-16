@@ -28,7 +28,7 @@ FONT_SANS = ("Helvetica Neue", 12)
 FONT_SANS_BOLD = ("Helvetica Neue", 13, "bold")
 FONT_MONO = ("Menlo", 11)
 
-APP_VERSION = "v1.49"
+APP_VERSION = "v1.51"
 
 class MainWindow(tk.Tk):
     def __init__(self):
@@ -144,22 +144,8 @@ class MainWindow(tk.Tk):
                                 font=FONT_SANS_BOLD, anchor="w", highlightthickness=0, bd=0)
             rb.pack(fill="x", pady=(10, 0))
             tk.Label(self.mode_frame, text=desc, bg=BG_PANEL, fg="#737373", font=FONT_SANS, anchor="w").pack(fill="x", padx=25, pady=(0, 10))
-        tournament_box = ttk.LabelFrame(self.mode_frame, text="2-Pass Tournament settings", padding=10)
-        tournament_box.pack(fill="x", pady=(12, 0), padx=24)
-        ttk.Label(tournament_box, text="Pass 1: 2,000 seeds × 25,000 moves (Strict Q0)").grid(
-            row=0, column=0, columnspan=4, sticky="w"
-        )
-        ttk.Label(tournament_box, text="Pass 2: Audit all qualifiers at 25,000 moves, save top 10").grid(
-            row=1, column=0, columnspan=4, sticky="w", pady=(6, 0)
-        )
 
         ttk.Button(self.mode_frame, text="CONFIRM MODE", style="Green.TButton", command=self.confirm_mode).pack(pady=(30, 0), ipadx=20, ipady=10)
-        self.sys_label = ttk.Label(self.mode_frame, text="Detecting CPU…",
-                                   background=BG_PANEL, foreground=FG_TEXT, font=FONT_SANS)
-        self.sys_label.pack(anchor="w", pady=(20, 2))
-        self.est_label = ttk.Label(self.mode_frame, text="Measuring solver speed…",
-                                   background=BG_PANEL, foreground=FG_TEXT, font=FONT_SANS)
-        self.est_label.pack(anchor="w", pady=(0, 0))
 
         # PANEL 2: QUESTIONS (Auto / 2-Pass)
         self.questions_frame = ttk.Frame(self.workflow_frame, style="Panel.TFrame", padding=24)

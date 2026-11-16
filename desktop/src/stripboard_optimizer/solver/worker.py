@@ -135,7 +135,7 @@ class SolveWorker(threading.Thread):
                 register_process=self._register_process,
                 unregister_process=self._unregister_process,
             )
-            ok = (summary.get("quality") == 0 and summary.get("offAxis", 0) == 0)
+            ok = (summary.get("quality") == 0 and summary.get("offAxis", 0) <= 2)
             try:
                 saved = json.loads(Path(path).read_text(encoding="utf-8"))
                 parts = sum(
@@ -232,7 +232,7 @@ class SolveWorker(threading.Thread):
                     completed += 1
                     if (result[0] is not None
                             and result[0].get("quality") == 0
-                            and result[0].get("offAxis", 0) == 0
+                            and result[0].get("offAxis", 0) <= 2
                             and (not _lk or (result[0].get("rows") == _er and result[0].get("cols") == _ec))):
                         try:
                             signature = _layout_signature(result[1])
