@@ -28,7 +28,7 @@ FONT_SANS = ("Helvetica Neue", 12)
 FONT_SANS_BOLD = ("Helvetica Neue", 13, "bold")
 FONT_MONO = ("Menlo", 11)
 
-APP_VERSION = "v1.51"
+APP_VERSION = "v1.54"
 
 class MainWindow(tk.Tk):
     def __init__(self):

@@ -135,6 +135,16 @@ class SolveWorker(threading.Thread):
                 register_process=self._register_process,
                 unregister_process=self._unregister_process,
             )
+            # --- LIE DETECTOR (Match CLI) ---
+            try:
+                saved = json.loads(Path(path).read_text(encoding="utf-8"))
+                actual_diags = sum(1 for w in saved.get("board", {}).get("wires", []) 
+                                   if w["from"]["row"] != w["to"]["row"] and w["from"]["col"] != w["to"]["col"])
+                summary["offAxis"] = actual_diags # Override the solver's fake number
+            except Exception:
+                summary["offAxis"] = 999 # Fail safe
+            # --------------------------------
+            
             ok = (summary.get("quality") == 0 and summary.get("offAxis", 0) <= 2)
             try:
                 saved = json.loads(Path(path).read_text(encoding="utf-8"))
