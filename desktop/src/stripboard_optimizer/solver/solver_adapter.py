@@ -73,8 +73,6 @@ def solve_one(
     """Run one deterministic seed and return (summary, saved_project_path)."""
     # Native is mandatory; never fall back to WASM.
     native = True
-    drilled = False
-    no_wire_stacking = False
     _check_solver_files(native=True)
 
     project_json = Path(project_json).expanduser().resolve()

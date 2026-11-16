@@ -28,7 +28,7 @@ FONT_SANS = ("Helvetica Neue", 12)
 FONT_SANS_BOLD = ("Helvetica Neue", 13, "bold")
 FONT_MONO = ("Menlo", 11)
 
-APP_VERSION = "v1.39"
+APP_VERSION = "v1.40"
 
 class MainWindow(tk.Tk):
     def __init__(self):
@@ -499,7 +499,7 @@ class MainWindow(tk.Tk):
         no_wire_stacking = False
         routing_preference = "wires"
         parallel = None
-        tournament_candidates = 1000
+        tournament_candidates = 2000
         tournament_finalists = 10
 
         if mode == "manual":
@@ -618,7 +618,7 @@ class MainWindow(tk.Tk):
         if mode == "2pass":
             self.log("[TOURNAMENT] Pass 1: 1,000 seeds × 25,000 moves at effort 0.1. Pass 2: up to 10 unique finalists × 40 independent budgets from 5,000 to 200,000 moves (5,000-step increments).")
             self.log("[TOURNAMENT] Every budget starts from the original project JSON using the finalist seed; the best valid board per seed is retained.")
-        self.log("[SOLVER] Native=ON | drilled cuts=OFF | wire stacking=ALLOWED | routing priority=wires")
+        self.log("[SOLVER] Native=ON | drilled cuts=ON | wire stacking=ALLOWED | routing priority=wires")
         self.log("[SOLVE] Each seed is an independent starting arrangement; the best fully valid result wins.")
         self.best = None
         self.btn_preview.pack_forget()
@@ -626,7 +626,7 @@ class MainWindow(tk.Tk):
         self.btn_stop.pack(side="left", padx=8)
         self.solver = SolveWorker(
             str(job), mode, self.solver_q,
-            parallel=parallel, native=True, drilled=False,
+            parallel=parallel, native=True, drilled=True,
             no_wire_stacking=False,
             routing_preference="wires",
             manual_seeds=seeds if mode == "manual" else None,

@@ -65,7 +65,7 @@ class SolveWorker(threading.Thread):
     def __init__(
         self, project_json, mode, q, parallel=None, native=False, drilled=False,
         no_wire_stacking=False, routing_preference="wires", manual_seeds=None,
-        manual_seed_base=0, manual_effort=None, tournament_candidates=1000,
+        manual_seed_base=0, manual_effort=None, tournament_candidates=2000,
         tournament_finalists=10, output_dir=None,
     ):
         super().__init__(daemon=True)
@@ -75,7 +75,7 @@ class SolveWorker(threading.Thread):
         self.parallel = parallel or max(1, min(4, (os.cpu_count() or 2) - 1))
         # Fixed benchmark configuration: native solver, knife cuts, stacking allowed.
         self.native = True
-        self.drilled = False
+        self.drilled = drilled
         self.no_wire_stacking = False
         self.routing_preference = routing_preference
         self.manual_seeds = manual_seeds
@@ -134,7 +134,7 @@ class SolveWorker(threading.Thread):
                 register_process=self._register_process,
                 unregister_process=self._unregister_process,
             )
-            ok = is_valid(summary)
+            ok = (summary.get("quality") == 0)
             try:
                 saved = json.loads(Path(path).read_text(encoding="utf-8"))
                 parts = sum(
@@ -164,6 +164,7 @@ class SolveWorker(threading.Thread):
                 f"{phase} {label} #{seed:04d} {status} · "
                 f"📐{summary.get('rows', '?')}×{summary.get('cols', '?')} · "
                 f"🔌{summary.get('wires', '?')} · ✂️{summary.get('cuts', '?')} · "
+                f"🎯Q{summary.get('quality', '?')} · ↘{summary.get('offAxis', '?')} · "
                 f"⏱{elapsed}ms · 💰{price_text}"
             )
             if not ok:
@@ -195,8 +196,17 @@ class SolveWorker(threading.Thread):
         random.SystemRandom().shuffle(names)
         contestant_names = {seed: names[(seed - 1) % len(names)] for seed in seeds}
 
-        self.q.put(("log", f"[SOLVER] Native=ON | drilled cuts=OFF | wire stacking=ALLOWED | routing priority={self.routing_preference}"))
+        self.q.put(("log", f"[SOLVER] Native=ON | drilled cuts=ON | wire stacking=ALLOWED | routing priority={self.routing_preference}"))
         self.q.put(("log", f"🏁 PASS 1: {candidates} seeds × {PASS1_MOVES:,} moves at effort 0.1"))
+        try:
+            _jd = json.loads(Path(self.project_json).read_text(encoding="utf-8"))
+            _b = _jd.get("board", {})
+            _er = _b.get("rows")
+            _ec = _b.get("cols")
+            _lk = bool(_b.get("lockedRows") or _b.get("lockedCols"))
+        except Exception:
+            _er = _ec = None
+            _lk = False
         # Collect in completion order. executor.map() yields in seed order, so
         # one slow early seed can hide hundreds of later completed seeds from the GUI.
         results = [None] * candidates
@@ -219,7 +229,7 @@ class SolveWorker(threading.Thread):
                 results[seed - 1] = result
                 if result is not None:
                     completed += 1
-                    if result[0] is not None and result[4]:
+                    if result[0] is not None and result[0].get("quality") == 0:
                         try:
                             signature = _layout_signature(result[1])
                         except Exception as exc:
@@ -266,7 +276,15 @@ class SolveWorker(threading.Thread):
             if self._cancel_event.is_set():
                 self.q.put(("log", f"⏹ PASS 2 ROUND {round_number}/40 — INTERRUPTED"))
                 break
-            good = [item for item in round_results if item and item[0] is not None and item[4]]
+            def _p2v(i):
+                if not i or i[0] is None: return False
+                s = i[0]
+                if s.get("quality") != 0: return False
+                if s.get("offAxis", 0) != 0: return False
+                if _lk:
+                    if s.get("rows") != _er or s.get("cols") != _ec: return False
+                return True
+            good = [item for item in round_results if _p2v(item)]
             for item in good:
                 previous = best_by_seed.get(item[2])
                 if previous is None or rank_key(item[0], self.routing_preference) < rank_key(previous[0], self.routing_preference):
