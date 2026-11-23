@@ -44,4 +44,35 @@ Optional `--drilled` and `--nostack` flags change the physical test constraints 
 
 ## Status
 
-**Code committed but not yet run on the iMac.** The output statistics, success rates and best audio layout are not known until the command above completes. Results should be reported from the resulting CSV, not inferred from earlier MOTO benchmarks. The solver remains `v1.60-cli-audit`; this native test harness is `v1.63-native-audio-ladder`. The GUI stays stale by design.
+**Executed successfully on the iMac, 24 November 2026.** User-provided terminal log reports **4/4 unit tests passed** and **100/100 CLI solves completed** with no process errors. The detailed saved CSVs remain on the iMac and were **not independently re-read** for this documentation update. The solver remains `v1.60-cli-audit`; this test harness is `v1.63-native-audio-ladder`. The GUI stays stale by design.
+
+### Recorded 100-run results
+
+The AUDIO source SHA256 was `5e36871183d6afea9a4291aa43e3cc915afbdcf1ab688ac3beb599a343a1bb06`. Board 24×56 locked; native wires-first; drill OFF and no-stack OFF (knife cuts and stacks permitted). Four processes ran concurrently, so solve timings are affected by resource contention.
+
+| Moves | Strict-clean / 10 | Historical-clean / 10 | Best strict seed | Best valid wires | Best valid cuts |
+|---:|---:|---:|---:|---:|---:|
+| 5,000 | 1 | 1 | 9 | 18 | 46 |
+| 10,000 | 1 | 1 | 9 | 23 | 51 |
+| 15,000 | 0 | 0 | — | — | — |
+| 20,000 | 1 | 1 | 6 | 13 | 41 |
+| 25,000 | 0 | 0 | — | — | — |
+| 30,000 | 0 | 0 | — | — | — |
+| 35,000 | 1 | 1 | 6 | 14 | 42 |
+| 40,000 | 0 | 0 | — | — | — |
+| 45,000 | 2 | 2 | 6 | 13 | 41 |
+| 50,000 | 0 | 0 | — | — | — |
+| **Total** | **6/100** | **6/100** | — | **13** | **41** |
+
+At 45k seed 9 was also strictly clean at **15 wires / 43 cuts**. The best qualifying outputs tie at **13 wires / 41 cuts**, at 20k seed 6 and 45k seed 6. These are *not* drilled-only or no-stacking achievements; both restrictions were disabled during this experiment.
+
+At 50k seed 7 produced **10 wires / 38 cuts**, but strict validation failed (Q0, column-shift 1; stack overlap 1 even though stacking was permitted). **Do not promote this as a valid record.** The exact failure list is in its per-run CSV/JSON, not established by the summarized terminal line.
+
+### Interpretation and next diagnostic
+
+- Clean yield is **6%** across this fixed-seed budget ladder and non-monotone across rungs: the 50k level was **0/10** clean despite the 45k level being **2/10**. Ten correlated seeds per rung do not demonstrate that extra moves generally worsen the solver, nor that the algorithm has reached a performance ceiling.
+- Most displayed outputs were Q0 but not strict-compliant. The terminal's ↘ column is the strict **column-change count**, not necessarily a true slant; many nonclean outcomes show column shifts despite Q0. Aggregate per-criterion failure counts should come from `ladder_results.csv` before deciding whether search objective, placement or final routing is the dominant failure.
+- Timings came from `--jobs 4` and **must not** be used to claim a per-solve speed gain or regression compared with sequential MOTO tests.
+- Older MOTO benchmarks used a wrongly sized C1; this **AUDIO** input has its own SHA256 and should be compared only with AUDIO runs on the same master and settings.
+
+**No solver code, scoring rules or native RNG behaviour were changed to produce these results.**
