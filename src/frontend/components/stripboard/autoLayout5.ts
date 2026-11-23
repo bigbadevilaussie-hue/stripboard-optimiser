@@ -13,6 +13,7 @@ import { computeStripSegments } from "./stripSegments";
 import { pinKey } from "./keys";
 import { FinishOptions, Skeleton, finishRepair, finishSkeleton } from "./layout2/finish";
 import { unreachablePins, unreachablePinsIssue } from "./unreachablePins";
+import { polishFixedBoardWires, WirePolishStats } from "./wireColumnPolish";
 import { ConnSides, ENTRY_SIDE, W_BCUT, W_BCUT_DRILL } from "./layout2/boardPrice";
 
 // ── The v5 "skeleton + exact decoder" layouter (beta) ──
@@ -75,6 +76,10 @@ export interface AutoLayout5Options {
   // retains current behavior; false disables the filter for A/B signature
   // comparisons without rebuilding or changing other anneal flags.
   drilledRotationDomain?: boolean;
+  // Opt-in, generic exact post-finish local wire/cut search on an existing
+  // fixed physical board. The selected result is re-verified before return.
+  wirePolish?: boolean;
+  onWirePolish?: (stats: WirePolishStats) => void;
   // No wire may run on top of another in one channel
   noWireStacking?: boolean;
   routingPreference?: "wires" | "cuts";
@@ -1265,5 +1270,11 @@ export function computeAutoLayout5(
   if (!bestFin) return physicalEdgeLock ? unsolvedPhysicalLock("NO_PHYSICAL_FINISH")
     : emptyResult([...unreachable, "auto-layout produced no usable finish"]);
   const final: AutoLayoutResult = bestFin.final;
-  return unreachable.length ? { ...final, issues: [...unreachable, ...final.issues] } : final;
+  const polished = options?.wirePolish && board.lockedRows && board.lockedCols &&
+    !board.pattern && physicalFit(final)
+    ? polishFixedBoardWires(board, components, componentDefs, nets, netAssignments, final)
+    : null;
+  if (polished) options?.onWirePolish?.(polished.stats);
+  const delivered = polished?.result ?? final;
+  return unreachable.length ? { ...delivered, issues: [...unreachable, ...delivered.issues] } : delivered;
 }
