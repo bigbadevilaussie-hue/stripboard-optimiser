@@ -28,7 +28,7 @@ FONT_SANS = ("Helvetica Neue", 12)
 FONT_SANS_BOLD = ("Helvetica Neue", 13, "bold")
 FONT_MONO = ("Menlo", 11)
 
-APP_VERSION = "v1.57"
+APP_VERSION = "v1.58-debug"
 
 class MainWindow(tk.Tk):
     def __init__(self):
@@ -135,7 +135,7 @@ class MainWindow(tk.Tk):
         modes = [
             ("manual", "Manual (Expert Mode)", "Control every seed and weight manually."),
             ("full_auto", "Auto (Cross your fingers and pray)", "The solver picks the settings and runs a massive sweep."),
-            ("2pass", "2-Pass Tournament (Preferred)", "Pass 1: 1,000 seeds at 15k moves. Pass 2: Audit all qualifiers from 25k to 100k, keep top 10.")
+            ("2pass", "2-Pass Tournament (Preferred)", "Debug run: Pass 1 has 200 seeds at 15k moves. Pass 2 unchanged (25k to 100k).")
         ]
         for val, label, desc in modes:
             rb = tk.Radiobutton(self.mode_frame, text=label, variable=self.mode_var, value=val,
@@ -517,7 +517,7 @@ class MainWindow(tk.Tk):
         no_wire_stacking = False
         routing_preference = "wires"
         parallel = None
-        tournament_candidates = 1000
+        tournament_candidates = 200
         tournament_finalists = 10000
 
         if mode == "manual":
@@ -636,7 +636,7 @@ class MainWindow(tk.Tk):
         self.log_frame.pack(fill="both", expand=True)
         self.log(f"\n[OPTIMISE] Starting mode: {mode.upper()}")
         if mode == "2pass":
-            self.log("[TOURNAMENT] Pass 1: 1,000 seeds × 15,000 moves. Pass 2: Audit all qualifiers at 25k–100k in 5k steps; save top 10 overall.")
+            self.log("[TOURNAMENT] DEBUG Pass 1: 200 seeds × 15,000 moves. Pass 2: 25k–100k in 5k steps; save top 10 overall.")
             self.log("[TOURNAMENT] Finalists are re-run strictly (no diagonals) from the original project JSON.")
         self.log(f"[SOLVER] Native=ON | drilled cuts={'ON' if drilled else 'OFF'} | wire stacking={'BLOCKED' if no_wire_stacking else 'ALLOWED'} | routing priority={routing_preference}")
         self.log("[SOLVE] Each seed is an independent starting arrangement; the best fully valid result wins.")
