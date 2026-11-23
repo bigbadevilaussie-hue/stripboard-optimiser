@@ -34,7 +34,11 @@ class SpeedLabTests(unittest.TestCase):
         self.assertIn("-O3", lab.compile_flags("o3"))
         self.assertTrue(any("FAST_GRID_CLEAR" in s for s in lab.compile_flags("grid")))
         self.assertTrue(any("FAST_IDENTICAL_GENOME" in s for s in lab.compile_flags("identical")))
+        self.assertTrue(any("FAST_GENOME_COPY" in s for s in lab.compile_flags("copy")))
+        self.assertTrue(any("FAST_GENOME_COPY" in s for s in lab.compile_flags("copy_both")))
+        self.assertTrue(any("FAST_IDENTICAL_GENOME" in s for s in lab.compile_flags("copy_both")))
         self.assertNotIn("grid", lab.ROUTER_VARIANTS)
+        self.assertNotIn("copy", lab.ROUTER_VARIANTS)
         self.assertNotIn("identical", lab.ROUTER_VARIANTS)
         self.assertNotIn("-ffast-math", " ".join(
             " ".join(lab.compile_flags(v)) for v in lab.DEFAULT_VARIANTS))
@@ -53,6 +57,10 @@ class SpeedLabTests(unittest.TestCase):
         self.assertEqual(lab.parse_json_line(raw), {"seed": 1, "ms": 200})
         self.assertEqual(lab.parse_json_line("timing {\"annealMs\":31}\n",
                                              "timing "), {"annealMs": 31})
+        self.assertIsNone(lab.parse_json_line("no JSON found"))
+        self.assertEqual(lab.parse_json_line(
+            "progress 10%\n{\"seed\":4,\"strictValid\":false}\n"),
+            {"seed": 4, "strictValid": False})
 
     def test_output_never_points_into_source(self):
         for unsafe in (lab.ROOT, lab.FRONTEND,
