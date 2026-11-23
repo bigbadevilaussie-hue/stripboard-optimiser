@@ -365,16 +365,20 @@ const geo = checkGeometry(solvedBoard, boardComps, defs).length;
 // This is a gate for the CLI, not a claim that the solver respected its flags.
 // Keep the rejected layout on disk when --save is supplied for diagnosis.
 const strictFailures = [];
-let diagonalsActual;
+let diagonalsActual, slantedWires, horizontalWires;
 if (strict) {
+  // diagonalsActual preserves the original benchmark metric: any column change.
+  // It includes horizontal (same-row) wires, whereas offAxis counts only slants.
   diagonalsActual = solvedBoard.wires.filter((w) => w.from.col !== w.to.col).length;
+  slantedWires = solvedBoard.wires.filter((w) => w.from.col !== w.to.col && w.from.row !== w.to.row).length;
+  horizontalWires = solvedBoard.wires.filter((w) => w.from.col !== w.to.col && w.from.row === w.to.row).length;
   if (res.quality !== 0) strictFailures.push(`QUALITY_${res.quality}`);
   if (v.conflicts !== 0) strictFailures.push(`CONFLICTS_${v.conflicts}`);
   const incompleteN = Array.isArray(v.incomplete) ? v.incomplete.length : v.incomplete;
   if (incompleteN !== 0) strictFailures.push(`INCOMPLETE_${incompleteN}`);
   if (geo !== 0) strictFailures.push(`GEOMETRY_${geo}`);
-  if (diagonalsActual !== 0) strictFailures.push(`DIAGONALS_${diagonalsActual}`);
-  if (m.offAxisWires !== 0) strictFailures.push(`OFF_AXIS_${m.offAxisWires}`);
+  if (diagonalsActual !== 0) strictFailures.push(`NONVERTICAL_${diagonalsActual}`);
+  if (m.offAxisWires !== 0) strictFailures.push(`SLANTED_${m.offAxisWires}`);
   if (m.crossings !== 0) strictFailures.push(`CROSSINGS_${m.crossings}`);
   if (res.issues?.length) strictFailures.push("SOLVER_ISSUES");
   if (blankBoard.lockedRows && solvedBoard.rows !== blankBoard.rows) strictFailures.push("LOCKED_ROWS");
@@ -421,7 +425,8 @@ console.log(JSON.stringify({
   wires: m.wires, offAxis: m.offAxisWires, crossings: m.crossings, stacked, cuts: m.cuts, knife, connOff, connIn,
   conflicts: v.conflicts, incomplete: v.incomplete.length ?? v.incomplete, geo,
   issues: res.issues,
-  ...(strict ? { cliVersion: CLI_AUDIT_VERSION, strictValid: strictFailures.length === 0, strictFailures, diagonalsActual } : {}),
+  ...(strict ? { cliVersion: CLI_AUDIT_VERSION, strictValid: strictFailures.length === 0, strictFailures,
+    diagonalsActual, slantedWires, horizontalWires } : {}),
   ...(moveSummary ? { moveSummary } : {}),
 }));
 if (strict && strictFailures.length) process.exitCode = 2;
