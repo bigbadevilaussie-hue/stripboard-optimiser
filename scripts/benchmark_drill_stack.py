@@ -28,6 +28,7 @@ SOURCES = {
     "MOTO": ROOT / "test-fixtures" / "masters" / "moto" / "moto.json",
     "MOTOMIX": ROOT / "motomix.json",
 }
+INPUT_REVISION = "v1.62-C1-1000uF"
 
 
 def f1_components(data):
@@ -40,6 +41,10 @@ def prepare(out):
         if not src.is_file():
             raise SystemExit("Missing source project: " + str(src))
         data = json.loads(src.read_text(encoding="utf-8"))
+        c1 = [c for c in data.get("components", []) if c.get("label") == "C1"]
+        if len(c1) != 1 or c1[0].get("value") != "1000µF":
+            raise SystemExit(f"{name}: C1 must be corrected to 1000µF before this benchmark; "
+                             f"found {[c.get(\'value\') for c in c1]} (run scripts/fix_moto_c1.py --apply)")
         if not isinstance(data.get("board"), dict):
             raise SystemExit("Missing board in " + str(src))
         f1s = f1_components(data)
@@ -240,11 +245,14 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--moves", type=int, default=20000, help="Moves per seed (default: 20000)")
     parser.add_argument("--jobs", type=int, default=4, help="Parallel native solver processes (default: 4; use 1 for serial)")
-    parser.add_argument("--out", type=Path, default=Path("/tmp/stripboard_drill_stack_80"))
+    parser.add_argument("--out", type=Path, default=Path("/tmp/stripboard_drill_stack_80_c1_v162"))
     args = parser.parse_args()
     if args.jobs < 1:
         parser.error("--jobs must be at least 1")
     out = args.out.expanduser().resolve()
+    legacy = Path("/tmp/stripboard_drill_stack_80").resolve()
+    if out == legacy or (out / "comparison.csv").exists():
+        parser.error("Refusing to overwrite a historical benchmark; use a new --out directory")
     cores = physical_cpu_count()
     if args.jobs > cores:
         print("⚠️ Requested {} native workers, limiting to {} physical cores.".format(args.jobs, cores), flush=True)
@@ -255,7 +263,9 @@ def main():
     print("🚀 {} parallel native solves (fixed seeds; each job isolated)".format(args.jobs), flush=True)
     originals = prepare(out)
     (out / "benchmark_config.json").write_text(
-        json.dumps({"seeds": SEEDS, "moves": args.moves, "sources": {k: str(v) for k, v in SOURCES.items()},
+        json.dumps({"input_revision": INPUT_REVISION, "seeds": SEEDS, "moves": args.moves,
+                    "source_sha256": {k: __import__("hashlib").sha256(v.read_bytes()).hexdigest() for k, v in SOURCES.items()},
+                    "sources": {k: str(v) for k, v in SOURCES.items()},
                     "original_f1": originals, "board": {"rows": 24, "cols": 56, "locked": True},
                     "configs": [{"label": k, "drilled": d, "stack_on": st} for k, d, st in CONFIGS]},
                    indent=2), encoding="utf-8")
