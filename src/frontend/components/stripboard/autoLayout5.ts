@@ -845,7 +845,15 @@ export function computeAutoLayout5(
 
   // the anneal's own decoder (the loop in C keeps its state there)
   let annealDecInst: V5WasmDecoder | null = null;
-  const annealDec = () => (annealDecInst ??= new V5WasmDecoder(wasmOf(), wasmModel()));
+  const annealDec = () => {
+    if (!annealDecInst) {
+      annealDecInst = new V5WasmDecoder(wasmOf(), wasmModel());
+      // General pin/net constraint, experimentally available in the native
+      // Edge decoder only. No special-casing of GPS or any project fixture.
+      if (options?.drilledCutsOnly) annealDecInst.setDrilledRotationDomain(true);
+    }
+    return annealDecInst;
+  };
 
   if (options?.speedProbe) {
     const w = annealDec();
