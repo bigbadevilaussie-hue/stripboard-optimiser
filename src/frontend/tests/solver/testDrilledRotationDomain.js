@@ -41,11 +41,12 @@ function decoder(nets, locked = false, halfTurn = false) {
 }
 const unrestricted = decoder([0, 1]);
 unrestricted.rngSet(42);
-assert.equal(unrestricted.labInit().rot[0], 0, "ordinary non-drilled starts at 0");
+const originalStart = unrestricted.labInit();
+assert.equal(originalStart.rot[0], 0, "ordinary non-drilled starts at 0");
 const explicitlyOff = decoder([0, 1]);
 explicitlyOff.rngSet(42);
 assert.equal(explicitlyOff.setDrilledRotationDomain(false), true);
-assert.deepEqual(explicitlyOff.labInit(), unrestricted.labInit(),
+assert.deepEqual(explicitlyOff.labInit(), originalStart,
   "explicitly disabling the filter must preserve the starting genome and RNG path");
 const d = decoder([0, 1]);
 assert.equal(d.setDrilledRotationDomain(true), true, "opt-in setter missing");
