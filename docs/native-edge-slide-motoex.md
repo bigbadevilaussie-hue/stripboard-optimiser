@@ -24,6 +24,25 @@ With `-DV5_EXPERIMENT_EDGE_MOUNT=1`, `v5wasm/decode.c` counts only the on-board 
 `npm run build:native:edge` builds a separate experimental decoder at `src/frontend/tests/solver/native/build/edge/libv5decode.so`. It also enables the previously verified grid-clear and identical-genome speed shortcuts. It does not overwrite the standard native decoder, native router, browser WASM, CLI protocol or WR artifacts.
 
 
+## Experimental generic drill-only rotation domain
+
+The native Edge build now optionally enforces **a proven necessary drill-only condition** for **every rigid footprint**, computed solely from the model's existing rotated pin coordinates and assigned net IDs. If any two pins of **different nets** are in **adjacent holes on the same horizontal strip**, no spare hole exists to drill between them, so that orientation cannot be used when drilled cuts are mandatory. A pin without a net claims a private floating net. Adjacent pins on the **same assigned net** are not restricted by this condition. This is **necessary but not sufficient** for a clean route: cuts, starved pins and other nets still need exact electrical/physical verification.
+
+There are **no named component, footprint, project or rotation exceptions**. In the opt-in native decoder, initial unlocked rotations are chosen from the admissible domain; mutation stays inside it; direct decoding of a disallowed/locked rotation fails immediately. Unrestricted rotations and half-turn moves retain their original RNG draw semantics where possible. The wrapper activates this only for `drilledCutsOnly` when the native setter is present; the production WebAssembly build continues unchanged until independently verified. The native addon must be rebuilt to expose the opt-in setter.
+
+Strict trial reports include `invalidDrilledOrientations` for every residual routed part whose actual rotation has adjacent differing-net pins, with explicit adjacent pin/net pairs. This field is only a diagnostic and is empty for an unsolved placeholder.
+
+Before running further MOTOEX seeds, validate on the Mac:
+
+```sh
+cd ~/Documents/stripboard-optimiser && git pull --ff-only && \
+cd src/frontend && npx tsc -p tests/solver/tsconfig.json && \
+npm run build:native && npm run build:native:edge && \
+node tests/solver/testDrilledRotationDomain.js
+```
+
+Then compare one existing poor-rotation fixture (USB column 25, same seed/budget as baseline). The rotation-domain test uses synthetic parts, not MOTOEX-specific rules. If the domain check proves too aggressive or changes a previously legal solution, halt rollout and inspect the counterexample.
+
 ## Native diagnostic contract (post 500k MOTOEX runs)
 
 The opt-in native Edge-Mount decoder records **firstFeasibleMove** (0 for an in-cap starting placement, otherwise the 1-based accepted proposal count) and **firstFeasibleMs** (wall-clock ms since the anneal walk started). Both are `null` when no in-cap placement is accepted. This uses previously unused C shared-memory slots; no standard WASM ABI or release route is changed.
