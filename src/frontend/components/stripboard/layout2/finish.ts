@@ -289,8 +289,23 @@ export function finishSkeleton(
         see(e.row, e.col);
       } else {
         const b = getComponentBounds(def, c.boardPos, c.rotation);
-        see(b.minRow, b.minCol);
-        see(b.maxRow, b.maxCol);
+        if (c.locked && c.edge) {
+          // The board frame is physical copper, not the outline of a
+          // panel-mounted USB body. Keep its on-board body as an obstacle,
+          // but do not count the external plastic when sizing the PCB.
+          // Other components, copper, cuts and wires remain un-clipped.
+          see(
+            lockedRowsCap !== undefined ? Math.max(0, b.minRow) : b.minRow,
+            lockedColsCap !== undefined ? Math.max(0, b.minCol) : b.minCol,
+          );
+          see(
+            lockedRowsCap !== undefined ? Math.min(lockedRowsCap - 1, b.maxRow) : b.maxRow,
+            lockedColsCap !== undefined ? Math.min(lockedColsCap - 1, b.maxCol) : b.maxCol,
+          );
+        } else {
+          see(b.minRow, b.minCol);
+          see(b.maxRow, b.maxCol);
+        }
       }
     }
     for (const cut of ch.plan.cuts) see(cut.row, cut.col);
