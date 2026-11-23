@@ -53,3 +53,33 @@ npm run build:native:fast
 ```
 
 At this stage this commit **adds a regression test, not a claim that MOTOEX already passes**. The original WR evidence remains unchanged.
+
+
+## First executed native regression — 24 November 2026 (FAILED, as intended)
+
+The user's iMac passed all **5 fixture/preparation contract unit tests**; then ran:
+
+```bash
+python3 scripts/test_motoex_usb_lock.py --moves 20000 --seeds 3 --drilled --nostack --out ~/Desktop/motoex_locked_usb_24x56_v1
+```
+
+The original master SHA256 was `e078b01bd5e563f0b9cd37289143e7fa7000a36a8b8a90d9474ce70b6f6d4bae`. The fixture preparation printed 45 parts, 123 assignments, 10 off-board components and a single locked USB at (13,47), rotation 0, footprint 6×13.
+
+| Seed | Actual finished board | Wires | Cuts | Strict failures |
+|---|---|---:|---:|---|
+| 1 | 26×56 (**wrong**) | 45 | 62 | `QUALITY_3`, `INCOMPLETE_3`, `NONVERTICAL_5`, `SLANTED_4`, `CROSSINGS_13`, `SOLVER_ISSUES`, `LOCKED_ROWS`, `KNIFE_10`, `STACKED_5` |
+| 2 | 26×56 (**wrong**) | 43 | 60 | `QUALITY_3`, `INCOMPLETE_3`, `NONVERTICAL_2`, `SLANTED_2`, `CROSSINGS_3`, `SOLVER_ISSUES`, `LOCKED_ROWS`, `KNIFE_12`, `STACKED_2` |
+| 3 | 26×56 (**wrong**) | 49 | 63 | `NONVERTICAL_2`, `SLANTED_2`, `CROSSINGS_4`, `SOLVER_ISSUES`, `LOCKED_ROWS`, `KNIFE_5`, `STACKED_3` |
+
+**0/3 passed.** Solver outputs were saved, not accepted. Crucially, **seed 3 has no `QUALITY` or `INCOMPLETE` failure**, showing that dimension and physical-routing compliance are not simply side effects of an electrically incomplete placement. **Do not treat the 26×56 result as a successful 24×56 layout.**
+
+### Root causes confirmed in source (distinct from timing speed work)
+
+1. `v5wasm/decode.c`: the decoder's size measurement uses `H = max(H, y + geoH)` for **every rigid part**, including a locked part whose *body* deliberately overhangs; its `lockOver` term therefore sees two extra rows. The electrical USB pins themselves remain within 24×56.
+2. `layout2/finish.ts` (router finish): `H = Math.max(padded.rows, lockedRowsCap)` sets a **minimum**, not a maximum. Later `rows = Math.max(lockedRowsCap, maxR + 1)` repeats the enlargement. Thus a locked footprint body reaching row 25 produces **26** rows even when only 24 are permitted.
+3. `layout2/finish.ts` (repair finish): the repaired route also uses the decoder's expanded skeleton/wiring geometry, so merely changing one router-finisher formula is insufficient.
+4. **Separate routing violations:** the final plans still have nonvertical jumpers, crossing/stacked wires and knife cuts even with `--drilled 1 --nostack 1`. The strict CLI correctly catches them; the CLI flags are not proof the solver generated a compliant board.
+
+**Engineering constraint:** a mounted, locked edge-overhanging rigid body's *unpopulated footprint cells* may lie outside the physical board; **every pin, copper strip, cut, jumper endpoint and conductor must still lie within 24×56**. A fix must not clip or silently delete wires/cuts or hide shorts/opens. Board clipping by changing a final `rows` field alone is NOT a valid fix.
+
+**Next implementation scope:** make the physical board dimensions a separate, immutable locked-frame constraint in the decoder and both finishers, while retaining the full overhanging locked package body as a collision obstacle; route copper only inside that immutable frame. Then test independent electrical and clearance validation and the original MOTO/AUDIO baseline fingerprints before promoting. This is a core constraint/geometry change, not a compiler speed tweak. The five unit tests establish fixture preparation and diagnostic gates only; they do not establish a successful solve.
