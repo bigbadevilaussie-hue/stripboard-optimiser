@@ -49,6 +49,38 @@ const argVal = (name) => {
   const i = args.indexOf(`--${name}`);
   return i >= 0 ? args[i + 1] : undefined;
 };
+const CLI_AUDIT_VERSION = "v1.59-cli-audit";
+const valueFlags = new Set([
+  "data", "drilled", "dump", "effort", "exact", "finish-trace", "hint", "id",
+  "levels", "macro", "macrogap", "mincompress", "mix", "move-summary", "movelog",
+  "moves", "native", "nostack", "out", "portcap", "progress", "protect",
+  "repair", "routewasm", "routing-preference", "save", "sched", "seed",
+  "skeleton", "speedprobe", "stack", "stackfree", "stackmin", "strict",
+  "time", "topmoves", "toptime", "upperparts", "wasm",
+]);
+const cliUsageError = (message) => {
+  process.stderr.write(`CLI argument error: ${message} (exit 64)\n`);
+  process.exit(64);
+};
+const seenFlags = new Set();
+for (let i = 0; i < args.length; i += 2) {
+  const flag = args[i];
+  if (!flag.startsWith("--") || !valueFlags.has(flag.slice(2))) cliUsageError(`unknown argument ${flag}`);
+  if (i + 1 >= args.length || args[i + 1].startsWith("--")) cliUsageError(`missing value for ${flag}`);
+  if (seenFlags.has(flag)) cliUsageError(`duplicate ${flag}`);
+  seenFlags.add(flag);
+}
+for (const flag of ["native", "drilled", "nostack", "strict", "move-summary", "finish-trace", "progress", "exact", "protect", "stackfree"]) {
+  const val = argVal(flag);
+  if (val !== undefined && val !== "0" && val !== "1") cliUsageError(`--${flag} must be 0 or 1`);
+}
+if (!argVal("data")) cliUsageError("--data is required");
+if (!argVal("id") || !Number.isSafeInteger(Number(argVal("id"))) || Number(argVal("id")) < 0) cliUsageError("--id must be a nonnegative integer");
+if (argVal("seed") !== undefined && !Number.isSafeInteger(Number(argVal("seed")))) cliUsageError("--seed must be an integer");
+if (argVal("moves") !== undefined && (!Number.isSafeInteger(Number(argVal("moves"))) || Number(argVal("moves")) <= 0)) cliUsageError("--moves must be a positive integer");
+if (argVal("routing-preference") !== undefined && !["wires", "cuts"].includes(argVal("routing-preference"))) cliUsageError("--routing-preference must be wires or cuts");
+if (argVal("repair") !== undefined && !["0", "1", "2"].includes(argVal("repair"))) cliUsageError("--repair must be 0, 1 or 2");
+
 const OUT = path.resolve(argVal("out") ?? path.join(__dirname, "out"));
 const { computeAutoLayout5, finishFromSkeleton } = require(path.join(OUT, "components/stripboard/autoLayout5.js"));
 // the stacked solve only exists in builds from 2026-09-25 on
@@ -389,7 +421,7 @@ console.log(JSON.stringify({
   wires: m.wires, offAxis: m.offAxisWires, crossings: m.crossings, stacked, cuts: m.cuts, knife, connOff, connIn,
   conflicts: v.conflicts, incomplete: v.incomplete.length ?? v.incomplete, geo,
   issues: res.issues,
-  ...(strict ? { strictValid: strictFailures.length === 0, strictFailures, diagonalsActual } : {}),
+  ...(strict ? { cliVersion: CLI_AUDIT_VERSION, strictValid: strictFailures.length === 0, strictFailures, diagonalsActual } : {}),
   ...(moveSummary ? { moveSummary } : {}),
 }));
 if (strict && strictFailures.length) process.exitCode = 2;
