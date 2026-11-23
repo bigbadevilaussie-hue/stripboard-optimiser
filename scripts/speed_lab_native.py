@@ -149,6 +149,10 @@ def run_one(out, fixture, policy, seed, rep, variant, libdir=None):
         raise RuntimeError("%s: missing result, timing or JSON file" % variant)
     if result.get("strictValid") != (proc.returncode == 0):
         raise RuntimeError("%s: inconsistent strict exit code" % variant)
+    # Wall-clock ms is a VOLATILE CLI field, not a solver outcome.
+    # All other fields (including decoded metrics, strict failures and sig)
+    # remain in the exact comparison.
+    result.pop("ms", None)
     return {
         "exit": proc.returncode, "result": result,
         "timing": timing, "save_sha256": sha256(save.read_bytes()),
@@ -163,8 +167,8 @@ def append_csv(path, rows, fields):
 
 
 def estimate_run_count(variants, fixtures, policies, seeds, repeats):
-    # A baseline before and after each group guards against clock drift.
-    return len(fixtures) * len(policies) * seeds * repeats * (len(variants) + 1)
+    # Two -O3 baselines plus the preflight comparison to the existing build.
+    return len(fixtures) * len(policies) * seeds * repeats * (len(variants) + 2)
 
 
 def main():
@@ -203,8 +207,8 @@ def main():
         parser.error("Existing native addon/build missing; run npm run build:native under src/frontend")
     if not (ORIGINAL_BUILD / "libv5route.so").is_file():
         parser.error("Native router binary missing; run npm run build:native")
-    if (out / "speed_lab_raw.csv").exists():
-        parser.error("Existing result file in --out: use a new output directory, never overwrite an experiment")
+    if out.exists() and any(out.iterdir()):
+        parser.error("Output directory is not empty: choose a fresh --out to preserve previous experiments")
     for fixture in fixtures:
         data = json.loads(FIXTURES[fixture].read_text(encoding="utf-8"))
         board = data.get("board", {})
@@ -286,6 +290,21 @@ def main():
                         print("{} {}: solve {:.1f}% | anneal {:.1f}% | {} W/{} C".format(
                             "❌" if issue else "✅", v, row["solveSpeedupPct"] or 0,
                             row["annealSpeedupPct"] or 0, row["wires"], row["cuts"]), flush=True)
+                    # Bracket the variants with a second -O3 baseline to
+                    # estimate thermal/clock drift across the serial round.
+                    tail = run_one(out, fixture, policy, seed, rep, "o3_end", dirs["o3"])
+                    tail_issue = exact_verdict(ref, tail)
+                    if tail_issue:
+                        raise SystemExit("🛑 STOP: O3 baseline non-deterministic: " + tail_issue)
+                    for row in allrows:
+                        if row["fixture"] != fixture or row["policy"] != policy or row["seed"] != seed or row["repeat"] != rep:
+                            continue
+                        bt0, bt1 = ref["timing"], tail["timing"]
+                        refsolve = statistics.median([float(bt0["solveMs"]), float(bt1["solveMs"])])
+                        refanneal = statistics.median([float(bt0["annealMs"]), float(bt1["annealMs"])])
+                        row["refSolveMs"], row["refAnnealMs"] = refsolve, refanneal
+                        row["solveSpeedupPct"] = format_pct(refsolve, row["solveMs"])
+                        row["annealSpeedupPct"] = format_pct(refanneal, row["annealMs"])
                     append_csv(out / "speed_lab_raw.csv", allrows, FIELDS)
     summary = []
     for v in variants:
