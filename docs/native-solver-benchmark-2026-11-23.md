@@ -103,6 +103,31 @@ MOTO seed 9 had a **1,696 ms routing outlier**, inflating the mean. The 0.3% dif
 
 **Routing and outliers:** Mean solve times vary beyond the annealing component; native routing occasionally takes substantially longer on difficult layouts. Compare medians and the raw per-seed rows when investigating routing performance rather than relying only on mean solve time.
 
+## Completed 80-run drill/stack matrix (20k moves, 10 common seeds)
+
+A separate test used [`scripts/benchmark_drill_stack.py`](../scripts/benchmark_drill_stack.py) with fixed sampled seeds **382, 639, 736, 820, 897, 1036, 1121, 1277, 1437, 1552** (all between 1 and 2,000), **20,000 moves** per run, native solver, wire-priority routing. Each input was forced to a **locked 24×56 board**. The MOTO source's F1 remained **unlocked and unplaced**; the MOTOMIX source's F1 remained **locked at row 0, col 1**. Thus the *boards* were locked in both projects, but **F1 was not locked in MOTO**. These are different source projects, not a controlled lock-only comparison.
+
+All 80 processes finished. The harness output includes actual endpoint-column diagonal counts (`↘`), knife cuts (`🔪`) and stacked wires (`🧵`). The benchmark independently inspects the saved layout for output dimensions and F1 lock retention, and its strict `clean` predicate requires zero diagonals, Q0, zero electrical/geometry problems, and the drill/stack restrictions selected for that run.
+
+| Project | Drilled only | Stacking allowed | Clean / 10 | Mean solve (ms) | Mean anneal (ms) | Mean diagonals | Mean knife cuts | Mean stacked wires |
+|---|---|---|---:|---:|---:|---:|---:|---:|
+| MOTO | ON | OFF | 0/10 | 1,350 | 1,140 | 3 | 6 | 3 |
+| MOTO | OFF | OFF | 0/10 | 1,353 | 1,150 | 3 | 13 | 2 |
+| MOTO | OFF | ON | 0/10 | 1,290 | 1,140 | 3 | 13 | 4 |
+| MOTO | ON | ON | 0/10 | 1,291 | 1,121 | 3 | 6 | 4 |
+| MOTOMIX | ON | OFF | 0/10 | 1,476 | 1,235 | 4 | 5 | 2 |
+| MOTOMIX | OFF | OFF | 0/10 | 1,521 | 1,242 | 2 | 12 | 2 |
+| MOTOMIX | OFF | ON | **1/10** | **1,403** | 1,198 | 2 | 12 | 4 |
+| MOTOMIX | ON | ON | 0/10 | 1,446 | 1,207 | 3 | 5 | 4 |
+
+**The only strict pass:** MOTOMIX **DRILL_OFF_STACK_ON**, **seed 897**, **33 jumpers / 48 cuts**, Q0, zero diagonals, zero geometry findings and about **1,296 ms** solve time. It had **8 knife cuts and 3 stacked wires**, which the configuration explicitly allowed. This candidate is not drilled-only or stack-free.
+
+**Critical known solver limitation:** both `--drilled 1` and `--nostack 1` were passed correctly to the harness, but the solver still emitted forbidden knife cuts and stacked wires. Physical-rule flags must be treated as *requests*, not guarantees. Independent post-solve validation correctly rejected all 40 MOTO layouts and 39 of 40 MOTOMIX layouts in this trial. Q0 and `geo=0` alone do not ensure compliance.
+
+**Speed:** with drilling OFF and stacking ON, mean solve time was lowest of the four tested combinations for both projects (MOTO 1,290 ms, MOTOMIX 1,403 ms). However 10 seeds per group and routing variability mean this is descriptive, not an established universal optimum.
+
+**Files:** local CSV `/private/tmp/stripboard_drill_stack_80/comparison.csv` and saved layouts under `/private/tmp/stripboard_drill_stack_80/`. These paths are on the user's Mac and are not committed. The test transcript was provided in the conversation.
+
 ## Validity and measurement caveats
 
 The benchmark Python predicate for `clean` required all of:
