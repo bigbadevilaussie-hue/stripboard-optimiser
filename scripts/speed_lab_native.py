@@ -26,7 +26,11 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 FRONTEND = ROOT / "src" / "frontend"
-SOURCE = FRONTEND / "components" / "stripboard" / "v5wasm" / "decode.c"
+SOURCES = {
+    "decoder": FRONTEND / "components" / "stripboard" / "v5wasm" / "decode.c",
+    "router": FRONTEND / "components" / "stripboard" / "v5wasm" / "route.c",
+}
+LIB_NAMES = {"decoder": "libv5decode.so", "router": "libv5route.so"}
 HARNESS = FRONTEND / "tests" / "solver" / "v5Solve.js"
 ORIGINAL_BUILD = FRONTEND / "tests" / "solver" / "native" / "build"
 FIXTURES = {
@@ -44,6 +48,7 @@ DEFAULT_VARIANTS = (
     "o3", "o2", "fp_off", "cpu", "no_errno", "unroll",
     "grid", "identical", "both", "cpu_both", "lto",
 )
+ROUTER_VARIANTS = ("o3", "o2", "fp_off", "cpu", "no_errno", "unroll", "lto")
 POLICIES = {
     "loose": [],
     "drilled": ["--drilled", "1"],
@@ -110,17 +115,17 @@ def parse_json_line(output, prefix="{"):
     return json.loads(matches[-1])
 
 
-def make_native(variant, out, compiler):
-    target = out / "builds" / variant
-    target.mkdir(parents=True, exist_ok=True)
-    lib = target / "libv5decode.so"
-    cmd = [compiler, *compile_flags(variant), *BASE_ARGS, "-o", str(lib), str(SOURCE), "-lm"]
+def make_native(variant, out, compiler, target):
+    directory = out / "builds" / variant
+    directory.mkdir(parents=True, exist_ok=True)
+    lib = directory / LIB_NAMES[target]
+    cmd = [compiler, *compile_flags(variant), *BASE_ARGS, "-o", str(lib), str(SOURCES[target]), "-lm"]
     proc = subprocess.run(cmd, capture_output=True, text=True)
-    (target / "compile.txt").write_text(" ".join(cmd) + "\n" + proc.stdout + "\n" + proc.stderr,
+    (directory / "compile.txt").write_text(" ".join(cmd) + "\n" + proc.stdout + "\n" + proc.stderr,
                                         encoding="utf-8")
     if proc.returncode != 0 or not lib.exists():
         return None, proc.stderr.strip()[-1200:]
-    return target, ""
+    return directory, ""
 
 
 def run_one(out, fixture, policy, seed, rep, variant, libdir=None):
@@ -130,10 +135,10 @@ def run_one(out, fixture, policy, seed, rep, variant, libdir=None):
     save = base / (variant + ".json")
     env = os.environ.copy()
     env["STRIPBOARD_TIMING"] = "1"
-    if libdir is None:
-        env.pop("V5_NATIVE_LIB_DIR", None)
-    else:
-        env["V5_NATIVE_LIB_DIR"] = str(libdir)
+    env.pop("V5_NATIVE_LIB_DIR", None)
+    env.pop("V5_NATIVE_ROUTE_LIB_DIR", None)
+    if libdir is not None:
+        env["V5_NATIVE_LIB_DIR" if ARGS.target == "decoder" else "V5_NATIVE_ROUTE_LIB_DIR"] = str(libdir)
     args = ["node", str(HARNESS), "--data", str(out / "inputs" / fixture),
             "--id", "1", "--seed", str(seed), "--moves", str(ARGS.moves),
             "--native", "1", "--strict", "1", "--routing-preference", "wires",
@@ -173,14 +178,16 @@ def estimate_run_count(variants, fixtures, policies, seeds, repeats):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--out", type=Path, default=Path("/tmp/v5_native_speed_lab_v164"))
+    parser.add_argument("--target", choices=["decoder", "router"], default="decoder",
+                        help="Isolate decoder or router; original other native library stays unchanged")
+    parser.add_argument("--out", type=Path, default=None)
     parser.add_argument("--seeds", type=int, default=3, help="Seeds 1..N, same across all variants")
     parser.add_argument("--repeats", type=int, default=2, help="Serial repeats, alternating variant order")
     parser.add_argument("--moves", type=int, default=20000, help="Same fixed move count per run")
     parser.add_argument("--fixtures", default="AUDIO,MOTO", help="Comma-separated AUDIO,MOTO")
     parser.add_argument("--policies", default="loose,drilled_no_stack",
                         help="Comma-separated loose,drilled,no_stack,drilled_no_stack")
-    parser.add_argument("--variants", default=",".join(DEFAULT_VARIANTS),
+    parser.add_argument("--variants", default=None,
                         help="Comma-separated variants, must include o3")
     parser.add_argument("--clang", default="clang", help="Compiler (default clang)")
     args = parser.parse_args()
@@ -188,20 +195,22 @@ def main():
     ARGS = args
     fixtures = [v.strip().upper() for v in args.fixtures.split(",") if v.strip()]
     policies = [v.strip() for v in args.policies.split(",") if v.strip()]
-    variants = [v.strip() for v in args.variants.split(",") if v.strip()]
+    chosen = args.variants or ",".join(DEFAULT_VARIANTS if args.target == "decoder" else ROUTER_VARIANTS)
+    variants = [v.strip() for v in chosen.split(",") if v.strip()]
     if args.moves < 1 or args.seeds < 1 or args.repeats < 1:
         parser.error("moves, seeds and repeats must be positive")
-    if not variants or "o3" not in variants or len(variants) != len(set(variants)) or any(v not in DEFAULT_VARIANTS for v in variants):
+    allowed = DEFAULT_VARIANTS if args.target == "decoder" else ROUTER_VARIANTS
+    if not variants or "o3" not in variants or len(variants) != len(set(variants)) or any(v not in allowed for v in variants):
         parser.error("--variants must include o3, with unique recognised variant names")
     if not fixtures or len(fixtures) != len(set(fixtures)) or any(v not in FIXTURES for v in fixtures):
         parser.error("--fixtures must specify unique AUDIO and/or MOTO")
     if not policies or len(policies) != len(set(policies)) or any(v not in POLICIES for v in policies):
         parser.error("Unknown or duplicate policy")
     try:
-        out = safe_dir(args.out)
+        out = safe_dir(args.out or Path("/tmp/v5_native_speed_lab_v164_" + args.target))
     except ValueError as err:
         parser.error(str(err))
-    if not HARNESS.is_file() or not SOURCE.is_file():
+    if not HARNESS.is_file() or not SOURCES[args.target].is_file():
         parser.error("Native decoder source or CLI harness missing")
     if not (ORIGINAL_BUILD / "v5native.node").is_file() or not (ORIGINAL_BUILD / "libv5decode.so").is_file():
         parser.error("Existing native addon/build missing; run npm run build:native under src/frontend")
@@ -221,8 +230,9 @@ def main():
     metadata = {
         "version": "v1.64-native-speed-lab",
         "fixture_sha256": {name: sha256(FIXTURES[name].read_bytes()) for name in fixtures},
-        "decode_source_sha256": sha256(SOURCE.read_bytes()),
-        "original_build_decode_sha256": sha256((ORIGINAL_BUILD / "libv5decode.so").read_bytes()),
+        "target": args.target,
+        "target_source_sha256": sha256(SOURCES[args.target].read_bytes()),
+        "original_build_target_sha256": sha256((ORIGINAL_BUILD / LIB_NAMES[args.target]).read_bytes()),
         "compiler": info.stdout.split("\n", 1)[0],
         "machine": platform.platform(), "native": True, "moves": args.moves,
         "seeds": list(range(1, args.seeds + 1)), "repeats": args.repeats,
@@ -236,14 +246,15 @@ def main():
         shutil.copy2(FIXTURES[name], dest)
     dirs = {}
     for v in variants:
-        dirs[v], error = make_native(v, out, args.clang)
+        dirs[v], error = make_native(v, out, args.clang, args.target)
         if dirs[v] is None:
             print("🛑 BUILD SKIPPED {}: {}".format(v, error), flush=True)
         else:
             print("🔧 BUILD {}: {}".format(v, " ".join(compile_flags(v))), flush=True)
     if dirs.get("o3") is None:
         raise SystemExit("Cannot compile reference -O3 decoder")
-    print("🏎️ Native speed lab: {} planned serial solves | {} seeds | {} repeats | {} moves".format(
+    print("🏎️ Native {} speed lab: {} planned serial solves | {} seeds | {} repeats | {} moves".format(
+        args.target,
         estimate_run_count([v for v in variants if dirs[v] is not None], fixtures, policies,
                            args.seeds, args.repeats), args.seeds, args.repeats, args.moves), flush=True)
     print("🛡️ Output gate: CLI result + strict flags + SHA256 of COMPLETE saved project JSON", flush=True)
