@@ -78,6 +78,9 @@ export interface AutoLayout5Options {
   debugSeeds?: boolean;
   // Harness-only per-phase profiling, no effect on search decisions.
   onTiming?: (stats: Record<string, number>) => void;
+  // Opt-in native Edge-Mount diagnostic: first accepted physical-fit
+  // move/time (null means no fit), independent of routing quality.
+  onEdgeFeasibility?: (info: { seed: number; firstMove: number | null; firstMs: number | null }) => void;
   // Harness-only diagnostic of both finishes: scores and compliance, without changing selection.
   onFinishTrace?: (trace: Record<string, unknown>) => void;
   // Harness-only: every finalist's skeleton, with the decoder's wiring, before
@@ -465,8 +468,10 @@ export function computeAutoLayout5(
     }
     return true;
   };
-  const unsolvedPhysicalLock = (): AutoLayoutResult => ({
-    ...emptyResult(["UNSOLVED: LOCK_OVERFLOW — no finished candidate fits the purchased board"]),
+  const unsolvedPhysicalLock = (reason: "NO_FEASIBLE_PLACEMENT" | "NO_PHYSICAL_FINISH"): AutoLayoutResult => ({
+    ...emptyResult([reason === "NO_FEASIBLE_PLACEMENT"
+      ? "UNSOLVED: NO_FEASIBLE_PLACEMENT — anneal did not find any 24x56 placement"
+      : "UNSOLVED: NO_PHYSICAL_FINISH — every finished layout violated the purchased board"]),
     boardSize: { rows: board.rows, cols: board.cols },
     quality: 1,
     unplaceIds: components.filter((c) => !c.boardExcluded).map((c) => c.id),
@@ -903,7 +908,14 @@ export function computeAutoLayout5(
       const stepStart = options?.onTiming ? performance.now() : 0;
       const ev = w.annealStep();
       if (options?.onTiming) annealMs += performance.now() - stepStart;
-      if (ev < 0) return null;
+      if (ev < 0) {
+        if (physicalEdgeLock) {
+          const info = w.edgeFeasibility();
+          options?.onEdgeFeasibility?.({ seed, firstMove: info?.firstMove ?? null,
+            firstMs: info?.firstMs ?? null });
+        }
+        return null;
+      }
       if (ev === 0) break;
       const extractStart = options?.onTiming ? performance.now() : 0;
       const c = w.cur();
@@ -927,6 +939,11 @@ export function computeAutoLayout5(
       best = { E: c.E, g, d };
     }
     it = w.cur().it;
+    if (physicalEdgeLock) {
+      const info = w.edgeFeasibility();
+      options?.onEdgeFeasibility?.({ seed, firstMove: info?.firstMove ?? null,
+        firstMs: info?.firstMs ?? null });
+    }
     options?.onTiming?.({ annealMs, extractMs, exactRepairMs, annealEvents: extractCount, exactRepairs: exactCount, annealMoves: it });
     if (options?.timeBudgetMs !== undefined) options.onBudget?.({ moves: it, cap: capMoves, msPerMove: (performance.now() - tStart) / Math.max(1, it) });
     return best ? { ...best, exact, exactN } : null;
@@ -1210,7 +1227,7 @@ export function computeAutoLayout5(
   // name them, so the result says why and what to change
   const unreachable = unreachablePins(components, componentDefs, netAssignments).map(unreachablePinsIssue);
   if (seedBests.length === 0) {
-    return physicalEdgeLock ? unsolvedPhysicalLock()
+    return physicalEdgeLock ? unsolvedPhysicalLock("NO_FEASIBLE_PLACEMENT")
       : emptyResult([...unreachable, "auto-layout found no feasible arrangement"]);
   }
   seedBests.sort((a, b) => a.E - b.E);
@@ -1229,7 +1246,7 @@ export function computeAutoLayout5(
   report("place", 1);
   // Do not disguise an overflow by clamping a larger routed board's dimensions.
   // Emit a clean, explicitly UNSOLVED 24x56 board instead, with no illegal copper.
-  if (!bestFin) return physicalEdgeLock ? unsolvedPhysicalLock()
+  if (!bestFin) return physicalEdgeLock ? unsolvedPhysicalLock("NO_PHYSICAL_FINISH")
     : emptyResult([...unreachable, "auto-layout produced no usable finish"]);
   const final: AutoLayoutResult = bestFin.final;
   return unreachable.length ? { ...final, issues: [...unreachable, ...final.issues] } : final;
