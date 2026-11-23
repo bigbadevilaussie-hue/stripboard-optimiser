@@ -9,6 +9,7 @@ import argparse
 import ast
 import csv
 import json
+import statistics
 from collections import Counter, defaultdict
 from pathlib import Path
 
@@ -154,6 +155,10 @@ def main():
         for name, passed in criteria.items():
             if passed:
                 group_stats[name] += 1
+        for a, b in (("Q0", "diag0"), ("Q0", "knife0"), ("Q0", "stack0"),
+                     ("diag0", "stack0"), ("Q0", "geo0"), ("diag0", "offAxis0")):
+            if criteria[a] and criteria[b]:
+                group_stats[a + "_AND_" + b] += 1
         drilled = as_bool(row.get("drilled_required"))
         stack_allowed = as_bool(row.get("stack_allowed"))
         reasons = [name for name in ("Q0", "geo0", "diag0", "offAxis0", "electrical0", "issues0", "board24x56", "F1_kept") if not criteria[name]]
@@ -190,6 +195,39 @@ def main():
             stats["stack0"] if "STACK_OFF" in config else "-",
             stats["F1_kept"], stats["clean"]
         ))
+    print("\n🔗 JOINT CRITERION PASS COUNTS (recomputed geometry + original CSV Q0/geo/offAxis)")
+    print("{:<9} {:<22} {:>7} {:>8} {:>8} {:>10} {:>8}".format(
+        "PROJECT", "CONFIG", "Q0+DIAG", "Q0+KNIFE", "Q0+STACK", "DIAG+STACK", "Q0+GEO"))
+    for (project, config), stats in sorted(by_config.items()):
+        print("{:<9} {:<22} {:>7} {:>8} {:>8} {:>10} {:>8}".format(
+            project, config, stats["Q0_AND_diag0"],
+            stats["Q0_AND_knife0"], stats["Q0_AND_stack0"],
+            stats["diag0_AND_stack0"], stats["Q0_AND_geo0"]))
+    print("\n⏱ CLI PHASE TIMINGS (mean ms; from original benchmark CSV, not independent)")
+    print("{:<9} {:<22} {:>7} {:>7} {:>7} {:>7} {:>7} {:>9}".format(
+        "PROJECT", "CONFIG", "SOLVE", "ANNEAL", "ROUTE", "REPAIR", "EXTRACT", "ANNEAL %"))
+    for (project, config), stats in sorted(by_config.items()):
+        group = [r for r in rows if r["project"] == project and r["configuration"] == config]
+        def avg(key):
+            vals = []
+            for r in group:
+                try:
+                    vals.append(float(r[key]))
+                except (KeyError, TypeError, ValueError):
+                    pass
+            return statistics.mean(vals) if vals else 0.0
+        solve = avg("solveMs")
+        print("{:<9} {:<22} {:>7.0f} {:>7.0f} {:>7.0f} {:>7.0f} {:>7.0f} {:>8.1f}%".format(
+            project, config, solve, avg("annealMs"), avg("routeMs"),
+            avg("repairMs"), avg("extractMs"), 100 * avg("annealMs") / solve if solve else 0))
+    try:
+        route_outlier = max((r for r in rows if r.get("routeMs") not in (None, "")),
+                            key=lambda r: float(r["routeMs"]))
+        print("🧭 Slowest route: {} / {} / seed #{} · {:.0f}ms".format(
+            route_outlier["project"], route_outlier["configuration"],
+            route_outlier["seed"], float(route_outlier["routeMs"])))
+    except (ValueError, KeyError, TypeError):
+        pass
     print("\n🔒 NOTE: Electrical/geometry/F1 entries above use existing CSV claims, NOT independent validation.")
     print("🔪 Knife from cut.kind; 🧵 stack from positive-length collinear wire overlaps; ↘ diagonal from endpoint columns.")
     print("Cut-kind audit is a label check, not a physical cut classification independent of stored labels.")
