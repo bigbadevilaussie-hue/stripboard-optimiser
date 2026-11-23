@@ -1462,6 +1462,10 @@ EXPORT(v5_setDrilledRotations) void v5_setDrilledRotations(i32 enabled) {
     i32 mask = 0, base = pShapeBase[rigidList[k]];
     for (i32 rot = 0; rot < 4; rot++)
       if (drillShapeAllowed(base + rot)) mask |= 1 << rot;
+    // halfTurnOnly is a real rotation capability constraint. An unlocked
+    // part starts at 0 and can only toggle to 180; never promote 90/270
+    // merely because their pin geometry is electrically more convenient.
+    if (halfTurn[k] && !pLocked[rigidList[k]]) mask &= 0x5;
     drillRotMask[k] = mask;
   }
 }
