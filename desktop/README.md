@@ -10,7 +10,7 @@ From the repository root:
 cd desktop && PYTHONPATH=src python3 -m stripboard_optimizer.main
 ```
 
-The GUI is version **v1.36**.
+The GUI is version **v1.58-debug** (November 2026). For current profiling and locked-F1 experiments, see [Native solver benchmark — 23 Nov 2026](../docs/native-solver-benchmark-2026-11-23.md).
 
 ## Runtime requirements
 
@@ -23,29 +23,15 @@ The GUI is version **v1.36**.
 
 The solver adapter checks for the required harness and compiled solver/WASM assets before starting a run. Optional native mode requires its separately built native libraries.
 
-## Current 2PASS tournament
+## Current 2PASS tournament (v1.58-debug)
 
-The current two-pass workflow is implemented in `src/stripboard_optimizer/solver/worker.py`.
+The current tournament is implemented in `src/stripboard_optimizer/solver/worker.py`; its present **debug settings** are:
 
-### Pass 1 — broad seed search
-
-- 1,000 independent seeds by default (seeds 1–1,000).
-- Each seed starts from the original project JSON.
-- 25,000 moves per seed at effort 0.1.
-- A candidate qualifies only when conflicts, incomplete connections and geometry errors are all zero and no issues are reported.
-- Exact duplicate layout signatures are excluded from the finalist pool.
-- Up to 10 unique valid finalists are selected.
-- Progress is logged every 20 completed seeds.
-- Individual PASS results are logged; individual FAIL lines are suppressed in Pass 1. Progress and duplicate notices are still logged.
-
-### Pass 2 — finalist refinement
-
-- Up to 10 Pass 1 finalists are retained.
-- Each finalist uses its original Pass 1 seed.
-- 40 independent move budgets are run: 5,000 to 200,000 moves in 5,000-move increments.
-- Every budget starts from a fresh copy of the original project JSON. It does not continue from the previous budget's saved board.
-- The best valid result per finalist seed is retained.
-- The final retained finalists are ranked and saved as JSON files in the configured output directory.
+- **Pass 1:** 200 independent seeds, 15,000 moves each, with strict Q0 and zero-off-axis qualification. Finalists are not arbitrarily capped at 10 in this debug build.
+- **Pass 2:** all selected qualifiers are re-run at 25,000–100,000 moves, stepping by 5,000. The solver starts each run from the source project rather than continuing from an earlier budget. Retain the best 10 overall results.
+- **Physical controls:** drilled cuts only and no stacking are independent opt-in constraints. With the corresponding controls off, knife cuts and stacked wires may appear. Do not assume zero diagonals or an overall Q0 score independently proves geometry, connectivity, locked component location or buildability.
+- **Speed profiling:** launch with `STRIPBOARD_TIMING=1` to write full per-seed JSONL timings in the work directory and show two compact, emoji-labelled timing lines every 25 seeds. After editing `autoLayout5.ts`, rebuild with `cd src/frontend && npx tsc -p tests/solver/tsconfig.json`.
+- **Detailed reproducibility record:** [Native solver profiling, MOTO/MOTOMIX comparison and 5k–50k locked-F1 ladder](../docs/native-solver-benchmark-2026-11-23.md). Ladder results above 20k were not yet provided at the time of documentation.
 
 ### Ranking
 
