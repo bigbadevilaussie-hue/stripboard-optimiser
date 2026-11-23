@@ -37,10 +37,22 @@ def _layout_signature(path):
             component.get("rotation", 0),
         ))
     components.sort(key=lambda item: item[0])
+    # Different routing and cut topologies are different candidates even when
+    # the component placement is identical. Do not collapse them in Pass 1.
+    wires = []
+    for wire in board.get("wires", []):
+        if not isinstance(wire, dict):
+            wires.append(wire)
+            continue
+        ends = [wire.get("from"), wire.get("to")]
+        ends.sort(key=lambda point: json.dumps(point, sort_keys=True))
+        wires.append({"ends": ends, **{k: v for k, v in wire.items() if k not in ("from", "to")}})
+    wires.sort(key=lambda item: json.dumps(item, sort_keys=True))
+    cuts = sorted(board.get("cuts", []), key=lambda item: json.dumps(item, sort_keys=True))
     return json.dumps(
         {"rows": board.get("rows", saved.get("rows")),
          "cols": board.get("cols", saved.get("cols")),
-         "components": components},
+         "components": components, "wires": wires, "cuts": cuts},
         sort_keys=True, separators=(",", ":"),
     )
 
@@ -145,7 +157,8 @@ class SolveWorker(threading.Thread):
                 summary["offAxis"] = 999 # Fail safe
             # --------------------------------
             
-            ok = (summary.get("quality") == 0 and summary.get("offAxis", 0) == 0)
+            ok = (is_valid(summary) and summary.get("quality") == 0
+                  and summary.get("offAxis") == 0)
             try:
                 saved = json.loads(Path(path).read_text(encoding="utf-8"))
                 parts = sum(
@@ -242,7 +255,8 @@ class SolveWorker(threading.Thread):
                     completed += 1
                     if (result[0] is not None
                             and result[0].get("quality") == 0
-                            and result[0].get("offAxis", 0) == 0
+                            and result[0].get("offAxis") == 0
+                            and is_valid(result[0])
                             and (not _lk or (result[0].get("rows") == _er and result[0].get("cols") == _ec))):
                         try:
                             signature = _layout_signature(result[1])
@@ -320,7 +334,8 @@ class SolveWorker(threading.Thread):
                 if not i or i[0] is None: return False
                 s = i[0]
                 if s.get("quality") != 0: return False
-                if s.get("offAxis", 0) != 0: return False
+                if s.get("offAxis") != 0: return False
+                if not is_valid(s): return False
                 if _lk:
                     if s.get("rows") != _er or s.get("cols") != _ec: return False
                 return True
