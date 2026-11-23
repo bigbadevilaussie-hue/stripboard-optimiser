@@ -181,6 +181,7 @@ def run(args) -> bool:
                                 "firstFeasibleMove": result.get("firstFeasibleMove"),
                                 "firstFeasibleMs": result.get("firstFeasibleMs"),
                                 "incompleteNets": result.get("incompleteNets", []),
+                                "invalidDrilledOrientations": result.get("invalidDrilledOrientations", []),
                                 "wireViolations": result.get("wireViolations", [])})
                 if saved_path.exists():
                     saved = json.loads(saved_path.read_text(encoding="utf-8"))
@@ -212,6 +213,11 @@ def run(args) -> bool:
                     "; ".join(" + ".join(p.get("componentLabel", "?") + "." +
                                                   p.get("pinName", "?") for p in group)
                               for group in net.get("groups", []))), flush=True)
+            for part in attempt.get("invalidDrilledOrientations", []):
+                print("   🚫 DRILLED ROTATION {} @ {}° | {}".format(
+                    part.get("component", "?"), part.get("rotation", "?"),
+                    "; ".join("{} vs {}".format(*(edge.get("nets") or ["?", "?"]))
+                              for edge in part.get("adjacent", []))), flush=True)
             for wire in attempt.get("wireViolations", []):
                 print("   ⚠️ WIRE {} [{}] {} -> {} | {}{}".format(
                     wire.get("wire"), "/".join(wire.get("netNames") or ["UNRESOLVED"]),
