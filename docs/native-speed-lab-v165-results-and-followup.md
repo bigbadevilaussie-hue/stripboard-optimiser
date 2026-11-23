@@ -163,3 +163,53 @@ set -o pipefail && \
 ```
 
 Each budget entails **384 serial solves** including the reference and bookend baselines; full test **768 solves**. On completion, review **both** stratified CSVs before deciding whether `both` can be defaulted; the speed gain must not hide an adverse MOTO or drilled-only subgroup. Verify full WR input snapshots and record settings separately before promoting to the native default. **No route logic or search algorithm changed.**
+
+---
+
+## Multi-budget WR-safety performance gate — iMac results, 24 November 2026
+
+**Completed** the previously specified 5k and 50k follow-up on **seeds 24–35** (disjoint from 1–23), each using AUDIO and corrected MOTO, `loose` and `drilled_no_stack`, with two repeats. **All full saved JSON comparisons reported identical** to baseline.
+
+| Native decoder | Moves per seed | Median solve throughput gain | Median anneal throughput gain | Saved JSON + strict CLI matches |
+|---|---:|---:|---:|---:|
+| **`both`** | **5,000** | **+2.91%** | **+5.44%** | **96/96** |
+| **`both`** | **50,000** | **+5.51%** | **+5.92%** | **96/96** |
+
+Adding the 20,000-move discovery (24/24) and held-out confirmation (160/160), the same `both` decoder has **376/376 reported exact baseline matches across three move budgets**. The original 6 unit tests also passed in the follow-up log. This is **very strong evidence for the deterministic replay compatibility** of the two compile-time decoder optimisations in these tested inputs, modes, and seeds. It does **not** reproduce the original historical WR files or certify the physical buildability of a layout that the baseline itself did not qualify.
+
+### Breakdown by project/policy (approximately, from rounded terminal percentages)
+
+The user supplied the complete terminal transcript but not the unrounded per-case CSV, so these medians were calculated from the printed one-decimal speedups. The script's exact pooled medians above come from its CSV values and supersede estimates below.
+
+| Moves | Fixture | Cut/stack policy | Median solve gain, estimated | Positive solve-speed cases |
+|---:|---|---|---:|---:|
+| 5k | AUDIO | loose | +1.55% | 20/24 |
+| 5k | AUDIO | drilled/no-stack | +3.00% | 19/24 |
+| 5k | MOTO | loose | +2.85% | 20/24 |
+| 5k | MOTO | drilled/no-stack | +3.20% | 20/24 |
+| 50k | AUDIO | loose | +5.70% | 24/24 |
+| 50k | AUDIO | drilled/no-stack | +5.65% | 22/24 |
+| 50k | MOTO | loose | +5.35% | 24/24 |
+| 50k | MOTO | drilled/no-stack | +5.10% | 21/24 |
+
+All eight approximate subgroup medians are positive. The 5k solve-time metric can be dominated by finite CLI startup/finalisation costs, which vary more than anneal time; the 50k signal is substantially stronger and more consistent. A few large positive and negative outlier percentages in 5k demonstrate the importance of medians, per-fixture stratification, warm machine state and isolated processes.
+
+**Engineering decision:** `-DV5_EXPERIMENT_FAST_GRID_CLEAR=1 -DV5_EXPERIMENT_FAST_IDENTICAL_GENOME=1` is the leading implementation. The `copy` variants bring no statistically persuasive improvement; do not enable copy. Router compiler flags remain unpromoted.
+
+### Opt-in fast native CLI (already implemented)
+
+The proven `both` variant remains available through `npm run build:native:fast` and `V5_NATIVE_LIB_DIR`, leaving ordinary `npm run build:native`, committed WASM, output formats and GUI unchanged. This is **the same native C solver**, never a secondary solver. Example:
+
+```bash
+cd ~/Documents/stripboard-optimiser/src/frontend
+npm run build:native:fast
+V5_NATIVE_LIB_DIR="$PWD/tests/solver/native/build/fast" \
+  node tests/solver/v5Solve.js --data /path/to/input-dir --id 1 \
+  --seed 24 --moves 50000 --native 1 \
+  --routing-preference wires --drilled 1 --nostack 1 --strict 1 \
+  --save /tmp/v5-fast-50k.json
+```
+
+**Remaining production gate:** the two historical WR input projects, exact historical seed/move/schedule and record files are not in GitHub fixtures. They must be replayed and compared independently before changing the normal default native build. As of this note, **no default native compilation flags or stored WR files were modified**.
+
+Original iMac outputs for reference: `~/Desktop/stripboard_speedlab_v165_5k/speed_lab_stratified.csv`, `~/Desktop/stripboard_speedlab_v165_50k/speed_lab_stratified.csv`, with their matching full `speed_lab_raw.csv` and `results/.../*.json`. Those files remain on the user's machine; not fabricated or committed here.
