@@ -6,6 +6,7 @@ Run at repository root: python3 scripts/benchmark_drill_stack.py
 """
 import argparse
 import csv
+import hashlib
 import json
 import os
 import statistics
@@ -42,9 +43,10 @@ def prepare(out):
             raise SystemExit("Missing source project: " + str(src))
         data = json.loads(src.read_text(encoding="utf-8"))
         c1 = [c for c in data.get("components", []) if c.get("label") == "C1"]
-        if len(c1) != 1 or c1[0].get("value") != "1000µF":
+        values = [c.get("value") for c in c1]
+        if values != ["1000µF"]:
             raise SystemExit(f"{name}: C1 must be corrected to 1000µF before this benchmark; "
-                             f"found {[c.get(\'value\') for c in c1]} (run scripts/fix_moto_c1.py --apply)")
+                             f"found {values} (run scripts/fix_moto_c1.py --apply)")
         if not isinstance(data.get("board"), dict):
             raise SystemExit("Missing board in " + str(src))
         f1s = f1_components(data)
@@ -264,7 +266,7 @@ def main():
     originals = prepare(out)
     (out / "benchmark_config.json").write_text(
         json.dumps({"input_revision": INPUT_REVISION, "seeds": SEEDS, "moves": args.moves,
-                    "source_sha256": {k: __import__("hashlib").sha256(v.read_bytes()).hexdigest() for k, v in SOURCES.items()},
+                    "source_sha256": {k: hashlib.sha256(v.read_bytes()).hexdigest() for k, v in SOURCES.items()},
                     "sources": {k: str(v) for k, v in SOURCES.items()},
                     "original_f1": originals, "board": {"rows": 24, "cols": 56, "locked": True},
                     "configs": [{"label": k, "drilled": d, "stack_on": st} for k, d, st in CONFIGS]},
