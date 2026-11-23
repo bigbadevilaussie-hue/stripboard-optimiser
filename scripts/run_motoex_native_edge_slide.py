@@ -38,6 +38,8 @@ if _SPEC is None or _SPEC.loader is None:
 contract = importlib.util.module_from_spec(_SPEC)
 _SPEC.loader.exec_module(contract)
 
+from native_edge_slide_positions import anchors_for_component
+
 ROOT = Path(__file__).resolve().parents[1]
 FRONTEND = ROOT / "src" / "frontend"
 EDGE_LIB = FRONTEND / "tests" / "solver" / "native" / "build" / "edge"
@@ -53,19 +55,18 @@ def bool_option(s: str) -> bool:
 
 
 def slide_positions(usb: dict, definition: dict, rows: int, cols: int, slide: bool) -> list[int]:
-    """Legal movement along the original BOTTOM edge, never perpendicular."""
-    pos = usb["boardPos"]
-    assert pos["row"] == 13 and pos["col"] == 47
-    assert definition["width"] == 6 and definition["height"] == 13
-    assert rows == 24 and cols == 56
-    # For this zero-degree rectangular footprint the bounds are 0..width-1.
-    # Enumerate exactly 56 - 6 + 1 = 51 unique columns. Do not truncate.
-    available = list(range(cols - int(definition["width"]) + 1))
-    available.sort(key=lambda c: (abs(c - pos["col"]), c))
-    if available[0] != pos["col"] or len(available) != 51:
-        raise ValueError("expected 51 physical bottom-edge USB anchor positions")
-    return available if slide else [pos["col"]]
-
+    """The reusable generic Edge+Slide geometry produces 51 MOTOEX columns."""
+    probe = {**usb, "edge": True, "slide": True}
+    anchors = anchors_for_component(
+        probe, definition,
+        {"rows": rows, "cols": cols, "lockedRows": True, "lockedCols": True},
+    )
+    if anchors.side != "bottom" or any(row != usb["boardPos"]["row"] for row, _ in anchors.positions):
+        raise ValueError("MOTOEX USB must slide along its ORIGINAL bottom edge")
+    positions = [col for _, col in anchors.positions]
+    if len(positions) != 51 or set(positions) != set(range(51)) or positions[0] != 47:
+        raise ValueError("MOTOEX must have exactly 51 legal bottom-edge positions")
+    return positions if slide else [usb["boardPos"]["col"]]
 
 def prepare_trial(original: dict, edge: bool, slide: bool, col: int) -> dict:
     if slide and not edge:
