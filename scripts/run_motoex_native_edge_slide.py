@@ -149,6 +149,7 @@ def run(args) -> bool:
     print("🧷 45 components, 123 assignments; USB=(13,47), rotation=0; OTHER LOCKS IGNORED", flush=True)
     print("↔️ Edge positions: {} | {}".format(len(columns), columns if args.slide else "fixed 47"), flush=True)
     print("🛡️ Hard pass: 24x56 + USB lock + strict electrical/geometry + vertical wires + drilled + no-stack", flush=True)
+    print("🔄 Generic drilled rotation domain: {}".format("ON" if args.drill_domain else "OFF"), flush=True)
     results = []
     solved = 0
     for seed in range(args.seed_start, args.seed_start + args.seeds):
@@ -161,7 +162,8 @@ def run(args) -> bool:
             cmd = ["node", str(contract.CLI), "--data", str(output / "input"),
                    "--id", "1", "--seed", str(seed), "--moves", str(args.moves),
                    "--native", "1", "--strict", "1", "--drilled", "1",
-                   "--nostack", "1", "--routing-preference", args.routing,
+                   "--nostack", "1", "--drill-domain", "1" if args.drill_domain else "0",
+                   "--routing-preference", args.routing,
                    "--save", str(saved_path)]
             try:
                 process = subprocess.run(cmd, cwd=FRONTEND, env=env, capture_output=True,
@@ -182,6 +184,7 @@ def run(args) -> bool:
                                 "firstFeasibleMs": result.get("firstFeasibleMs"),
                                 "incompleteNets": result.get("incompleteNets", []),
                                 "invalidDrilledOrientations": result.get("invalidDrilledOrientations", []),
+                                "knifeCuts": result.get("knifeCuts", []),
                                 "wireViolations": result.get("wireViolations", [])})
                 if saved_path.exists():
                     saved = json.loads(saved_path.read_text(encoding="utf-8"))
@@ -218,6 +221,20 @@ def run(args) -> bool:
                     part.get("component", "?"), part.get("rotation", "?"),
                     "; ".join("{} vs {}".format(*(edge.get("nets") or ["?", "?"]))
                               for edge in part.get("adjacent", []))), flush=True)
+            for cut in attempt.get("knifeCuts", []):
+                flanks = cut.get("flanks", [])
+                near = "{} / {}".format(
+                    (cut.get("nearestLeft") or {}).get("net", "BOARD EDGE"),
+                    (cut.get("nearestRight") or {}).get("net", "BOARD EDGE"))
+                flanks_text = " ".join("{}:{}{}".format(
+                    f.get("col"), "possible drill" if f.get("basicDrillCandidate") else "BLOCKED",
+                    " wires=" + str(f.get("wireEndpoints")) if f.get("wireEndpoints") else "")
+                    for f in flanks)
+                print("   🔪 KNIFE row {} between cols {}-{} | nets {} | {} | {}".format(
+                    cut["row"], cut["col"], cut["col"] + 1, near,
+                    "FORCED adjacent differing-net pins" if cut.get("forcedByAdjacentPins")
+                    else "not forced by adjacent pin pair",
+                    flanks_text), flush=True)
             for wire in attempt.get("wireViolations", []):
                 print("   ⚠️ WIRE {} [{}] {} -> {} | {}{}".format(
                     wire.get("wire"), "/".join(wire.get("netNames") or ["UNRESOLVED"]),
@@ -245,6 +262,7 @@ def run(args) -> bool:
         "USB": {"id": usb["id"], "edge": args.edge, "slide": args.slide,
                 "row": 13, "originalCol": 47, "overhangRows": overhang},
         "moves": args.moves, "routing": args.routing,
+        "drilledRotationDomain": args.drill_domain,
         "results": results
     }, indent=2) + "\n")
     print("🏁 MOTOEX native EDGE/SLIDE: {}/{} strict PASS | {}".format(
@@ -263,6 +281,8 @@ def main() -> int:
     p.add_argument("--seeds", type=int, default=1)
     p.add_argument("--moves", type=int, default=20000)
     p.add_argument("--routing", choices=["wires", "cuts"], default="wires")
+    p.add_argument("--drill-domain", type=bool_option, default=True, metavar="yes/no",
+                   help="enable or disable generic drill-only rotation-domain pruning for A/B comparison")
     p.add_argument("--timeout", type=int, default=600, help="seconds per candidate")
     p.add_argument("--out", type=Path, default=DEFAULT_OUT)
     args = p.parse_args()
