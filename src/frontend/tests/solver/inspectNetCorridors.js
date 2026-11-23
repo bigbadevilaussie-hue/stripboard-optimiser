@@ -12,7 +12,7 @@ const {expandOffBoard}=require(path.join(
 const {DEFAULT_COMPONENTS}=require("./helpers.js");
 const argv=process.argv.slice(2), ni=argv.indexOf("--net");
 const name=ni<0?null:argv[ni+1];
-const files=argv.filter((s,i)=>i!==ni && i!==ni+1);
+const files=argv.filter((s,i)=>ni<0 || (i!==ni && i!==ni+1));
 if(!files.length){console.error("Usage: node inspectNetCorridors.js file.json [...] --net netName");process.exit(64)}
 for(const file of files){
   const d=JSON.parse(fs.readFileSync(file,"utf8"));
