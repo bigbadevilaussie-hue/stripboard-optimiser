@@ -86,7 +86,7 @@ static void cbMovelog(void *ctx, int32_t off, int32_t n) { double v[2] = { off, 
 static const struct { const char *name; napi_callback w; } EXPORTS[] = {
   { "v5_reset", w_v_ }, { "v5_alloc", w_p_i }, { "v5_setExport", w_v_ii }, { "v5_init", w_p_pp }, { "v5_decode", w_i_ },
   { "v5_exportHdr", w_p_ }, { "v5_setMix", w_v_iid }, { "v5_setMixLateFrom", w_v_d }, { "v5_rngSet", w_v_u }, { "v5_rngGet", w_u_ },
-  { "v5_rand", w_d_ }, { "v5_setShape", w_v_d }, { "v5_setPullTie", w_v_i }, { "v5_labInit", w_v_ }, { "v5_labMutate", w_i_ }, { "v5_setMoveLog", w_v_i }, { "v5_annealStart", w_anneal },
+  { "v5_rand", w_d_ }, { "v5_setShape", w_v_d }, { "v5_setDrilledRotations", w_v_i }, { "v5_setPullTie", w_v_i }, { "v5_labInit", w_v_ }, { "v5_labMutate", w_i_ }, { "v5_setMoveLog", w_v_i }, { "v5_annealStart", w_anneal },
   { "v5_annealStep", w_i_ },
   { "r_reset", w_v_ }, { "r_alloc", w_p_i }, { "r_route", w_p_pp },
 };
