@@ -136,6 +136,7 @@ export function polishFixedBoardWires(
   originalBoard: Board, components: Component[], defs: ComponentDef[],
   nets: Net[], assignments: NetAssignment[], result: AutoLayoutResult,
   maxEvaluations = 6000,
+  drilledCutsOnly = true,
 ): WirePolishOutcome {
   const emptyStats = (q: Quality): WirePolishStats => ({
     tried: 0, accepted: 0, columnsMoved: 0, drillsRecovered: 0,
@@ -157,7 +158,8 @@ export function polishFixedBoardWires(
   const before = quality;
   let tried = 0, accepted = 0, columnsMoved = 0;
   // First take any safe drill upgrades that do not require moving a wire.
-  ({ cuts, quality } = drillFreeCuts(board, comps, defs, nets, assignments, obs, wires, cuts, quality));
+  if (drilledCutsOnly)
+    ({ cuts, quality } = drillFreeCuts(board, comps, defs, nets, assignments, obs, wires, cuts, quality));
   for (let pass = 0; pass < 6 && tried < maxEvaluations; pass++) {
     const routed: Board = { ...board, cuts, wires: [] };
     const segs = computeStripSegments(routed, comps, defs, assignments);
@@ -205,7 +207,7 @@ export function polishFixedBoardWires(
         // Only re-run full cut-upgrade verification if this move actually
         // frees a flank of an existing knife. Cuts that could already be
         // drilled were handled once before the column search began.
-        const freesKnife = cuts.some((cut) => cut.kind !== "hole" &&
+        const freesKnife = drilledCutsOnly && cuts.some((cut) => cut.kind !== "hole" &&
           [cut.col, cut.col + 1].some((c) => {
             const k = holeKey(cut.row, c);
             return (k === holeKey(w.from.row, w.from.col) ||
