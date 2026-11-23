@@ -88,3 +88,4 @@ The actual repository tree is authoritative; this outline is intentionally limit
 
 - Root [project.md](../project.md) is the canonical specification and implementation-status record.
 - Root [README.md](../README.md) describes the repository and inherited web application.
+- [Native CLI audit](../docs/cli-audit-2026-11-23.md) documents strict post-solve validation, finish tracing, proposal histograms and parallel benchmark scripts. These are CLI-only development improvements; the desktop GUI still uses its own qualification path.
