@@ -11,6 +11,7 @@
 //        [--nostack 1]       no wire stacking
 //        [--strict 1]        reject invalid/physically noncompliant layouts (exit 2; retain --save for diagnosis)
 //        [--move-summary 1]  count anneal outcomes in memory (no massive per-move gzip file)
+//        [--finish-trace 1]  print both repair/router candidate scores and violations (stderr)
 //        [--protect 1]       strip groups are never dissolved by the decoder (contradicting proposals refused)
 //        [--wasm <file>]     the decoder module (default components/stripboard/v5wasm/v5decode.wasm)
 //        [--routewasm <file>] the wire router module (default components/stripboard/v5wasm/v5route.wasm)
@@ -73,6 +74,7 @@ const drilled = argVal("drilled") === "1";
 const noStack = argVal("nostack") === "1";
 const strict = argVal("strict") === "1";
 const moveSummaryEnabled = argVal("move-summary") === "1";
+const finishTraceEnabled = argVal("finish-trace") === "1";
 const routingPreference = argVal("routing-preference") === "cuts" ? "cuts" : "wires";
 const exact = argVal("exact") === "1";
 const protect = argVal("protect") === "1";
@@ -243,6 +245,7 @@ try {
     ...(speedProbe ? { speedProbe, onSpeedProbe: (ms) => { process.stderr.write(`probeMs ${ms}\n`); } } : {}),
     debugSeeds: true,
     ...(timingEnabled ? { onTiming: collectSolverTiming } : {}),
+    ...(finishTraceEnabled ? { onFinishTrace: (trace) => process.stderr.write(`finishTrace ${JSON.stringify(trace)}\n`) } : {}),
     ...(dumpDir ? { onSkeleton: (s, sk) => { fs.mkdirSync(dumpDir, { recursive: true }); fs.writeFileSync(path.join(dumpDir, `${id}_s${s}.json`), JSON.stringify(sk)); } } : {}),
   });
 } catch (err) {
