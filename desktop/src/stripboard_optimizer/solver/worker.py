@@ -269,7 +269,7 @@ class SolveWorker(threading.Thread):
         if self._timing_file:
             self.q.put(("log", f"🔬 Speed profiling ON · summary every 25 seeds · full data: {self._timing_file}"))
         self.q.put(("log", f"[SOLVER] Native=ON | drilled cuts={'ON' if self.drilled else 'OFF'} | wire stacking={'BLOCKED' if self.no_wire_stacking else 'ALLOWED'} | routing priority={self.routing_preference}"))
-        self.q.put(("log", f"🏁 PASS 1: {candidates} seeds × {PASS1_MOVES:,} moves (strict Q0, 0 diag)"))
+        self.q.put(("log", f"🏁 PASS 1: {candidates} seeds × {PASS1_MOVES:,} moves (strict electrical, geometry, vertical-wire, drill/stack rules)"))
         try:
             _jd = json.loads(Path(self.project_json).read_text(encoding="utf-8"))
             _b = _jd.get("board", {})
@@ -284,6 +284,7 @@ class SolveWorker(threading.Thread):
         results = [None] * candidates
         completed = 0
         valid_count = 0
+        rejection_counts = Counter()
         duplicate_count = 0
         seen_layouts = {}
         unique_valid = []
@@ -301,9 +302,7 @@ class SolveWorker(threading.Thread):
                 results[seed - 1] = result
                 if result is not None:
                     completed += 1
-                    if (result[0] is not None
-                            and result[0].get("quality") == 0
-                            and result[0].get("offAxis", 0) == 0
+                    if (result[0] is not None and result[4]
                             and (not _lk or (result[0].get("rows") == _er and result[0].get("cols") == _ec))):
                         try:
                             signature = _layout_signature(result[1])
@@ -318,12 +317,18 @@ class SolveWorker(threading.Thread):
                         else:
                             duplicate_count += 1
                             self.q.put(("log", f"🔁 DUPLICATE: {result[3]} (seed {seed:04d}) matches {contestant_names[original_seed]} (seed {original_seed:04d}); excluded from finalist ranking"))
+                    elif result[0] is not None:
+                        for issue in result[0].get("strictFailures", ["NO_STRICT_RESULT"]):
+                            rejection_counts[issue.rsplit("_", 1)[0]] += 1
         valid = unique_valid
         ranked = sorted(valid, key=lambda result: rank_key(result[0], self.routing_preference))
         if self._cancel_event.is_set():
             self.q.put(("log", f"⏹ PASS 1 INTERRUPTED: {completed}/{candidates} completed, {len(valid)} valid"))
             return None
-        self.q.put(("log", f"🏁 PASS 1 COMPLETE: {completed}/{candidates} completed, {len(valid)} unique valid, {duplicate_count} duplicates"))
+        self.q.put(("log", f"🏁 PASS 1 COMPLETE: {completed}/{candidates} completed, {len(valid)} strict-valid unique qualifiers, {duplicate_count} duplicates"))
+        if rejection_counts:
+            self.q.put(("log", "🛑 TOP REJECTIONS: " + ", ".join(
+                f"{reason}={count}" for reason, count in rejection_counts.most_common(8))))
         if not ranked:
             return None
 
@@ -377,14 +382,11 @@ class SolveWorker(threading.Thread):
             if self._cancel_event.is_set():
                 self.q.put(("log", f"⏹ PASS 2 — INTERRUPTED at {moves:,}"))
                 break
-            def _p2v(i):
-                if not i or i[0] is None: return False
-                s = i[0]
-                if s.get("quality") != 0: return False
-                if s.get("offAxis", 0) != 0: return False
-                if _lk:
-                    if s.get("rows") != _er or s.get("cols") != _ec: return False
-                return True
+            def _p2v(item):
+                if not item or item[0] is None or not item[4]:
+                    return False
+                summary = item[0]
+                return not _lk or (summary.get("rows") == _er and summary.get("cols") == _ec)
             good = [item for item in round_results if _p2v(item)]
             for item in good:
                 seed = item[2]
