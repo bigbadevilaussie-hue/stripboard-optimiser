@@ -101,3 +101,65 @@ The previously measured **67.0% Metropolis reject-after-decode** rate remains th
 - [Baseline audit and 80-case profile](cli-audit-2026-11-23.md)
 - [v1.64 experiment framework](native-speed-lab-v164.md)
 - [Native solver / Route-Mate GUI deferred migration](route-mate-native-solver-integration-roadmap.md)
+
+---
+
+## Held-out v1.65 outcome — user-supplied iMac results (24 November 2026)
+
+**Status: completed.** The previously specified decoder held-out run finished successfully for **seeds 4–23**, **20,000 moves**, **AUDIO + corrected MOTO**, **loose + drilled/no-stack**, **two serial repeats**. The user supplied the terminal summary (original full CSVs and the individual saved project JSONs remain on the iMac, and have not been independently reviewed here).
+
+| Experimental decoder | Median solve throughput gain | Median anneal throughput gain | Exact output matches |
+|---|---:|---:|---:|
+| `grid` | +1.12% | +1.27% | 160/160 |
+| `identical` | +3.04% | +3.29% | 160/160 |
+| **`both`** | **+5.24%** | **+6.08%** | **160/160** |
+| `copy` | +0.32% | +0.10% | 160/160 |
+| `copy_both` | +5.03% | +5.91% | 160/160 |
+
+All **800 candidate comparisons** reported exact matches. Both shortcuts together are the best candidate; genome copying adds no measured benefit on this trial. Compared with the v1.64 discovery trial (`both`: +4.64% solve, +5.76% anneal, 24/24), the held-out result supports a reproducible approximately 5% gain, though individual run speed still varies. **The per-fixture / per-policy stratified CSV was not included in the supplied summary, so subgroup regressions remain unassessed.** No claim of matching the two historical WR artifacts is made from these newer input fixtures.
+
+### Opt-in build provided; regular solver still unchanged
+
+`src/frontend/package.json` now offers `npm run build:native:fast`, which compiles only the `both` C decoder into `src/frontend/tests/solver/native/build/fast/libv5decode.so`; **it does not overwrite** the default `libv5decode.so`, the router, the native addon, the browser WASM, or any world-record file.
+
+```bash
+cd ~/Documents/stripboard-optimiser
+git pull --ff-only origin main
+cd src/frontend
+npm run build:native:fast
+```
+
+The existing CLI takes the **fast C decoder via an opt-in environment variable**, with the same native engine and same unchanged CLI protocol:
+
+```bash
+cd ~/Documents/stripboard-optimiser/src/frontend
+V5_NATIVE_LIB_DIR="$PWD/tests/solver/native/build/fast" \
+node tests/solver/v5Solve.js --data /path/to/fixture-directory --id 1 \
+  --seed 4 --moves 20000 --native 1 --routing-preference wires \
+  --drilled 1 --nostack 1 --strict 1 --save /tmp/v5-fast-candidate.json
+```
+
+Unsetting `V5_NATIVE_LIB_DIR` returns to the original solver binary; the extra library exists only as a lab-side experiment. **Do not treat this opt-in binary as production-approved yet.**
+
+### Next parity gate — test different move schedules, not just more 20k seeds
+
+The 20k cases do **not** prove parity at 5k or 50k. Run 5k and 50k tests on unseen seeds (24–35), with both 24×56 projects, both routing policies and two serial repeats. Use separate output folders to preserve the original evidence:
+
+```bash
+cd ~/Documents/stripboard-optimiser && \
+set -o pipefail && \
+{
+  git pull --ff-only origin main &&
+  PYTHONPATH=scripts python3 -m unittest discover -s scripts/tests -p 'test_speed_lab_native.py' -v &&
+  python3 scripts/speed_lab_native.py \
+    --target decoder --seed-start 24 --seeds 12 --repeats 2 \
+    --moves 5000 --variants o3,both \
+    --out ~/Desktop/stripboard_speedlab_v165_5k &&
+  python3 scripts/speed_lab_native.py \
+    --target decoder --seed-start 24 --seeds 12 --repeats 2 \
+    --moves 50000 --variants o3,both \
+    --out ~/Desktop/stripboard_speedlab_v165_50k
+} 2>&1 | tee ~/Desktop/stripboard_speedlab_v165_budget_gate.log
+```
+
+Each budget entails **384 serial solves** including the reference and bookend baselines; full test **768 solves**. On completion, review **both** stratified CSVs before deciding whether `both` can be defaulted; the speed gain must not hide an adverse MOTO or drilled-only subgroup. Verify full WR input snapshots and record settings separately before promoting to the native default. **No route logic or search algorithm changed.**
