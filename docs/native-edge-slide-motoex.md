@@ -23,6 +23,17 @@ With `-DV5_EXPERIMENT_EDGE_MOUNT=1`, `v5wasm/decode.c` counts only the on-board 
 
 `npm run build:native:edge` builds a separate experimental decoder at `src/frontend/tests/solver/native/build/edge/libv5decode.so`. It also enables the previously verified grid-clear and identical-genome speed shortcuts. It does not overwrite the standard native decoder, native router, browser WASM, CLI protocol or WR artifacts.
 
+
+## Hard physical lock ratchet (post 51-position diagnostic)
+
+The first 51-position, 20k-move sweep confirmed correct 24×56 placement for 47 positions, but columns **25, 18, 12 and 8** still returned 30×56, 27×56, 28×56 and 27×56. These columns are **not infeasible**, just failed attempts: do not prune them.
+
+The opt-in C anneal now **starts with its existing soft overflow penalty** so that a tight initial genome may improve into the board. Once the first in-cap placement is accepted, overflow becomes a hard rejection for the rest of that walk. A running over-cap state can never be recorded as the returned best. The overflow-rejection branch consumes the same acceptance random draw an uphill proposed move would normally consume. Other projects and the old native decoder are unchanged.
+
+The TypeScript seed collector rejects any initial/intermediate out-of-cap events. Both routed and repaired finish candidates must fit the purchased dimensions, every cut and wire endpoint must be within those dimensions, every pin must be on-board, and non-edge rigid bodies must fit fully. **It does not just rewrite a 30×56 result as 24×56.** If no physical fit survives, it returns an explicitly **UNSOLVED: LOCK_OVERFLOW** project at the original 24×56 dimensions, with no fabricated placed parts/cuts/wires. An invalid but in-bounds candidate can still be returned for diagnostic purposes; its strict failures must be preserved.
+
+**Verification remains outstanding**: rerun the native C build, the standard tests, and a focused run on USB column 25. The expected result is either a real 24×56 routed candidate (possibly still electrically invalid) or an explicit UNSOLVED 24×56 project, never a larger board. The old 51-position sweep is evidence of the preceding bug, not proof the new ratchet passes.
+
 ## Run on the iMac
 
 ```bash
