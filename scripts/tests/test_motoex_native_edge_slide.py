@@ -7,7 +7,7 @@ import json
 import unittest
 
 import run_motoex_native_edge_slide as edge
-import test_motoex_usb_lock as contract
+contract = edge.contract
 
 
 class EdgeSlideTests(unittest.TestCase):
