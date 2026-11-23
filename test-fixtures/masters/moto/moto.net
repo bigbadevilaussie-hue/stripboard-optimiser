@@ -29,7 +29,7 @@
       (sheetpath (names "/") (tstamps "/"))
       (tstamps "9f972ac1-c5fe-429d-9eaf-eb8af0d194a7"))
     (comp (ref "C1")
-      (value "1000mf")
+      (value "1000µF")
       (footprint "Capacitor_THT:CP_Radial_D5.0mm_P2.50mm")
       (libsource (lib "Device") (part "C_Polarized") (description "Polarized Capacitor"))
       (sheetpath (names "/") (tstamps "/"))
