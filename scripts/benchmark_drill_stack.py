@@ -224,6 +224,18 @@ def final_report(records, out, moves):
     print("📁 CSV: " + str(out / "comparison.csv"), flush=True)
 
 
+def physical_cpu_count():
+    """Cap parallel native processes to physical cores (macOS sysctl)."""
+    try:
+        value = int(subprocess.check_output(["sysctl", "-n", "hw.physicalcpu"],
+                                            stderr=subprocess.DEVNULL, text=True).strip())
+        if value > 0:
+            return value
+    except (OSError, ValueError, subprocess.CalledProcessError):
+        pass
+    return max(1, os.cpu_count() or 1)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--moves", type=int, default=20000, help="Moves per seed (default: 20000)")
@@ -233,6 +245,10 @@ def main():
     if args.jobs < 1:
         parser.error("--jobs must be at least 1")
     out = args.out.expanduser().resolve()
+    cores = physical_cpu_count()
+    if args.jobs > cores:
+        print("⚠️ Requested {} native workers, limiting to {} physical cores.".format(args.jobs, cores), flush=True)
+        args.jobs = cores
     out.mkdir(parents=True, exist_ok=True)
     if not HARNESS.is_file():
         raise SystemExit("Missing solver harness: " + str(HARNESS))
