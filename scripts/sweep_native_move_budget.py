@@ -229,8 +229,10 @@ def main():
     if not baseline.is_file():
         parser.error("Missing original 80-run comparison.csv: " + str(baseline))
     out = (args.out or bench / DEFAULT_OUT).expanduser().resolve()
-    if out in (bench, bench.parent, prof.ROOT) or out == baseline.parent or out == bench / args.project:
-        parser.error("--out must be distinct from the original benchmark and project input directories")
+    protected = [bench, bench.parent, prof.ROOT, bench / "MOTO", bench / "MOTOMIX",
+                 bench / "cli_profile_v160_full80", bench / "cli_profile_v160_smoke"]
+    if out in protected or (out / "comparison.csv").exists() or (out / "projects" / "1.json").exists():
+        parser.error("--out must not replace a benchmark, input project or existing full80 profile")
     for src, built in zip(prof.SOURCE_FILES, (prof.BUILT_JS, prof.BUILT_FINISH)):
         if not built.is_file() or built.stat().st_mtime < src.stat().st_mtime:
             parser.error("Build the current TypeScript solver first: cd src/frontend && npx tsc -p tests/solver/tsconfig.json")
