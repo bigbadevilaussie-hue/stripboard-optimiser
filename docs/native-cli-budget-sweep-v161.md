@@ -104,6 +104,51 @@ python3 scripts/sweep_native_move_budget.py --jobs 4 --resume 2>&1 | tee ~/Deskt
 
 **Version separation:** `v1.61-cli-budget-sweep` identifies the new Python experiment tools; the native CLI remains **v1.60-cli-audit** and the native solver binary/scoring remains unchanged. No GUI version bump is part of this release.
 
+## Executed results — iMac native CLI sweep, 23 November 2026
+
+**Status:** the user executed the complete `v1.61-cli-budget-sweep` on the iMac, with **8/8 Python unit tests passing**, **12/12 20k fingerprints and strict verdicts matching** the archived baseline, and **36/36 budget solves completed**. There were no profile failures. The following values are transcribed from that run's terminal log; the detailed `budget_results.csv` remains on the user's Mac and has not been inspected directly here.
+
+### Full strict compliance by budget
+
+| Configuration | 20k | 100k | 500k |
+|---|---:|---:|---:|
+| DRILL_OFF_STACK_OFF | 0/3 | 0/3 | 0/3 |
+| DRILL_OFF_STACK_ON | 1/3 | 2/3 | 1/3 |
+| DRILL_ON_STACK_OFF | 0/3 | 0/3 | 0/3 |
+| DRILL_ON_STACK_ON | 0/3 | 0/3 | 2/3 |
+| **Total** | **1/12** | **2/12** | **3/12** |
+
+At **500k**, both successful drilled-only (stack-allowed) cases were MOTOMIX seeds **897 and 1036**. The *no-stacking* configurations together yielded **0/6 strict passes at every tested budget**. This is an especially strong reason to investigate no-stack's absence from the native anneal objective, but no proof yet that it is the only barrier: nonvertical wires and crossings also remain, and a strict pass additionally requires the existing electrical and geometry checks.
+
+`DRILL_OFF_STACK_ON` is non-monotonic: 1/3 → 2/3 → 1/3; seed 897 was compliant at 20k and 100k but **not** at 500k. More moves are **not** simply a continuation of the same anneal; their cooling and penalty schedules differ. The observed overall increase from 1 to 3 compliant runs is real for these 12 fixed case configurations, but the sample is too small to extrapolate to the wider 80-seed benchmark.
+
+### Failed criteria in the *electrical-first closest* finish
+
+These are **counts of cases with each failure**, which can overlap; they do not sum to the number of layouts.
+
+| Failed criterion | 20k (12) | 100k (12) | 500k (12) |
+|---|---:|---:|---:|
+| COLUMN_SHIFT (historical vertical-wires-only rule) | 11 | 9 | 4 |
+| CROSSINGS | 10 | 9 | 6 |
+| STACKED (only prohibited configurations) | 6 | 3 | 4 |
+| KNIFE (only prohibited configurations) | 6 | 4 | 2 |
+| GEOMETRY | 4 | 2 | 0 |
+| Electrical failures (closest) | 0 | 0 | 0 |
+
+**Interpretation:** Extra moves considerably improve geometry and column alignment in this subset. By 500k the closest candidate passes the geometry check in 12/12, yet 6/12 still have crossing faults and 4/12 have stacking faults under the active rules. The 20k benchmark was under-budgeted for some configurations, **but increased budget alone did not solve the stack-off modes**.
+
+For the wider original 80-run audit at 20k, the closest candidate failed COLUMN_SHIFT in 73/80, CROSSINGS in 73/80, STACKED in 38/80, KNIFE in 38/80 and GEOMETRY in 10/80. These are overlapping categories; the audit's electrical-first candidate selection differs from the actual final-selection score.
+
+### What this changes in engineering priority
+
+1. **Do not ship a finish-selector score patch** to fix this specific batch: 0 compliant candidates were lost at 20k, and no contrary result was demonstrated in the sweep. The router/repair arithmetic inconsistency remains documented.
+2. **Investigate native physical objectives next**, starting with the fact that `noWireStacking` is applied to finishing, not native anneal. The target is *actual strict-compliant yield* (drill ON, stack OFF, vertical-only, Q0, geometry and net completeness), not merely a lower energy.
+3. **Preserve the current C and TypeScript scoring as goldens** until an option-gated objective experiment and paired-seed regression tests exist. Re-evaluate using at least 100k and 500k budgets; measuring exclusively at 20k is insufficient.
+4. **Keep early rejection as a separate performance experiment**, preserving the RNG stream and requiring unchanged signatures and strict results, preferably with `--jobs 1` timings. Do not conflate faster benchmark throughput with faster individual solves.
+5. **Clarify the vertical-only constraint** before changing it: `COLUMN_SHIFT` rejects horizontal jumpers as well as true slanted jumpers. The user's eventual physical construction rule and a separate independent verifier should decide this; historical benchmarks are intentionally left unchanged meanwhile.
+
+**Current release status:** This is a recorded benchmark result, **not** a change to the native solver. CLI instrumentation remains `v1.60-cli-audit`; the experiment runner is `v1.61-cli-budget-sweep`. The GUI remains out of scope.
+
 ## Deliberately not implemented yet
 
 - **Native early rejection:** Need a conservative lower bound at the actual current anneal energy (including dynamic temperature/ramp and hard penalties) and RNG-preserving differential tests before enabling.
