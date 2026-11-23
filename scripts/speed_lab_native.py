@@ -188,7 +188,8 @@ def main():
     parser.add_argument("--target", choices=["decoder", "router"], default="decoder",
                         help="Isolate decoder or router; original other native library stays unchanged")
     parser.add_argument("--out", type=Path, default=None)
-    parser.add_argument("--seeds", type=int, default=3, help="Seeds 1..N, same across all variants")
+    parser.add_argument("--seeds", type=int, default=3, help="Number of consecutive seeds (same across variants)")
+    parser.add_argument("--seed-start", type=int, default=1, help="First seed (use unseen seeds for confirmation)")
     parser.add_argument("--repeats", type=int, default=2, help="Serial repeats, alternating variant order")
     parser.add_argument("--moves", type=int, default=20000, help="Same fixed move count per run")
     parser.add_argument("--fixtures", default="AUDIO,MOTO", help="Comma-separated AUDIO,MOTO")
@@ -204,8 +205,8 @@ def main():
     policies = [v.strip() for v in args.policies.split(",") if v.strip()]
     chosen = args.variants or ",".join(DEFAULT_VARIANTS if args.target == "decoder" else ROUTER_VARIANTS)
     variants = [v.strip() for v in chosen.split(",") if v.strip()]
-    if args.moves < 1 or args.seeds < 1 or args.repeats < 1:
-        parser.error("moves, seeds and repeats must be positive")
+    if args.moves < 1 or args.seeds < 1 or args.repeats < 1 or args.seed_start < 1:
+        parser.error("moves, seed-start, seeds and repeats must be positive")
     allowed = DEFAULT_VARIANTS if args.target == "decoder" else ROUTER_VARIANTS
     if not variants or "o3" not in variants or len(variants) != len(set(variants)) or any(v not in allowed for v in variants):
         parser.error("--variants must include o3, with unique recognised variant names")
@@ -242,7 +243,7 @@ def main():
         "original_build_target_sha256": sha256((ORIGINAL_BUILD / LIB_NAMES[args.target]).read_bytes()),
         "compiler": info.stdout.split("\n", 1)[0],
         "machine": platform.platform(), "native": True, "moves": args.moves,
-        "seeds": list(range(1, args.seeds + 1)), "repeats": args.repeats,
+        "seeds": list(range(args.seed_start, args.seed_start + args.seeds)), "repeats": args.repeats,
         "fixtures": fixtures, "policies": policies, "variants": variants,
         "serial": True,
     }
@@ -268,7 +269,7 @@ def main():
     allrows, invalid = [], set()
     for fixture in fixtures:
         for policy in policies:
-            for seed in range(1, args.seeds + 1):
+            for seed in range(args.seed_start, args.seed_start + args.seeds):
                 for rep in range(1, args.repeats + 1):
                     ordered = [v for v in variants if dirs[v] is not None and v != "o3"]
                     if (seed + rep) % 2:
@@ -352,6 +353,30 @@ def main():
         summary.append(s)
     if summary:
         append_csv(out / "speed_lab_summary.csv", summary, list(summary[0]))
+    # A pooled median can hide a regression on either benchmark. Emit every
+    # project/policy subgroup, including the proportion of paired wins.
+    grouped = []
+    for v in variants:
+        for fixture in fixtures:
+            for policy in policies:
+                subset = [r for r in allrows if r["variant"] == v and
+                          r["fixture"] == fixture and r["policy"] == policy]
+                if not subset:
+                    continue
+                good = [r for r in subset if r["status"] == "MATCH"]
+                solve_pct = [r["solveSpeedupPct"] for r in good if r["solveSpeedupPct"] is not None]
+                anneal_pct = [r["annealSpeedupPct"] for r in good if r["annealSpeedupPct"] is not None]
+                grouped.append({
+                    "variant": v, "fixture": fixture, "policy": policy,
+                    "matches": len(good), "samples": len(subset),
+                    "medianSolveSpeedupPct": round(statistics.median(solve_pct), 2) if solve_pct else None,
+                    "medianAnnealSpeedupPct": round(statistics.median(anneal_pct), 2) if anneal_pct else None,
+                    "solveWins": sum(x > 0 for x in solve_pct),
+                    "annealWins": sum(x > 0 for x in anneal_pct),
+                    "status": "MATCH" if len(good) == len(subset) else "REJECTED",
+                })
+    if grouped:
+        append_csv(out / "speed_lab_stratified.csv", grouped, list(grouped[0]))
     print("\n📈 SPEED LAB RESULTS (serial, paired):", flush=True)
     for s in summary:
         print("{} {:14s} median solve {:+.2f}% | anneal {:+.2f}% | {}/{} matching".format(
@@ -360,6 +385,7 @@ def main():
             s["tests"] - s["mismatches"], s["tests"]), flush=True)
     print("📁 Full results: {}".format(out / "speed_lab_raw.csv"), flush=True)
     print("📁 Summary: {}".format(out / "speed_lab_summary.csv"), flush=True)
+    print("📁 MOTO/AUDIO by-policy breakdown: {}".format(out / "speed_lab_stratified.csv"), flush=True)
     print("⚠️ Exploratory timings only; repeat promising variants with more seeds and ABBA interleaving.", flush=True)
     if invalid:
         raise SystemExit("REJECTED: {} variant(s) altered output: {}".format(len(invalid), ",".join(sorted(invalid))))
