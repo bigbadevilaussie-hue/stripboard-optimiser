@@ -432,6 +432,45 @@ export function computeAutoLayout5(
 
   const lockedColsCap = board.lockedCols ? board.cols : undefined;
   const lockedRowsCap = board.lockedRows ? board.rows : undefined;
+  // Only explicitly opt-in Edge mounts use this stricter selection while
+  // the native C placement ratchet is being proven against the WR baseline.
+  // Unrelated projects retain their old seed, finish and signature sequence.
+  const physicalEdgeLock = parts.some((p) => p.locked && p.comp.edge === true);
+  const onPurchasedBoard = (p: BoardPosition): boolean =>
+    Number.isInteger(p.row) && Number.isInteger(p.col) &&
+    p.row >= 0 && p.col >= 0 &&
+    (lockedRowsCap === undefined || p.row < lockedRowsCap) &&
+    (lockedColsCap === undefined || p.col < lockedColsCap);
+  const physicalFit = (result: AutoLayoutResult): boolean => {
+    if (!result.boardSize) return false;
+    if (lockedRowsCap !== undefined && result.boardSize.rows !== lockedRowsCap) return false;
+    if (lockedColsCap !== undefined && result.boardSize.cols !== lockedColsCap) return false;
+    if (result.cuts.some((cut) => !onPurchasedBoard(cut))) return false;
+    if (result.wires.some((wire) => !onPurchasedBoard(wire.from) || !onPurchasedBoard(wire.to))) return false;
+    const lookup = new Map(components.map((comp) => [comp.id, comp]));
+    for (const placement of result.placements) {
+      const original = lookup.get(placement.componentId);
+      if (!original || !onPurchasedBoard(placement.boardPos)) return false;
+      const def = resolveComponentDef(original, componentDefs);
+      if (!def) return false;
+      const positioned = { ...original, boardPos: placement.boardPos,
+        rotation: placement.rotation ?? original.rotation, flexibleEndPos: placement.flexibleEndPos };
+      for (const pin of getComponentPinPositions(positioned, def))
+        if (!onPurchasedBoard(pin)) return false;
+      if (!def.flexible && !(original.locked && original.edge)) {
+        const bounds = getComponentBounds(def, placement.boardPos, positioned.rotation);
+        if (!onPurchasedBoard({ row: bounds.minRow, col: bounds.minCol }) ||
+            !onPurchasedBoard({ row: bounds.maxRow, col: bounds.maxCol })) return false;
+      }
+    }
+    return true;
+  };
+  const unsolvedPhysicalLock = (): AutoLayoutResult => ({
+    ...emptyResult(["UNSOLVED: LOCK_OVERFLOW — no finished candidate fits the purchased board"]),
+    boardSize: { rows: board.rows, cols: board.cols },
+    quality: 1,
+    unplaceIds: components.filter((c) => !c.boardExcluded).map((c) => c.id),
+  });
   const seedsN = Math.max(1, options?.seeds ?? 6);
   // quality cap by pin count, measured on the hand-built corpus
   // (2026-09-08): up to ~16 pins a run is done well before 40k moves; from
@@ -871,13 +910,19 @@ export function computeAutoLayout5(
       const g = c.g as Genome, d = decodedOf(g, c.o);
       if (options?.onTiming) { extractMs += performance.now() - extractStart; extractCount++; }
       it = c.it;
+      // The C loop may start outside the lock to escape a crowded board.
+      // Such a traversal state is never a viable returned incumbent.
+      if (physicalEdgeLock && (c.o.lockOver !== 0 ||
+          (lockedRowsCap !== undefined && d.H > lockedRowsCap) ||
+          (lockedColsCap !== undefined && d.W > lockedColsCap))) continue;
       if (!best) tStart = performance.now();
       else if (exactOn && c.frac >= 0.5) {
         exactN++;
         const exactStart = options?.onTiming ? performance.now() : 0;
         const r = finishRepair(board, components, componentDefs, nets, netAssignments, skeletonOf(cloneG(g), d, true), finishOpts);
         if (options?.onTiming) { exactRepairMs += performance.now() - exactStart; exactCount++; }
-        if (r && r.ok && (!exact || r.score < exact.score)) exact = { final: r.final, score: r.score };
+        if (r && r.ok && (!physicalEdgeLock || physicalFit(r.final)) &&
+            (!exact || r.score < exact.score)) exact = { final: r.final, score: r.score };
       }
       best = { E: c.E, g, d };
     }
@@ -1003,7 +1048,10 @@ export function computeAutoLayout5(
     const routed = finishSkeleton(board, components, componentDefs, nets, netAssignments, sk, tracedFinishOpts);
     const routeMs = profiling ? performance.now() - routeStart : 0;
     options?.onTiming?.({ skeletonMs: skMs, repairMs, routeMs });
-    const repairWins = !!(repaired && repaired.ok && repaired.score < routed.score);
+    const repairWins = !!(repaired &&
+      (!physicalEdgeLock || physicalFit(repaired.final)) &&
+      ((physicalEdgeLock && !physicalFit(routed.final)) ||
+       (repaired.ok && repaired.score < routed.score)));
     if (options?.onFinishTrace) {
       const describe = (candidate: { final: AutoLayoutResult; score: number; ok?: boolean;
         scoreTerms?: { quality: number; overCap: number; offAxis: number; crossings: number; stacked: number;
@@ -1161,18 +1209,28 @@ export function computeAutoLayout5(
   // pins no board can wire leave their nets open whatever the search does:
   // name them, so the result says why and what to change
   const unreachable = unreachablePins(components, componentDefs, netAssignments).map(unreachablePinsIssue);
-  if (seedBests.length === 0) return emptyResult([...unreachable, "auto-layout found no feasible arrangement"]);
+  if (seedBests.length === 0) {
+    return physicalEdgeLock ? unsolvedPhysicalLock()
+      : emptyResult([...unreachable, "auto-layout found no feasible arrangement"]);
+  }
   seedBests.sort((a, b) => a.E - b.E);
   let bestFin: { final: AutoLayoutResult; score: number } | null = null;
   const finalists = seedBests.slice(0, 4);
   finalists.forEach((r, i) => {
     report("place", i / finalists.length);
     const f = finalize(r.g, r.d, r.seed);
+    if (physicalEdgeLock && !physicalFit(f.final)) return;
     if (!bestFin || f.score < bestFin.score) bestFin = f;
   });
   // the exact bests of every seed, finalist or not
-  for (const r of seedBests) if (r.exact && (!bestFin || r.exact.score < bestFin.score)) bestFin = r.exact;
+  for (const r of seedBests) if (r.exact &&
+    (!physicalEdgeLock || physicalFit(r.exact.final)) &&
+    (!bestFin || r.exact.score < bestFin.score)) bestFin = r.exact;
   report("place", 1);
-  const final: AutoLayoutResult = bestFin!.final;
+  // Do not disguise an overflow by clamping a larger routed board's dimensions.
+  // Emit a clean, explicitly UNSOLVED 24x56 board instead, with no illegal copper.
+  if (!bestFin) return physicalEdgeLock ? unsolvedPhysicalLock()
+    : emptyResult([...unreachable, "auto-layout produced no usable finish"]);
+  const final: AutoLayoutResult = bestFin.final;
   return unreachable.length ? { ...final, issues: [...unreachable, ...final.issues] } : final;
 }
