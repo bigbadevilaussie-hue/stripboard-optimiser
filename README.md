@@ -21,7 +21,7 @@ Further development and release capabilities include:
 
 The detailed requirements and staged development plan are maintained in [project.md](project.md).
 
-**Native CLI development:** [CLI audit, strict validation and performance diagnostics (23 Nov 2026)](docs/cli-audit-2026-11-23.md) and [200-run ladder plus 80-run physical-rule benchmark](docs/native-solver-benchmark-2026-11-23.md). The default solver's physical-rule flags are not hard guarantees; audit validation and profiling are under active development.
+**Native CLI development:** [v1.61 CLI-only budget sweep and failure matrix](docs/native-cli-budget-sweep-v161.md), [native CLI validation/diagnostics](docs/cli-audit-2026-11-23.md), and [80-run physical-rule benchmark](docs/native-solver-benchmark-2026-11-23.md). Current work is CLI-only; GUI integration can remain stale. The default solver's physical-rule flags are not hard guarantees; longer search budgets are being tested before altering the annealer.
 
 ## Development working agreement (v1)
 
