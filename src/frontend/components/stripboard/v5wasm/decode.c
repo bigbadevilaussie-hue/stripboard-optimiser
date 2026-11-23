@@ -1467,7 +1467,16 @@ EXPORT(v5_setDrilledRotations) void v5_setDrilledRotations(i32 enabled) {
 }
 static i32 drillNextRotation(i32 k, i32 old) {
   i32 mask = drillRotMask[k];
-  if (halfTurn[k]) mask &= (old & 1) ? 0xA : 0x5;
+  if (halfTurn[k]) {
+    // Preserve the original deterministic half-turn and its RNG stream
+    // whenever the alternative remains in the allowed domain.
+    i32 next = (old + 2) % 4;
+    return (mask & (1 << next)) ? next : old;
+  }
+  // All rotations available: identical choice and RNG usage to the
+  // unmodified annealer, so unrelated components keep their trajectory.
+  if ((mask | (1 << old)) == 0xF)
+    return (old + 1 + rint_(3)) % 4;
   mask &= ~(1 << old);
   i32 count = 0;
   for (i32 r = 0; r < 4; r++) if (mask & (1 << r)) count++;
