@@ -338,6 +338,26 @@ export function computeAutoLayout5(
       continue;
     }
     const locked = !!(c.locked && c.boardPos);
+    if (c.slide && (!locked || !c.edge)) {
+      throw new Error(`Slide requires Locked + Edge and a board position for "${c.label}"`);
+    }
+    if (c.edge && locked) {
+      if (def.flexible) {
+        throw new Error(`Edge mounts currently require a rigid footprint for "${c.label}"`);
+      }
+      if (!board.lockedRows || !board.lockedCols) {
+        throw new Error(`Edge mounts require both physical board dimensions locked for "${c.label}"`);
+      }
+      const pins = getRotatedPinPositions(def, c.boardPos!, c.rotation);
+      if (!pins.length || pins.some((pin) => pin.row < 0 || pin.row >= board.rows || pin.col < 0 || pin.col >= board.cols)) {
+        throw new Error(`Edge mount "${c.label}" has a pin outside the physical board`);
+      }
+      const b = getComponentBounds(def, c.boardPos!, c.rotation);
+      const touchesEdge = b.minRow <= 0 || b.minCol <= 0 || b.maxRow >= board.rows - 1 || b.maxCol >= board.cols - 1;
+      if (!touchesEdge) {
+        throw new Error(`Edge mount "${c.label}" neither touches nor overhangs a board edge`);
+      }
+    }
     const isConn = def.category === "connector";
     if (def.flexible) {
       const p0 = def.pins[0];
@@ -501,7 +521,11 @@ export function computeAutoLayout5(
     return {
       parts: parts.map((p, pi) => {
         const sidesOf = options?.connSidesOf?.(p.comp.id);
-        const common = { locked: p.locked, isConn: p.isConn, clr: clrOf[pi], lines: linesOf[pi], fat: fatOf[pi], sides: sidesOf ? sideMask(sidesOf) : -1 };
+        // The existing pSides i32 is unused for locked parts; -2 is the
+        // backwards-compatible native ABI tag for a deliberate edge mount.
+        // It is ignored by ordinary unlocked connector side-mask handling.
+        const edgeMount = p.locked && p.comp.edge === true && p.kind === "rigid";
+        const common = { locked: p.locked, isConn: p.isConn, clr: clrOf[pi], lines: linesOf[pi], fat: fatOf[pi], sides: edgeMount ? -2 : sidesOf ? sideMask(sidesOf) : -1 };
         if (p.kind === "rigid") {
           const lockRot = p.locked ? Math.max(0, (ROTS as number[]).indexOf(p.comp.rotation)) : 0;
           const lsh = p.shapes.get(ROTS[lockRot])!;
