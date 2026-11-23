@@ -987,11 +987,13 @@ export function computeAutoLayout5(
         });
         const knife = fin.cuts.filter((c) => c.kind !== "hole").length;
         const avoidableKnife = avoidableBetweenCuts(fin.cuts, virtual, componentDefs);
-        const diagonals = fin.wires.filter((w) => w.from.col !== w.to.col).length;
+        const columnShiftWires = fin.wires.filter((w) => w.from.col !== w.to.col).length;
+        const slantedWires = fin.wires.filter((w) => w.from.col !== w.to.col && w.from.row !== w.to.row).length;
+        const horizontalWires = columnShiftWires - slantedWires;
         const stacked = fin.wires.filter((w, i) => wireStackDepth(w.from, w.to, fin.wires.slice(0, i)) > 0).length;
         return {
           score: candidate.score, eligible: candidate.ok ?? null, quality: fin.quality,
-          diagonals, crossings: wireMessScore(fin, virtual, componentDefs).crossings,
+          columnShiftWires, slantedWires, horizontalWires, crossings: wireMessScore(fin, virtual, componentDefs).crossings,
           stacked, knife, forcedKnife: knife - avoidableKnife, avoidableKnife,
           wires: fin.wires.length, cuts: fin.cuts.length, issues: fin.issues,
         };
