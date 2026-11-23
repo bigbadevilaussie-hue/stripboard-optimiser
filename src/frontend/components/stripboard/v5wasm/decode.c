@@ -958,7 +958,16 @@ static i32 decode(void) {
   // rim rows serve as bus rows
   GH = H + 2 * mRow; GW = W + 2 * mCol;
   ensureGrid((GH + 1) * GW, GH, GW);
+#ifdef V5_EXPERIMENT_FAST_GRID_CLEAR
+  // Opt-in native speed experiment: exact same byte representations as 0/-1
+  // for the C int8_t/int32_t grid arrays. Deliberately off in release builds.
+  // Our paired-seed harness must establish both bit-identical boards and speed.
+  __builtin_memset(occ, 0, (u32)(GH * GW));
+  __builtin_memset(owner, 0xff, (u32)(GH * GW) * sizeof(i32));
+  __builtin_memset(pinNetAt, 0xff, (u32)(GH * GW) * sizeof(i32));
+#else
   for (i32 i = 0; i < GH * GW; i++) { occ[i] = 0; owner[i] = -1; pinNetAt[i] = -1; }
+#endif
   overlapBad = 0;
   // a pin without a net still breaks the strip it sits on (the router isolates
   // floating pins), so it claims a private pseudo-net: the cuts it forces get
@@ -1725,7 +1734,26 @@ EXPORT(v5_annealStep) i32 v5_annealStep(void) {
     }
     if (!ok) { if (mlOn) mlRecord(L_it, 0, 0, 0, 0, 0, 0); continue; }
     refHdr[0] = 1;
-    i32 st = decode();
+    i32 st;
+#ifdef V5_EXPERIMENT_FAST_IDENTICAL_GENOME
+    // Opt-in native experiment only: no new board can result if every genome
+    // field is byte-identical to the accepted state. Mutate has already drawn
+    // its RNG calls; the normal Metropolis/accept path still runs unchanged.
+    // Do NOT shortcut same-*board* proposals: genomes with equivalent boards
+    // may have different future transitions, including strip-group drift.
+    i32 identical =
+      __builtin_memcmp(gGp, cGp, (u32)nP * sizeof(i32)) == 0 &&
+      __builtin_memcmp(gGn, cGn, (u32)nP * sizeof(i32)) == 0 &&
+      __builtin_memcmp(gRot, cRot, (u32)nRigid * sizeof(i32)) == 0 &&
+      __builtin_memcmp(gHv, cHv, (u32)nFlex * sizeof(i32)) == 0 &&
+      __builtin_memcmp(gBr, cBr, (u32)nFlex * sizeof(i32)) == 0 &&
+      __builtin_memcmp(gGap, cGap, (u32)nP * sizeof(i32)) == 0 &&
+      __builtin_memcmp(gXgap, cXgap, (u32)nP * sizeof(i32)) == 0 &&
+      __builtin_memcmp(gGrp, cGrp, (u32)nNP * sizeof(i32)) == 0;
+    st = identical ? 1 : decode();
+#else
+    st = decode();
+#endif
     if (!st) { if (mlOn) mlRecord(L_it, 1, 0, 0, 0, 0, 0); continue; }
     double w = dmin(W_MESS, L_rampStart * js_pow(W_MESS / L_rampStart, itV / L_rampEnd));
     double hardScale = L_hardStart >= 1 ? 1 : dmin(1, L_hardStart * js_pow(1 / L_hardStart, itV / L_rampEnd));
