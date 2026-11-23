@@ -49,7 +49,7 @@ const argVal = (name) => {
   const i = args.indexOf(`--${name}`);
   return i >= 0 ? args[i + 1] : undefined;
 };
-const CLI_AUDIT_VERSION = "v1.59-cli-audit";
+const CLI_AUDIT_VERSION = "v1.60-cli-audit";
 const valueFlags = new Set([
   "data", "drilled", "dump", "effort", "exact", "finish-trace", "hint", "id",
   "levels", "macro", "macrogap", "mincompress", "mix", "move-summary", "movelog",
@@ -200,6 +200,63 @@ const blankComps = data.components.map((c) => (
 ));
 const blankBoard = { ...data.board, cuts: [], wires: [] };
 const timingInputEnd = performance.now();
+
+// Harness-only validation for BOTH finish candidates. The normal solver still
+// makes its original selection; these checks are never fed into it.
+const traceView = finishTraceEnabled ? expandOffBoard(blankComps, defs, asg) : null;
+function validateFinishCandidate(final, shown) {
+  if (!final || !shown || !traceView) return null;
+  const placements = new Map(final.placements.map((p) => [p.componentId, p]));
+  const comps = traceView.components.map((c) => {
+    const p = placements.get(c.id);
+    return p ? { ...c, boardPos: p.boardPos,
+      ...(p.rotation !== undefined ? { rotation: p.rotation } : {}),
+      ...(p.flexibleEndPos !== undefined ? { flexibleEndPos: p.flexibleEndPos } : {}) } : c;
+  });
+  const board = { ...blankBoard, ...(final.boardSize ?? {}),
+    cuts: final.cuts, wires: final.wires.map((w, i) => ({ id: `trace-w${i}`, ...w })) };
+  const electrical = verify(board, comps, nets, traceView.netAssignments, defs);
+  const geometry = checkGeometry(board, comps, defs).length;
+  const physical = metrics(board, comps, defs, nets, traceView.netAssignments);
+  const incomplete = Array.isArray(electrical.incomplete) ? electrical.incomplete.length : electrical.incomplete;
+  const lockedComponents = blankComps.filter((c) => c.locked && c.boardPos);
+  const lockedPartsKept = lockedComponents.every((c) => {
+    const p = placements.get(c.id);
+    if (!p) return true; // a locked component excluded from placements retains its original position
+    return p.boardPos?.row === c.boardPos.row && p.boardPos?.col === c.boardPos.col &&
+      (p.rotation ?? c.rotation ?? 0) === (c.rotation ?? 0);
+  });
+  const lockedBoardKept = (!blankBoard.lockedRows || board.rows === blankBoard.rows) &&
+    (!blankBoard.lockedCols || board.cols === blankBoard.cols);
+  const fails = [];
+  if (final.quality !== 0) fails.push("QUALITY");
+  if (electrical.conflicts !== 0) fails.push("CONFLICTS");
+  if (incomplete !== 0) fails.push("INCOMPLETE");
+  if (geometry !== 0) fails.push("GEOMETRY");
+  // Historical strict rule: every jumper must be vertical. This includes
+  // horizontal links as a failure, not just genuine slanted links.
+  if (shown.columnShiftWires !== 0) fails.push("COLUMN_SHIFT");
+  if (physical.crossings !== 0) fails.push("CROSSINGS");
+  if (final.issues?.length) fails.push("ISSUES");
+  if (!lockedPartsKept) fails.push("LOCKED_PART");
+  if (!lockedBoardKept) fails.push("LOCKED_BOARD");
+  if (drilled && shown.knife !== 0) fails.push("KNIFE");
+  if (noStack && shown.stacked !== 0) fails.push("STACKED");
+  return { compliant: fails.length === 0, failReasons: fails, conflicts: electrical.conflicts,
+    incomplete, geometry, crossingsHarness: physical.crossings, lockedBoardKept, lockedPartsKept };
+}
+function emitFinishTrace(trace) {
+  const { rawCandidates, ...visible } = trace;
+  for (const which of ["repair", "router"]) {
+    if (visible[which] && rawCandidates?.[which]) {
+      visible[which] = { ...visible[which],
+        verification: validateFinishCandidate(rawCandidates[which], visible[which]) };
+    }
+  }
+  visible.anyCompliant = !!(visible.repair?.verification?.compliant || visible.router?.verification?.compliant);
+  visible.selectedCompliant = !!visible[visible.selected]?.verification?.compliant;
+  process.stderr.write(`finishTrace ${JSON.stringify(visible)}\n`);
+}
 if (stackCap && stackMin) {
   const placeable = new Set(blankComps.filter((c) => !c.boardExcluded).map((c) => c.id));
   if (asg.filter((a) => placeable.has(a.componentId)).length < stackMin) stackCap = undefined;
@@ -277,7 +334,7 @@ try {
     ...(speedProbe ? { speedProbe, onSpeedProbe: (ms) => { process.stderr.write(`probeMs ${ms}\n`); } } : {}),
     debugSeeds: true,
     ...(timingEnabled ? { onTiming: collectSolverTiming } : {}),
-    ...(finishTraceEnabled ? { onFinishTrace: (trace) => process.stderr.write(`finishTrace ${JSON.stringify(trace)}\n`) } : {}),
+    ...(finishTraceEnabled ? { onFinishTrace: emitFinishTrace } : {}),
     ...(dumpDir ? { onSkeleton: (s, sk) => { fs.mkdirSync(dumpDir, { recursive: true }); fs.writeFileSync(path.join(dumpDir, `${id}_s${s}.json`), JSON.stringify(sk)); } } : {}),
   });
 } catch (err) {
@@ -427,6 +484,12 @@ console.log(JSON.stringify({
   issues: res.issues,
   ...(strict ? { cliVersion: CLI_AUDIT_VERSION, strictValid: strictFailures.length === 0, strictFailures,
     diagonalsActual, slantedWires, horizontalWires } : {}),
-  ...(moveSummary ? { moveSummary } : {}),
+  ...(moveSummary ? { moveSummary: { ...moveSummary, percent: {
+    mutateFailed: +(100 * moveSummary.mutateFailed / Math.max(1, moveSummary.attempted)).toFixed(2),
+    decodeFailed: +(100 * moveSummary.decodeFailed / Math.max(1, moveSummary.attempted)).toFixed(2),
+    rejected: +(100 * moveSummary.rejected / Math.max(1, moveSummary.attempted)).toFixed(2),
+    accepted: +(100 * moveSummary.accepted / Math.max(1, moveSummary.attempted)).toFixed(2),
+    sameBoard: +(100 * moveSummary.sameBoard / Math.max(1, moveSummary.attempted)).toFixed(2),
+  } } } : {}),
 }));
 if (strict && strictFailures.length) process.exitCode = 2;
