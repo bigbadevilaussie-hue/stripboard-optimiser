@@ -129,6 +129,7 @@ class SolveWorker(threading.Thread):
                 moves=moves, native=self.native, drilled=self.drilled,
                 no_wire_stacking=self.no_wire_stacking,
                 routing_preference=self.routing_preference,
+                on_log=(lambda message: self.q.put(("log", message))) if os.environ.get("STRIPBOARD_TIMING") == "1" else None,
                 on_progress=lambda current_seed, fraction: self.q.put(
                     ("progress", current_seed, fraction)
                 ),
