@@ -1,4 +1,4 @@
-APP_VERSION = "v1.57"
+APP_VERSION = "v1.58-debug"
 """Background worker for running isolated v5 solver seeds."""
 
 import json
@@ -67,7 +67,7 @@ class SolveWorker(threading.Thread):
     def __init__(
         self, project_json, mode, q, parallel=None, native=False, drilled=False,
         no_wire_stacking=False, routing_preference="wires", manual_seeds=None,
-        manual_seed_base=0, manual_effort=None, tournament_candidates=1000,
+        manual_seed_base=0, manual_effort=None, tournament_candidates=200,
         tournament_finalists=10000, output_dir=None,
     ):
         super().__init__(daemon=True)
@@ -123,6 +123,7 @@ class SolveWorker(threading.Thread):
             return sum(float(t.get(key) or 0) for t in batch) / len(batch)
         total = avg("totalMs")
         solve = avg("solveMs")
+        detailed = any("annealMs" in t for t in batch)
         clean = sum(1 for t in batch if not (t.get("conflicts") or t.get("incomplete") or t.get("geo")))
         self.q.put(("log",
             f"⏱ SPEED {count - len(batch) + 1}–{count} · "
@@ -132,6 +133,13 @@ class SolveWorker(threading.Thread):
             f"💻 CPU {avg('cpuMs'):.0f}ms · "
             f"✅ {clean}/{len(batch)} clean · "
             f"📦 {avg('rssMb'):.0f}MB"
+            + (f" · 🔁 anneal {avg('annealMs'):.0f}ms"
+               f" · 🧬 extract {avg('extractMs'):.0f}ms"
+               f" · 🦴 skeleton {avg('skeletonMs'):.0f}ms"
+               f" · 🩹 repair {avg('repairMs'):.0f}ms"
+               f" · 🧭 route {avg('routeMs'):.0f}ms"
+               f" · 🧩 exact {avg('exactRepairMs'):.0f}ms"
+               if detailed else " · ⚠️ rebuild frontend solver for deep timings")
         ))
 
     def cancel(self):
