@@ -972,12 +972,18 @@ export function computeAutoLayout5(
     const repaired = finishRepair(board, components, componentDefs, nets, netAssignments, sk, finishOpts);
     const repairMs = profiling ? performance.now() - repairStart : 0;
     const routeStart = profiling ? performance.now() : 0;
-    const routed = finishSkeleton(board, components, componentDefs, nets, netAssignments, sk, finishOpts);
+    const routePhases: Record<string, number> = {};
+    const tracedFinishOpts = options?.onFinishTrace ? { ...finishOpts,
+      onPhaseTiming: (stage: string, ms: number) => { routePhases[stage] = (routePhases[stage] ?? 0) + ms; },
+    } : finishOpts;
+    const routed = finishSkeleton(board, components, componentDefs, nets, netAssignments, sk, tracedFinishOpts);
     const routeMs = profiling ? performance.now() - routeStart : 0;
     options?.onTiming?.({ skeletonMs: skMs, repairMs, routeMs });
     const repairWins = !!(repaired && repaired.ok && repaired.score < routed.score);
     if (options?.onFinishTrace) {
-      const describe = (candidate: { final: AutoLayoutResult; score: number; ok?: boolean } | null) => {
+      const describe = (candidate: { final: AutoLayoutResult; score: number; ok?: boolean;
+        scoreTerms?: { quality: number; overCap: number; offAxis: number; crossings: number; stacked: number;
+          mess: number; qualityCost: number; messCost: number; price: number } } | null) => {
         if (!candidate) return null;
         const fin = candidate.final;
         const pl = new Map(fin.placements.map((p) => [p.componentId, p]));
@@ -992,7 +998,8 @@ export function computeAutoLayout5(
         const horizontalWires = columnShiftWires - slantedWires;
         const stacked = fin.wires.filter((w, i) => wireStackDepth(w.from, w.to, fin.wires.slice(0, i)) > 0).length;
         return {
-          score: candidate.score, eligible: candidate.ok ?? null, quality: fin.quality,
+          score: candidate.score, scoreTerms: candidate.scoreTerms ?? null,
+          eligible: candidate.ok ?? null, quality: fin.quality,
           columnShiftWires, slantedWires, horizontalWires, crossings: wireMessScore(fin, virtual, componentDefs).crossings,
           stacked, knife, forcedKnife: knife - avoidableKnife, avoidableKnife,
           wires: fin.wires.length, cuts: fin.cuts.length, issues: fin.issues,
@@ -1000,7 +1007,10 @@ export function computeAutoLayout5(
       };
       options.onFinishTrace({
         seed: seed ?? null, selected: repairWins ? "repair" : "router",
-        repair: describe(repaired), router: describe(routed),
+        repair: describe(repaired), router: describe(routed), routePhases,
+        // CLI consumers validate candidates against the same project-level electrical
+        // and geometry checkers; never emit these raw boards in stderr traces.
+        rawCandidates: { repair: repaired?.final ?? null, router: routed.final },
       });
     }
     return repairWins ? { final: repaired!.final, score: repaired!.score } : routed;
