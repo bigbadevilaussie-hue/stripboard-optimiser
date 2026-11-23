@@ -64,7 +64,18 @@ floating.setDrilledRotationDomain(true);
 assert.equal(floating.labInit().rot[0], 1, "floating pins each require isolation");
 const half = decoder([0, 1], false, true);
 half.setDrilledRotationDomain(true);
-assert.equal(half.labInit().rot[0], 1, "half-turn part may start in allowed odd parity");
+const halfStart = half.labInit();
+assert.equal(halfStart.rot[0], 0, "half-turn-only starts in its 0/180 capability domain");
+half.writeGenome(halfStart);
+assert.equal(half.decode().status, 0, "no admissible drill rotation when 0/180 are both impossible");
+const halfLegal = decoder([0, 0], false, true);
+halfLegal.setDrilledRotationDomain(true);
+const legalStart = halfLegal.labInit();
+assert.equal(legalStart.rot[0], 0);
+for (let i = 0; i < 100; i++) {
+  const next = halfLegal.labMutate(legalStart);
+  if (next) assert.ok([0, 2].includes(next.rot[0]), "half-turn move must preserve 0/180");
+}
 const locked = decoder([0, 1], true);
 locked.setDrilledRotationDomain(true);
 const fixed = locked.labInit();
