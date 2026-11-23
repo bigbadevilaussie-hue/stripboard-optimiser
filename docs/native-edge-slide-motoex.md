@@ -24,6 +24,25 @@ With `-DV5_EXPERIMENT_EDGE_MOUNT=1`, `v5wasm/decode.c` counts only the on-board 
 `npm run build:native:edge` builds a separate experimental decoder at `src/frontend/tests/solver/native/build/edge/libv5decode.so`. It also enables the previously verified grid-clear and identical-genome speed shortcuts. It does not overwrite the standard native decoder, native router, browser WASM, CLI protocol or WR artifacts.
 
 
+## Fixed-board exact wire-column and drill-hole polish (experimental)
+
+`components/stripboard/wireColumnPolish.ts` is a **generic**, opt-in v5 post-finisher operating on a fixed physical board. It **never moves components, expands the board, changes net assignments or deletes wires**. For an existing jumper, it finds the copper segment occupied by each endpoint and searches their shared available columns. The proposed jumper is vertical, and its endpoint holes must be free of component pins/bodies/cuts and other wire endpoints. It also considers a slanted jumper when its source and destination strips have a common column.
+
+The actual board is rechecked for every proposed wire/cut change with the independent `computeStripSegments`, `computeConnectivity`, `checkNetCompleteness`, component-body crossing and `wireStackDepth` checks. A move is accepted only when it **does not increase** electrical conflicts, incomplete nets, nonvertical wires, component crossings, stacks or knife cuts, and improves the strict physical defect score or wire length. After freeing a knife-cut flank, the pass attempts converting a between-hole cut to a drilled hole, again checking the entire board. The original result is returned if nothing improves or a final verification fails. This is not a proof that every unsolved layout can be repaired by column changes: disconnected nets without a common copper column still require placement/routing search.
+
+The v5 integration is controlled via `AutoLayout5Options.wirePolish` (default **OFF**) and CLI `--wire-polish 1`; the fixture runner accepts `--wire-polish yes` (default no), and prints before/after metrics and stack partners. Default-off preserves historical signature comparisons. The generic unit test is `node tests/solver/testWireColumnPolish.js` after `npx tsc -p tests/solver/tsconfig.json`.
+
+**No re-annealing required** to validate the first local pass on previously saved boards:
+
+```sh
+cd src/frontend
+node tests/solver/inspectSavedCuts.js /path/to/saved.json
+node tests/solver/inspectNetCorridors.js /path/to/saved.json --net net6
+node tests/solver/polishSavedLayout.js /path/to/saved.json --out /path/to/polished-copy.json
+```
+
+The last command prints independently checked before/after conflicts, incomplete nets, geometry, nonvertical wires, component crossings, stacks, knives and counts. It never overwrites its input. `--wire-polish 1` runs the identical routine inside the actual native v5 pipeline after final candidate selection, before returning to the CLI or GUI caller. Broader tuning and permanent enablement depend on empirical results rather than a project-specific exception.
+
 ## Controlled comparison and physical cut diagnostics
 
 The optional `--drill-domain 0|1` CLI flag (and fixture-runner `--drill-domain no/yes`) runs **the exact same opt-in native Edge decoder** with the generic drilled rotation domain disabled or enabled. The compiled `FAST_GRID_CLEAR` and `FAST_IDENTICAL_GENOME` flags remain identical for both arms. The default continues to be enabled in drilled-only Edge trials. This allows direct signature checks against earlier hard-lock runs without changing other anneal flags. A synthetic opt-out RNG smoke test is provided; a full 80-signature regression is **not yet measured** and must be checked against a preserved historical baseline rather than assumed.
