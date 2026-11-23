@@ -1739,6 +1739,11 @@ EXPORT(v5_annealStart) void v5_annealStart(u32 seedState, u32 strictSeed, double
     }
   }
   L_feasibleSeen = 0;
+  // These slots already exist in the public memory block, but were
+  // previously unused. The normal WASM/native builds never write them.
+  loopI[2] = -1;   // first accepted in-cap move, 0 for feasible start
+  loopI[3] = L_edgeLockMode;  // opt-in native telemetry marker
+  loopD[2] = -1;   // elapsed ms since the anneal walk began
 #endif
 }
 
@@ -1765,6 +1770,7 @@ EXPORT(v5_annealStep) i32 v5_annealStep(void) {
 #ifdef V5_EXPERIMENT_EDGE_MOUNT
     if (L_edgeLockMode) {
       L_feasibleSeen = curI[13] == 0;
+      if (L_feasibleSeen) { loopI[2] = 0; loopD[2] = 0; }
       // No over-cap arrangement may become the returned incumbent.
       // Keep walking from the initial overflow until a legal placement
       // is accepted, then begin tracking only in-cap improvements.
@@ -1838,7 +1844,11 @@ EXPORT(v5_annealStep) i32 v5_annealStep(void) {
 #ifdef V5_EXPERIMENT_EDGE_MOUNT
     if (L_edgeLockMode) {
       if (nI[13] != 0) isBest = 0;
-      else L_feasibleSeen = 1;
+      else if (!L_feasibleSeen) {
+        L_feasibleSeen = 1;
+        loopI[2] = L_it + 1; // count the move just accepted
+        loopD[2] = js_now() - L_tStart;
+      }
     }
 #endif
     if (mlOn) mlRecord(L_it, 3, isBest, nI, nD, st, dE);
