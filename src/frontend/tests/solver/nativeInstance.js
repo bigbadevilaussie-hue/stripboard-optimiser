@@ -9,8 +9,14 @@ const BUILD = path.join(__dirname, "native", "build");
 
 /** From now on, instantiating these modules gives their native builds. */
 function install(decodeModule, routeModule) {
+  // Performance laboratory only: load an alternate compiled native *decoder*
+  // without touching the existing build, the app's WASM, or the Node addon.
+  // Unset V5_NATIVE_LIB_DIR for the ordinary solver (identical default path).
+  const libDir = process.env.V5_NATIVE_LIB_DIR
+    ? path.resolve(process.env.V5_NATIVE_LIB_DIR)
+    : BUILD;
   const addon = require(path.join(BUILD, "v5native.node"));
-  const libs = new Map([[decodeModule, path.join(BUILD, "libv5decode.so")], [routeModule, path.join(BUILD, "libv5route.so")]]);
+  const libs = new Map([[decodeModule, path.join(libDir, "libv5decode.so")], [routeModule, path.join(BUILD, "libv5route.so")]]);
   const Instance = WebAssembly.Instance;
   WebAssembly.Instance = function (module, imports) {
     const lib = libs.get(module);
