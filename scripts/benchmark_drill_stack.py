@@ -11,6 +11,7 @@ import os
 import statistics
 import subprocess
 import sys
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 SEEDS = [382, 639, 736, 820, 897, 1036, 1121, 1277, 1437, 1552]
@@ -73,14 +74,14 @@ def fmt(x, suffix=""):
     return ("—" if x is None else "{:.0f}{}".format(x, suffix))
 
 
-def run_case(out, project, label, drilled, stack_on, moves, originals):
+def run_case(out, project, label, drilled, stack_on, moves, originals, jobs):
     rows = []
     location = out / project / label
     location.mkdir(parents=True, exist_ok=True)
     print("\n" + "=" * 86, flush=True)
     print("🏁 {} · {} · {} moves · 10 seeds".format(project, label, format(moves, ",")), flush=True)
     print("=" * 86, flush=True)
-    for idx, seed in enumerate(SEEDS, 1):
+    def solve_seed(idx, seed):
         save = location / ("seed_{:04d}.json".format(seed))
         cmd = [
             "node", str(HARNESS), "--data", str(out / project),
@@ -148,7 +149,6 @@ def run_case(out, project, label, drilled, stack_on, moves, originals):
                 and (not drilled or row.get("knife") == 0)
                 and (stack_on or row.get("stacked") == 0)
             )
-            rows.append(row)
             print(
                 "{} {}/10 #{} · 🔌{} ✂️{} · ↘{} · 🔪{} · 🧵{} · "
                 "Q{} geo{} · 🔁{}ms 🧭{}ms ⏱{}ms".format(
@@ -162,10 +162,15 @@ def run_case(out, project, label, drilled, stack_on, moves, originals):
             )
         except Exception as exc:
             row.update(failed=True, clean=False, error=str(exc))
-            rows.append(row)
             (location / ("seed_{:04d}.error.log".format(seed))).write_text(
                 process.stdout + "\nSTDERR:\n" + process.stderr, encoding="utf-8")
             print("⚠️ {}/10 #{} FAILED: {}".format(idx, seed, exc), flush=True)
+        return row
+    with ThreadPoolExecutor(max_workers=jobs) as executor:
+        futures = [executor.submit(solve_seed, idx, seed) for idx, seed in enumerate(SEEDS, 1)]
+        for future in as_completed(futures):
+            rows.append(future.result())
+    rows.sort(key=lambda row: SEEDS.index(row["seed"]))
     clean = [r for r in rows if r.get("clean")]
     print(
         "📊 {} {}: ✅ {}/10 | avg solve {}ms | avg anneal {}ms | "
@@ -212,12 +217,16 @@ def final_report(records, out, moves):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--moves", type=int, default=20000, help="Moves per seed (default: 20000)")
+    parser.add_argument("--jobs", type=int, default=4, help="Parallel native solver processes (default: 4; use 1 for serial)")
     parser.add_argument("--out", type=Path, default=Path("/tmp/stripboard_drill_stack_80"))
     args = parser.parse_args()
+    if args.jobs < 1:
+        parser.error("--jobs must be at least 1")
     out = args.out.expanduser().resolve()
     out.mkdir(parents=True, exist_ok=True)
     if not HARNESS.is_file():
         raise SystemExit("Missing solver harness: " + str(HARNESS))
+    print("🚀 {} parallel native solves (fixed seeds; each job isolated)".format(args.jobs), flush=True)
     originals = prepare(out)
     (out / "benchmark_config.json").write_text(
         json.dumps({"seeds": SEEDS, "moves": args.moves, "sources": {k: str(v) for k, v in SOURCES.items()},
@@ -228,7 +237,7 @@ def main():
     try:
         for project in SOURCES:
             for label, drilled, stack_on in CONFIGS:
-                records.extend(run_case(out, project, label, drilled, stack_on, args.moves, originals))
+                records.extend(run_case(out, project, label, drilled, stack_on, args.moves, originals, args.jobs))
     except KeyboardInterrupt:
         print("\n⏹ Interrupted; writing partial results.", flush=True)
     fields = [
