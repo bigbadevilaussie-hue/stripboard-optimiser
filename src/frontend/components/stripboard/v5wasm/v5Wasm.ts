@@ -198,6 +198,16 @@ export class V5WasmDecoder {
   // runs the walk to its next event: 1 (the start or a new best, see cur()),
   // 0 done, -1 no starting genome decodes
   annealStep(): number { return this.ex.v5_annealStep(); }
+  // Existing shared-memory slots, written only by the experimental native
+  // Edge-Mount decoder. No ABI change and no extra exports are required.
+  edgeFeasibility(): { firstMove: number | null; firstMs: number | null } | null {
+    this.view();
+    const li = this.at(28), ld = this.addr[29] >> 3;
+    if (this.i32[li + 3] !== 1) return null;
+    const move = this.i32[li + 2];
+    return { firstMove: move >= 0 ? move : null,
+      firstMs: move >= 0 ? this.f64[ld + 2] : null };
+  }
   // the loop's current genome and board, and where the walk is
   cur(): { g: WasmGenome; o: WasmDecodeOut; it: number; frac: number; E: number } {
     this.view();
