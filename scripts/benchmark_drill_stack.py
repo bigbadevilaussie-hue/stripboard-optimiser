@@ -113,10 +113,17 @@ def run_case(out, project, label, drilled, stack_on, moves, originals, jobs):
                 raise RuntimeError("missing saved layout")
             solved = json.loads(save.read_text(encoding="utf-8"))
             board = solved["board"]
+            # Historical 'diagonals_actual' is actually all column-changing links.
             actual_diags = sum(
                 1 for wire in board.get("wires", [])
                 if wire["from"]["col"] != wire["to"]["col"]
             )
+            slanted = sum(
+                1 for wire in board.get("wires", [])
+                if wire["from"]["col"] != wire["to"]["col"]
+                and wire["from"]["row"] != wire["to"]["row"]
+            )
+            horizontal = actual_diags - slanted
             original = originals[project]
             matches = [c for c in solved.get("components", []) if c.get("id") == original["id"]]
             f1_kept = bool(matches) and (
@@ -129,7 +136,8 @@ def run_case(out, project, label, drilled, stack_on, moves, originals, jobs):
             row.update(result)
             row.update(timing)
             row.update({
-                "diagonals_actual": actual_diags,
+                "diagonals_actual": actual_diags,  # preserve original gate
+                "slanted_actual": slanted, "horizontal_actual": horizontal,
                 "board_24x56": (board.get("rows") == 24 and board.get("cols") == 56
                                 and board.get("lockedRows") is True and board.get("lockedCols") is True),
                 "f1_kept": f1_kept,
@@ -150,11 +158,11 @@ def run_case(out, project, label, drilled, stack_on, moves, originals, jobs):
                 and (stack_on or row.get("stacked") == 0)
             )
             print(
-                "{} {}/10 #{} · 🔌{} ✂️{} · ↘{} · 🔪{} · 🧵{} · "
+                "{} {}/10 #{} · 🔌{} ✂️{} · ↘slant {} ↔horizontal {} · colΔ{} · 🔪{} · 🧵{} · "
                 "Q{} geo{} · 🔁{}ms 🧭{}ms ⏱{}ms".format(
                     "✅" if row["clean"] else "❌", idx, seed,
                     row.get("wires", "?"), row.get("cuts", "?"),
-                    actual_diags, row.get("knife", "?"), row.get("stacked", "?"),
+                    slanted, horizontal, actual_diags, row.get("knife", "?"), row.get("stacked", "?"),
                     row.get("quality", "?"), row.get("geo", "?"),
                     fmt(row.get("annealMs")), fmt(row.get("routeMs")),
                     fmt(row.get("solveMs")),
@@ -174,9 +182,10 @@ def run_case(out, project, label, drilled, stack_on, moves, originals, jobs):
     clean = [r for r in rows if r.get("clean")]
     print(
         "📊 {} {}: ✅ {}/10 | avg solve {}ms | avg anneal {}ms | "
-        "avg diagonals {} | avg knives {} | avg stacked {}".format(
+        "avg slants {} | avg horizontal {} | avg col-shifts {} | avg knives {} | avg stacked {}".format(
             project, label, len(clean), fmt(average(rows, "solveMs")),
-            fmt(average(rows, "annealMs")), fmt(average(rows, "diagonals_actual")),
+            fmt(average(rows, "annealMs")), fmt(average(rows, "slanted_actual")),
+            fmt(average(rows, "horizontal_actual")), fmt(average(rows, "diagonals_actual")),
             fmt(average(rows, "knife")), fmt(average(rows, "stacked"))
         ), flush=True
     )
@@ -189,7 +198,7 @@ def final_report(records, out, moves):
     print("Seeds:", ", ".join(str(x) for x in SEEDS))
     print("=" * 109)
     print("{:<9} {:<22} {:>7} {:>10} {:>10} {:>8} {:>8} {:>8} {:>12}".format(
-        "PROJECT", "DRILL / STACK", "CLEAN", "SOLVE ms", "ANNEAL ms", "DIAG", "KNIFE", "STACK", "BEST CLEAN"))
+        "PROJECT", "DRILL / STACK", "CLEAN", "SOLVE ms", "ANNEAL ms", "SLANT", "KNIFE", "STACK", "BEST CLEAN"))
     print("-" * 109)
     for project in SOURCES:
         for label, _, _ in CONFIGS:
@@ -201,11 +210,12 @@ def final_report(records, out, moves):
             print("{:<9} {:<22} {:>7} {:>10} {:>10} {:>8} {:>8} {:>8} {:>12}".format(
                 project, label, "{}/10".format(len(clean)),
                 fmt(average(group, "solveMs")), fmt(average(group, "annealMs")),
-                fmt(average(group, "diagonals_actual")),
+                fmt(average(group, "slanted_actual")),
                 fmt(average(group, "knife")), fmt(average(group, "stacked")), best_text,
             ))
-    print("\n↘ DIAG is the actual number of wires with different endpoint columns; "
-          "KNIFE and STACK are harness counts.")
+    print("\n↘ SLANT changes both row and column; ↔ HORIZONTAL changes column only.")
+    print("Historical diagonals_actual counts every column shift; CLEAN still requires vertical-only wiring.")
+    print("KNIFE and STACK are harness counts.")
     print("CLEAN requires Q0, connectivity, geometry, 24x56 board, F1 lock preservation, "
           "zero diagonals, and the enabled drill/stack restrictions.")
     print("Both SOURCE FILES differ; differences between MOTO and MOTOMIX cannot be "
@@ -243,7 +253,7 @@ def main():
     fields = [
         "project", "configuration", "seed", "moves", "drilled_required", "stack_allowed",
         "failed", "error", "clean", "board_24x56", "f1_kept", "quality",
-        "wires", "cuts", "knife", "stacked", "offAxis", "diagonals_actual",
+        "wires", "cuts", "knife", "stacked", "offAxis", "diagonals_actual", "slanted_actual", "horizontal_actual",
         "crossings", "geo", "conflicts", "incomplete", "issues",
         "solveMs", "annealMs", "extractMs", "skeletonMs", "repairMs",
         "routeMs", "exactRepairMs", "totalMs", "sig",
