@@ -79,7 +79,10 @@ def independently_count(saved):
     wires = board.get("wires", [])
     cuts = board.get("cuts", [])
     return {
+        # Historical name means ALL column shifts, including horizontal links.
         "diagonals_actual": sum(w["from"]["col"] != w["to"]["col"] for w in wires),
+        "slanted_actual": sum(w["from"]["col"] != w["to"]["col"] and w["from"]["row"] != w["to"]["row"] for w in wires),
+        "horizontal_actual": sum(w["from"]["col"] != w["to"]["col"] and w["from"]["row"] == w["to"]["row"] for w in wires),
         "knife": sum(c.get("kind") != "hole" for c in cuts),
         "stacked": stacked_count(wires),
         "wires": len(wires),
@@ -136,6 +139,13 @@ def main():
                 mismatch[field] += 1
                 print("🔎 MISMATCH {} / {} / #{}: {} CSV={} JSON={}".format(
                     project, config, seed, field, reported, counts[field]))
+        try:
+            if int(float(row["offAxis"])) != counts["slanted_actual"]:
+                mismatch["offAxis_vs_slanted"] += 1
+                print("🔎 SLANT MISMATCH {} / {} / #{}: offAxis={} slants={}".format(
+                    project, config, seed, row["offAxis"], counts["slanted_actual"]))
+        except (ValueError, TypeError, KeyError):
+            failures["missing_offAxis"] += 1
         if counts["board_24x56"] != as_bool(row.get("board_24x56")):
             mismatch["board_24x56"] += 1
             print("🔎 BOARD MISMATCH {} / {} / #{}".format(project, config, seed))
@@ -143,7 +153,8 @@ def main():
         criteria = {
             "Q0": not nonzero(row.get("quality")),
             "geo0": not nonzero(row.get("geo")),
-            "diag0": counts["diagonals_actual"] == 0,
+            "diag0": counts["diagonals_actual"] == 0,  # legacy: vertical wires only
+            "slant0": counts["slanted_actual"] == 0,
             "offAxis0": not nonzero(row.get("offAxis")),
             "electrical0": not nonzero(row.get("conflicts")) and not nonzero(row.get("incomplete")),
             "issues0": no_issues(row.get("issues")),
@@ -155,7 +166,7 @@ def main():
         for name, passed in criteria.items():
             if passed:
                 group_stats[name] += 1
-        for a, b in (("Q0", "diag0"), ("Q0", "knife0"), ("Q0", "stack0"),
+        for a, b in (("Q0", "diag0"), ("Q0", "slant0"), ("Q0", "knife0"), ("Q0", "stack0"),
                      ("diag0", "stack0"), ("Q0", "geo0"), ("diag0", "offAxis0")):
             if criteria[a] and criteria[b]:
                 group_stats[a + "_AND_" + b] += 1
@@ -185,7 +196,7 @@ def main():
         print("⚠️ MISSING/UNREADABLE: " + ", ".join("{}={}".format(k, v) for k, v in failures.items()))
     print("\nCRITERION PASS COUNTS (each denominator = loaded files in that group)")
     print("{:<9} {:<22} {:>3} {:>4} {:>4} {:>5} {:>5} {:>5} {:>5} {:>5} {:>5} {:>6}".format(
-        "PROJECT", "CONFIG", "N", "Q0", "GEO", "DIAG", "OFFAX", "ELEC", "KNIFE", "STACK", "F1", "CLEAN"
+        "PROJECT", "CONFIG", "N", "Q0", "GEO", "COLΔ", "SLANT", "ELEC", "KNIFE", "STACK", "F1", "CLEAN"
     ))
     for (project, config), stats in sorted(by_config.items()):
         print("{:<9} {:<22} {:>3} {:>4} {:>4} {:>5} {:>5} {:>5} {:>5} {:>5} {:>6} {:>6}".format(
@@ -196,11 +207,11 @@ def main():
             stats["F1_kept"], stats["clean"]
         ))
     print("\n🔗 JOINT CRITERION PASS COUNTS (recomputed geometry + original CSV Q0/geo/offAxis)")
-    print("{:<9} {:<22} {:>7} {:>8} {:>8} {:>10} {:>8}".format(
-        "PROJECT", "CONFIG", "Q0+DIAG", "Q0+KNIFE", "Q0+STACK", "DIAG+STACK", "Q0+GEO"))
+    print("{:<9} {:<22} {:>7} {:>8} {:>8} {:>8} {:>10} {:>8}".format(
+        "PROJECT", "CONFIG", "Q0+COL", "Q0+SLANT", "Q0+KNIFE", "Q0+STACK", "COL+STACK", "Q0+GEO"))
     for (project, config), stats in sorted(by_config.items()):
-        print("{:<9} {:<22} {:>7} {:>8} {:>8} {:>10} {:>8}".format(
-            project, config, stats["Q0_AND_diag0"],
+        print("{:<9} {:<22} {:>7} {:>8} {:>8} {:>8} {:>10} {:>8}".format(
+            project, config, stats["Q0_AND_diag0"], stats["Q0_AND_slant0"],
             stats["Q0_AND_knife0"], stats["Q0_AND_stack0"],
             stats["diag0_AND_stack0"], stats["Q0_AND_geo0"]))
     print("\n⏱ CLI PHASE TIMINGS (mean ms; from original benchmark CSV, not independent)")
@@ -229,11 +240,13 @@ def main():
     except (ValueError, KeyError, TypeError):
         pass
     print("\n🔒 NOTE: Electrical/geometry/F1 entries above use existing CSV claims, NOT independent validation.")
-    print("🔪 Knife from cut.kind; 🧵 stack from positive-length collinear wire overlaps; ↘ diagonal from endpoint columns.")
+    print("🔪 Knife = cut.kind; 🧵 stack = positive-length collinear overlap.")
+    print("↘ SLANT = both row and col change (harness offAxis); COLΔ = any col change, including horizontal.")
+    print("⚠️ Historical diagonals_actual/diag0 remain COLΔ/vertical-only for matching the 80-run benchmark.")
     print("Cut-kind audit is a label check, not a physical cut classification independent of stored labels.")
 
     output = root / "independent_geometry_audit.csv"
-    fields = ["project", "configuration", "seed", "diagonals_actual", "knife",
+    fields = ["project", "configuration", "seed", "diagonals_actual", "slanted_actual", "horizontal_actual", "knife",
               "stacked", "wires", "cuts", "board_24x56", "fail_reasons", "clean_recomputed"]
     with output.open("w", newline="", encoding="utf-8") as fh:
         writer = csv.DictWriter(fh, fieldnames=fields)
