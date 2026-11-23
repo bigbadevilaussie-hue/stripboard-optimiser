@@ -277,7 +277,16 @@ def main():
                     print("🎯 {} {} seed #{} repeat #{} | baseline {}ms anneal {}ms".format(
                         fixture, policy, seed, rep, ref["timing"].get("solveMs"), ref["timing"].get("annealMs")), flush=True)
                     for v in ordered:
-                        item = run_one(out, fixture, policy, seed, rep, v, dirs[v])
+                        try:
+                            item = run_one(out, fixture, policy, seed, rep, v, dirs[v])
+                        except (OSError, RuntimeError, ValueError, json.JSONDecodeError) as err:
+                            invalid.add(v)
+                            allrows.append({
+                                "fixture": fixture, "policy": policy, "seed": seed, "repeat": rep,
+                                "variant": v, "status": "ERROR", "reason": str(err)[-1200:],
+                            })
+                            print("❌ {}: execution error (disqualified): {}".format(v, err), flush=True)
+                            continue
                         issue = exact_verdict(ref, item)
                         if issue:
                             invalid.add(v)
@@ -331,7 +340,7 @@ def main():
             "medianAnnealSpeedupPct": round(statistics.median(r["annealSpeedupPct"] for r in good if r["annealSpeedupPct"] is not None), 2)
                                     if any(r["annealSpeedupPct"] is not None for r in good) else None,
             "flags": " ".join(compile_flags(v)),
-            "status": "ELIGIBLE_TO_RETEST" if valid_variant else "REJECTED_DIFFERENT_OUTPUT",
+            "status": "ELIGIBLE_TO_RETEST" if valid_variant else "REJECTED_PARITY_OR_RUNTIME",
         }
         summary.append(s)
     if summary:
