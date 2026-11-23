@@ -24,6 +24,16 @@ With `-DV5_EXPERIMENT_EDGE_MOUNT=1`, `v5wasm/decode.c` counts only the on-board 
 `npm run build:native:edge` builds a separate experimental decoder at `src/frontend/tests/solver/native/build/edge/libv5decode.so`. It also enables the previously verified grid-clear and identical-genome speed shortcuts. It does not overwrite the standard native decoder, native router, browser WASM, CLI protocol or WR artifacts.
 
 
+## Native diagnostic contract (post 500k MOTOEX runs)
+
+The opt-in native Edge-Mount decoder records **firstFeasibleMove** (0 for an in-cap starting placement, otherwise the 1-based accepted proposal count) and **firstFeasibleMs** (wall-clock ms since the anneal walk started). Both are `null` when no in-cap placement is accepted. This uses previously unused C shared-memory slots; no standard WASM ABI or release route is changed.
+
+In strict CLI JSON and each per-column `results.json` entry, an empty fallback has `unsolvedReason: "NO_FEASIBLE_PLACEMENT"` (no in-cap anneal result) or `"NO_PHYSICAL_FINISH"` (in-cap anneal but all finishes exceed physical bounds). Its `strictFailures` explicitly says `UNSOLVED_...`, rather than `QUALITY_1, CONFLICTS_1, INCOMPLETE_35`. Raw numeric metrics of the empty placeholder are not meaningful; **do not rank it as a poor routed board**.
+
+On attempted, in-bounds routed boards, `incompleteNets` includes ID, real net name, disconnected pin groups and unplaced pins. `wireViolations` names each offending wire and its endpoints, possible net name(s) inferred from the connected copper group, crossing components and overlapping earlier wires. Net label `UNRESOLVED` means the verification graph did not associate it with a specific net and must not be silently guessed. A wire can have multiple categories; aggregate violation counts must not be added as if they were independent wires.
+
+**Validation still required** on the iMac after pulling: compile TypeScript, rebuild the opt-in native decoder and run the focused 20k-move regression on column 25 (expect explicit `UNSOLVED: NO_FEASIBLE_PLACEMENT` if it never fits) and column 41 (inspect per-wire details). Then compare a 500k-move run to the previous signature, remembering that any accepted out-of-cap step now changes the trajectory intentionally. Do not launch another 51-position sweep until these diagnostics have been checked.
+
 ## Hard physical lock ratchet (post 51-position diagnostic)
 
 The first 51-position, 20k-move sweep confirmed correct 24×56 placement for 47 positions, but columns **25, 18, 12 and 8** still returned 30×56, 27×56, 28×56 and 27×56. These columns are **not infeasible**, just failed attempts: do not prune them.
