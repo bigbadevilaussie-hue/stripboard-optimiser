@@ -244,6 +244,18 @@ def report_summary(records, out, jobs):
     return not errors and not mismatches and not clean_mismatches
 
 
+def physical_cpu_count():
+    """Cap parallel native processes to physical cores (macOS sysctl)."""
+    try:
+        value = int(subprocess.check_output(["sysctl", "-n", "hw.physicalcpu"],
+                                            stderr=subprocess.DEVNULL, text=True).strip())
+        if value > 0:
+            return value
+    except (OSError, ValueError, subprocess.CalledProcessError):
+        pass
+    return max(1, os.cpu_count() or 1)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--bench", type=Path, default=DEFAULT_BENCH, help="Original 80-run benchmark directory")
@@ -255,6 +267,10 @@ def main():
     if args.jobs < 1:
         parser.error("--jobs must be >=1")
     bench = args.bench.expanduser().resolve()
+    cores = physical_cpu_count()
+    if args.jobs > cores:
+        print("⚠️ Requested {} native workers, limiting to {} physical cores.".format(args.jobs, cores), flush=True)
+        args.jobs = cores
     out = (args.out or (bench / ("cli_profile_v160_smoke" if args.smoke else "cli_profile_v160_full80"))).expanduser().resolve()
     baseline = bench / "comparison.csv"
     if not baseline.is_file():
