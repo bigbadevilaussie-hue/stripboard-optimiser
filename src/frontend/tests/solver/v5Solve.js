@@ -43,6 +43,7 @@ const timingEnabled = process.env.STRIPBOARD_TIMING === "1";
 const fs = require("fs");
 const path = require("path");
 const { metrics } = require("./metricsLib.js");
+const { auditKnifeCuts } = require("./knifeCutAudit.js");
 const { DEFAULT_COMPONENTS, checkGeometry, verify, computeStripSegments, computeConnectivity,
   flexGeometry, partGeometry, boardLayout, resolveComponentDef } = require("./helpers.js");
 
@@ -464,6 +465,8 @@ const invalidDrilledOrientations = edgeMountDiagnostic && drilled && !unsolvedRe
       }] : [];
     })
   : [];
+const knifeCuts = edgeMountDiagnostic && !unsolvedReason
+  ? auditKnifeCuts(solvedBoard, boardComps, defs, view.netAssignments, nets) : [];
 let wireViolations = [];
 if (edgeMountDiagnostic && !unsolvedReason) {
   const segments = computeStripSegments(solvedBoard, boardComps, defs, view.netAssignments);
@@ -583,7 +586,7 @@ console.log(JSON.stringify({
   quality: res.quality,
   ...(edgeMountDiagnostic ? { unsolvedReason, firstFeasibleMove: edgeFeasibility?.firstMove ?? null,
     firstFeasibleMs: edgeFeasibility?.firstMs ?? null, drilledRotationDomain: drillDomain ?? drilled,
-    incompleteNets, invalidDrilledOrientations, wireViolations } : {}),
+    incompleteNets, invalidDrilledOrientations, knifeCuts, wireViolations } : {}),
   rows: solvedBoard.rows, cols: solvedBoard.cols, area: solvedBoard.rows * solvedBoard.cols,
   wires: m.wires, offAxis: m.offAxisWires, crossings: m.crossings, stacked, cuts: m.cuts, knife, connOff, connIn,
   conflicts: v.conflicts, incomplete: v.incomplete.length ?? v.incomplete, geo,
