@@ -854,7 +854,10 @@ export function computeAutoLayout5(
       annealDecInst = new V5WasmDecoder(wasmOf(), wasmModel());
       // General pin/net constraint, experimentally available in the native
       // Edge decoder only. No special-casing of GPS or any project fixture.
-      if (options?.drilledCutsOnly && options?.drilledRotationDomain !== false)
+      // This necessary-condition test assumes continuous HORIZONTAL copper
+      // strips. Patterned boards have different connectivity; do not infer
+      // impossibility from their pin rows.
+      if (options?.drilledCutsOnly && options?.drilledRotationDomain !== false && !board.pattern)
         annealDecInst.setDrilledRotationDomain(true);
     }
     return annealDecInst;
