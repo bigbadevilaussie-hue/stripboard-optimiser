@@ -1710,6 +1710,11 @@ EXPORT(v5_setMoveLog) void v5_setMoveLog(i32 on) {
 }
 
 static i32 L_it, L_movesN, L_timed, L_reportEvery, L_started;
+#ifdef V5_EXPERIMENT_EDGE_MOUNT
+// Only an explicitly locked panel-edge mount activates the hard physical
+// board ratchet. Normal native/WASM projects keep identical trajectories.
+static i32 L_edgeLockMode, L_feasibleSeen;
+#endif
 static double L_budgetMs, L_t0, L_tEnd, L_coldT, L_cool, L_rampStart, L_rampEnd, L_hardStart, L_T, L_f, L_fTime, L_tStart, L_bestE, L_protect;
 // the cooling curve's shape: T = t0 * (tEnd / t0)^(f^shape); above 1 the walk
 // stays hot longer and cools late (harness experiments; 1 is the plain curve)
@@ -1725,6 +1730,16 @@ EXPORT(v5_annealStart) void v5_annealStart(u32 seedState, u32 strictSeed, double
   L_movesN = movesN; L_timed = timed; L_budgetMs = budgetMs; L_t0 = t0; L_tEnd = tEnd; L_coldT = coldT; L_cool = cool;
   L_rampStart = rampStart; L_rampEnd = rampEnd; L_hardStart = hardStart; L_reportEvery = reportEvery; lean = leanMoves;
   L_started = 0;
+#ifdef V5_EXPERIMENT_EDGE_MOUNT
+  L_edgeLockMode = 0;
+  for (i32 pi = 0; pi < nP; pi++) {
+    if (pKind[pi] == 0 && pLocked[pi] && pSides[pi] == -2) {
+      L_edgeLockMode = 1;
+      break;
+    }
+  }
+  L_feasibleSeen = 0;
+#endif
 }
 
 // loopI: 0 it, 1 event (1 start, 2 new best); loopD: 0 the schedule's share
@@ -1747,7 +1762,16 @@ EXPORT(v5_annealStep) i32 v5_annealStep(void) {
     L_T = L_t0; L_it = 0; L_fTime = 0; L_f = 0;
     L_tStart = js_now();
     L_bestE = priceFinOf(curI, curD);
-    loopI[0] = 0; loopI[1] = 1; loopD[0] = 0; loopD[1] = L_bestE;
+#ifdef V5_EXPERIMENT_EDGE_MOUNT
+    if (L_edgeLockMode) {
+      L_feasibleSeen = curI[13] == 0;
+      // No over-cap arrangement may become the returned incumbent.
+      // Keep walking from the initial overflow until a legal placement
+      // is accepted, then begin tracking only in-cap improvements.
+      if (!L_feasibleSeen) L_bestE = 1e100;
+    }
+#endif
+    loopI[0] = 0; loopI[1] = 1; loopD[0] = 0; loopD[1] = priceFinOf(curI, curD);
     return 1;
   }
   for (; L_it < L_movesN; L_it++) {
@@ -1796,10 +1820,27 @@ EXPORT(v5_annealStep) i32 v5_annealStep(void) {
     const i32 *nI = st == 2 ? outI : curI;
     const double *nD = st == 2 ? outD : curD;
     double dE = priceOf(nI, nD, w, hardScale) - priceOf(curI, curD, w, hardScale);
+#ifdef V5_EXPERIMENT_EDGE_MOUNT
+    // Feasibility ratchet: tolerate overflow while searching for the
+    // FIRST in-cap accepted board. Afterwards, do not leave the purchased
+    // board again. An otherwise-positive Metropolis dE would have drawn
+    // one random value; consume it to keep no-overflow trajectories equal.
+    if (L_edgeLockMode && L_feasibleSeen && nI[13] > 0) {
+      if (dE > 0) (void)rngMain();
+      if (mlOn) mlRecord(L_it, 2, 0, nI, nD, st, dE);
+      continue;
+    }
+#endif
     i32 accepted = dE <= 0 || rngMain() < js_exp(-dE / L_T);
     if (!accepted) { if (mlOn) mlRecord(L_it, 2, 0, nI, nD, st, dE); continue; }
     double eFin = priceFinOf(nI, nD);
     i32 isBest = eFin < L_bestE;
+#ifdef V5_EXPERIMENT_EDGE_MOUNT
+    if (L_edgeLockMode) {
+      if (nI[13] != 0) isBest = 0;
+      else L_feasibleSeen = 1;
+    }
+#endif
     if (mlOn) mlRecord(L_it, 3, isBest, nI, nD, st, dE);
     acceptProp(st);
     if (isBest) {
