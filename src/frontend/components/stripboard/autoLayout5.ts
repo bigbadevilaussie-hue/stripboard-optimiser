@@ -75,6 +75,8 @@ export interface AutoLayout5Options {
   routingPreference?: "wires" | "cuts";
   // Harness-only: log each seed's decoded best (never set by the UI)
   debugSeeds?: boolean;
+  // Harness-only per-phase profiling, no effect on search decisions.
+  onTiming?: (stats: Record<string, number>) => void;
   // Harness-only: every finalist's skeleton, with the decoder's wiring, before
   // it goes to the finish (stored and replayed by the finish-only runner)
   onSkeleton?: (seed: number, skeleton: Skeleton) => void;
@@ -828,24 +830,32 @@ export function computeAutoLayout5(
         }
       };
     }
+    let annealMs = 0, extractMs = 0, exactRepairMs = 0, extractCount = 0, exactCount = 0;
     let best: { E: number; g: Genome; d: Decoded } | null = null;
     let exact: { final: AutoLayoutResult; score: number } | null = null, exactN = 0, tStart = 0, it = 0;
     for (;;) {
+      const stepStart = options?.onTiming ? performance.now() : 0;
       const ev = w.annealStep();
+      if (options?.onTiming) annealMs += performance.now() - stepStart;
       if (ev < 0) return null;
       if (ev === 0) break;
+      const extractStart = options?.onTiming ? performance.now() : 0;
       const c = w.cur();
       const g = c.g as Genome, d = decodedOf(g, c.o);
+      if (options?.onTiming) { extractMs += performance.now() - extractStart; extractCount++; }
       it = c.it;
       if (!best) tStart = performance.now();
       else if (exactOn && c.frac >= 0.5) {
         exactN++;
+        const exactStart = options?.onTiming ? performance.now() : 0;
         const r = finishRepair(board, components, componentDefs, nets, netAssignments, skeletonOf(cloneG(g), d, true), finishOpts);
+        if (options?.onTiming) { exactRepairMs += performance.now() - exactStart; exactCount++; }
         if (r && r.ok && (!exact || r.score < exact.score)) exact = { final: r.final, score: r.score };
       }
       best = { E: c.E, g, d };
     }
     it = w.cur().it;
+    options?.onTiming?.({ annealMs, extractMs, exactRepairMs, annealEvents: extractCount, exactRepairs: exactCount, annealMoves: it });
     if (options?.timeBudgetMs !== undefined) options.onBudget?.({ moves: it, cap: capMoves, msPerMove: (performance.now() - tStart) / Math.max(1, it) });
     return best ? { ...best, exact, exactN } : null;
   }
@@ -950,10 +960,18 @@ export function computeAutoLayout5(
     // reject, and the router, which starts over. The repair is the cheaper
     // board on most skeletons but not on all, and it cannot win with a board
     // that is not valid, clean and geometrically sound.
+    const profiling = !!options?.onTiming;
+    const skStart = profiling ? performance.now() : 0;
     const sk = skeletonOf(bestG, d, true);
+    const skMs = profiling ? performance.now() - skStart : 0;
     if (seed !== undefined) options?.onSkeleton?.(seed, sk);
+    const repairStart = profiling ? performance.now() : 0;
     const repaired = finishRepair(board, components, componentDefs, nets, netAssignments, sk, finishOpts);
+    const repairMs = profiling ? performance.now() - repairStart : 0;
+    const routeStart = profiling ? performance.now() : 0;
     const routed = finishSkeleton(board, components, componentDefs, nets, netAssignments, sk, finishOpts);
+    const routeMs = profiling ? performance.now() - routeStart : 0;
+    options?.onTiming?.({ skeletonMs: skMs, repairMs, routeMs });
     return repaired && repaired.ok && repaired.score < routed.score ? { final: repaired.final, score: repaired.score } : routed;
   }
 
