@@ -202,7 +202,19 @@ export function polishFixedBoardWires(
         tried++;
         let q = evaluate(board, comps, defs, nets, assignments, obs, nextWires, cuts);
         if (!q || !noRegression(q, quality)) continue;
-        const upgraded = drillFreeCuts(board, comps, defs, nets, assignments, obs, nextWires, cuts, q);
+        // Only re-run full cut-upgrade verification if this move actually
+        // frees a flank of an existing knife. Cuts that could already be
+        // drilled were handled once before the column search began.
+        const freesKnife = cuts.some((cut) => cut.kind !== "hole" &&
+          [cut.col, cut.col + 1].some((c) => {
+            const k = holeKey(cut.row, c);
+            return (k === holeKey(w.from.row, w.from.col) ||
+              k === holeKey(w.to.row, w.to.col)) &&
+              k !== keyA && k !== keyB;
+          }));
+        const upgraded = freesKnife
+          ? drillFreeCuts(board, comps, defs, nets, assignments, obs, nextWires, cuts, q)
+          : { cuts, quality: q };
         q = upgraded.quality;
         if (score(q) >= score(quality) - 1e-6) continue;
         if (!best || score(q) < score(best.quality) - 1e-6)
