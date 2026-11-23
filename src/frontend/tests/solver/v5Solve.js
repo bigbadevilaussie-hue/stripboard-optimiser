@@ -102,6 +102,10 @@ const portCap = argVal("portcap") ? Number(argVal("portcap")) : undefined;
 const macroGap = argVal("macrogap") !== undefined ? Number(argVal("macrogap")) : undefined;
 const minCompress = argVal("mincompress") ? Number(argVal("mincompress")) : undefined;
 let stackInfo;
+const solverTiming = {};
+const collectSolverTiming = (stats) => {
+  for (const [key, value] of Object.entries(stats)) solverTiming[key] = (solverTiming[key] ?? 0) + value;
+};
 const { getComponentBounds } = require(path.join(OUT, "components/stripboard/boardLayout.js"));
 let budget;
 // The log is written as the run goes, in blocks, through one gzip stream:
@@ -220,6 +224,7 @@ try {
     ...(hint ? { msPerMoveHint: hint } : {}),
     ...(speedProbe ? { speedProbe, onSpeedProbe: (ms) => { process.stderr.write(`probeMs ${ms}\n`); } } : {}),
     debugSeeds: true,
+    ...(timingEnabled ? { onTiming: collectSolverTiming } : {}),
     ...(dumpDir ? { onSkeleton: (s, sk) => { fs.mkdirSync(dumpDir, { recursive: true }); fs.writeFileSync(path.join(dumpDir, `${id}_s${s}.json`), JSON.stringify(sk)); } } : {}),
   });
 } catch (err) {
@@ -319,6 +324,7 @@ if (timingEnabled) {
     totalMs: ms2(timingProcessStart, timingVerifyEnd),
     cpuMs: +((cpu.user + cpu.system) / 1000).toFixed(2),
     rssMb: +(process.memoryUsage().rss / 1048576).toFixed(1),
+    ...Object.fromEntries(Object.entries(solverTiming).map(([key, value]) => [key, +value.toFixed(2)])),
     wires: m.wires, cuts: m.cuts, quality: res.quality,
     conflicts: v.conflicts, incomplete: v.incomplete.length ?? v.incomplete, geo,
   };
