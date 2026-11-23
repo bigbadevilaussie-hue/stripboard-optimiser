@@ -176,7 +176,12 @@ def run(args) -> bool:
                 attempt.update({"rows": result.get("rows"), "cols": result.get("cols"),
                                 "quality": result.get("quality"), "wires": result.get("wires"),
                                 "cuts": result.get("cuts"), "strictFailures": result.get("strictFailures", []),
-                                "sig": result.get("sig")})
+                                "sig": result.get("sig"),
+                                "unsolvedReason": result.get("unsolvedReason"),
+                                "firstFeasibleMove": result.get("firstFeasibleMove"),
+                                "firstFeasibleMs": result.get("firstFeasibleMs"),
+                                "incompleteNets": result.get("incompleteNets", []),
+                                "wireViolations": result.get("wireViolations", [])})
                 if saved_path.exists():
                     saved = json.loads(saved_path.read_text(encoding="utf-8"))
                     problems = check_trial(original, prepared, saved, result, rc)
@@ -188,12 +193,31 @@ def run(args) -> bool:
                 attempt["errors"] = ["CLI_OUTPUT_ERROR: " + str(exc), "EXIT_{}".format(rc)]
             trials.append(attempt)
             reasons = attempt["errors"]
-            print("{} SEED {} USB col {:2d} ({}/{}) | {}x{} | {} W / {} C | {}".format(
+            first_move = attempt.get("firstFeasibleMove")
+            first_ms = attempt.get("firstFeasibleMs")
+            feasibility = ("first fit move={} at {:.0f}ms".format(first_move, first_ms)
+                           if first_move is not None and isinstance(first_ms, (int, float))
+                           else "first fit: NEVER")
+            status = ("UNSOLVED: " + attempt["unsolvedReason"] if attempt.get("unsolvedReason")
+                      else "STRICT PASS" if attempt["ok"]
+                      else ", ".join(attempt.get("strictFailures") or reasons[:3])[:220])
+            print("{} SEED {} USB col {:2d} ({}/{}) | {}x{} | {} W / {} C | {} | {}".format(
                 "✅" if attempt["ok"] else "❌", seed, col, n, len(columns),
                 attempt.get("rows", "?"), attempt.get("cols", "?"),
                 attempt.get("wires", "?"), attempt.get("cuts", "?"),
-                "STRICT PASS" if attempt["ok"] else
-                ", ".join(attempt.get("strictFailures") or reasons[:3])[:220]), flush=True)
+                status, feasibility), flush=True)
+            for net in attempt.get("incompleteNets", []):
+                print("   🔌 INCOMPLETE NET {}: {}".format(
+                    net.get("name", net.get("id", "?")),
+                    "; ".join(" + ".join(p.get("componentLabel", "?") + "." +
+                                                  p.get("pinName", "?") for p in group)
+                              for group in net.get("groups", []))), flush=True)
+            for wire in attempt.get("wireViolations", []):
+                print("   ⚠️ WIRE {} [{}] {} -> {} | {}{}".format(
+                    wire.get("wire"), "/".join(wire.get("netNames") or ["UNRESOLVED"]),
+                    wire.get("from"), wire.get("to"), ",".join(wire.get("violations") or []),
+                    " | crosses " + ",".join(wire["crossingComponents"])
+                    if wire.get("crossingComponents") else ""), flush=True)
             if attempt["ok"]:
                 winner = col
                 solved += 1
