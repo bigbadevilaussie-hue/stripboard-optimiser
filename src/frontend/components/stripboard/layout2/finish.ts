@@ -57,12 +57,27 @@ export interface FinishOptions {
   // valid and clean, else the router's. "only": the repaired board whatever it
   // is. "never": the router's board.
   repair?: "fallback" | "only" | "never";
+  // Development profiling only. Called for major router stages; never changes routing.
+  onPhaseTiming?: (stage: string, elapsedMs: number) => void;
 }
 
 // Explainer hook: frames land in `frames`, `board` draws a routed board
 export interface FinishLab {
   frames: LabFrame[];
   board: (virtual: Component[], rows: number, cols: number, cuts: AutoLayoutResult["cuts"], wires: { from: BoardPosition; to: BoardPosition }[]) => LabBoard;
+}
+
+// Scoring terms are returned for optional audit traces; normal selection still uses score.
+export interface FinishScoreTerms {
+  quality: number;
+  overCap: number;
+  offAxis: number; // historical name in finish: any column change (includes horizontal)
+  crossings: number;
+  stacked: number;
+  mess: number;
+  qualityCost: number;
+  messCost: number;
+  price: number;
 }
 
 export function finishSkeleton(
@@ -74,7 +89,7 @@ export function finishSkeleton(
   skeleton: Skeleton,
   options?: FinishOptions,
   lab?: FinishLab
-): { final: AutoLayoutResult; score: number } {
+): { final: AutoLayoutResult; score: number; scoreTerms: FinishScoreTerms } {
   const lockedColsCap = board.lockedCols ? board.cols : undefined;
   const lockedRowsCap = board.lockedRows ? board.rows : undefined;
   const hasLocked = skeleton.placed.some((p) => p.locked);
@@ -104,12 +119,18 @@ export function finishSkeleton(
     ...(lockedRowsCap !== undefined ? { maxRows: lockedRowsCap } : {}),
     ...(lockedColsCap !== undefined ? { maxCols: lockedColsCap } : {}),
   }, options?.drilledCutsOnly ?? false, options?.routingPreference ?? "wires");  const chooser = new Chooser(routeBoard, componentDefs, nets, netAssignments, false, {}, options?.drilledCutsOnly ?? false, true, options?.noWireStacking ?? false, pricer);
+  const phaseStart = () => options?.onPhaseTiming ? performance.now() : 0;
+  const phaseEnd = (name: string, t: number) => { if (options?.onPhaseTiming) options.onPhaseTiming(name, performance.now() - t); };
+  let phaseTime = phaseStart();
   chooser.route(comps, H, W, movedIds);
+  phaseEnd("initialRoute", phaseTime);
   // rim connectors kept on the rim first; a board that does not route that
   // way (a pin left without a free hole) gets the plain shift instead
+  phaseTime = phaseStart();
   if (chooser.chosen!.bad > 0) {
     chooser.route(padAroundEdgeConnectors(comps0, componentDefs, skeleton.rows, skeleton.cols, padLines, false).comps, H, W, movedIds);
   }
+  phaseEnd("fallbackRoute", phaseTime);
   chooser.freezePool();
   const pushFin = (msg: string) => {
     const c = chooser.chosen;
@@ -134,6 +155,7 @@ export function finishSkeleton(
   const netOfPin = new Map(netAssignments.map((a) => [pinKey(a.componentId, a.pinId), a.netId]));
   const c0 = chooser.chosen!;
   const anyLock = lockedColsCap !== undefined || lockedRowsCap !== undefined;
+  phaseTime = phaseStart();
   if (c0.bad === 0 && !anyLock) {
     // under a locked dimension the board is a physical given: the harvest
     // would only drag edge-flush parts inward for no gain
@@ -141,19 +163,24 @@ export function finishSkeleton(
     if (full.removals > 0) chooser.route(full.comps, full.rows, full.cols, c0.movedIds);
     if (lab && chooser.chosen !== c0) pushFin(`Lines that carry nothing are squeezed out: ${full.removals} line${full.removals === 1 ? "" : "s"} gone.`);
   }
+  phaseEnd("compaction", phaseTime);
   // hard zero-mess rule: buy bus rows and channel columns until every
   // wire is vertical and crosses nothing; a locked dimension cannot grow
   // and locked parts must not shift, so under those the mess may remain
   const cCh = chooser.chosen!;
+  phaseTime = phaseStart();
   if (chooser.chosen!.bad === 0 && !hasLocked) {
     insertWireChannels(chooser, componentDefs, {
       ...(lockedRowsCap !== undefined ? { maxRows: lockedRowsCap } : {}),
       ...(lockedColsCap !== undefined ? { maxCols: lockedColsCap } : {}),
     }, false, true);
   }
+  phaseEnd("insertWireChannels", phaseTime);
   if (lab && chooser.chosen !== cCh) pushFin("Wherever a wire would still have to slant, cross something or lie on another wire, the finish buys a blank row or column at the best place it can find and routes again, as often as it takes. That is what a straight, crossing-free board costs in area.");
   const cSl = chooser.chosen!;
+  phaseTime = phaseStart();
   if (chooser.chosen!.bad === 0) repairSlantWires(chooser, routeBoard, componentDefs, netAssignments, new Set());
+  phaseEnd("repairSlantWires", phaseTime);
   if (lab && chooser.chosen !== cSl) pushFin("A last look at each wire that is not yet straight: the router tries to give it a column of its own by shifting what stands in the way.");
   // a line that carries nothing, or nothing but wires, is blank board the
   // user would buy: a channel the router did not use in the end, a wire
@@ -162,6 +189,7 @@ export function finishSkeleton(
   // own; the router finds the wires another line, and the chooser keeps a
   // try only if the board still routes as cleanly and rates better
   const cFree = chooser.chosen!;
+  phaseTime = phaseStart();
   if (!anyLock && !hasLocked) {
     for (let round = 0; round < 24; round++) {
       const c1 = chooser.chosen!;
@@ -205,6 +233,7 @@ export function finishSkeleton(
       if (!freed) break;
     }
   }
+  phaseEnd("freeLinePass", phaseTime);
   if (lab && chooser.chosen !== cFree) pushFin("A line that carries nothing but a wire is board you would have to buy. Each one is offered back to the router on its own, and kept out whenever the wires find another way.");
   const ch = chooser.chosen!;
   const unplaceIds = [
@@ -238,6 +267,7 @@ export function finishSkeleton(
     boardSize: { rows: ch.rows, cols: ch.cols },
     unplaceIds,
   };
+  phaseTime = phaseStart();
   let final: AutoLayoutResult;
   if (anyLock) {
     // locked dimensions come back EXACTLY as locked (the physical board);
@@ -291,7 +321,9 @@ export function finishSkeleton(
     const trimmed = trimResult(result, routeBoard, ch.virtual, componentDefs, hasLocked);
     final = { ...result, ...trimmed };
   }
+  phaseEnd("trim", phaseTime);
   // purely visual: line the cuts up on shared columns (v2 does the same)
+  phaseTime = phaseStart();
   if (final.quality === 0) {
     final = dropIdleCuts(final, routeBoard, components, componentDefs, netAssignments);
     final = alignCuts(final, routeBoard, components, componentDefs);
@@ -306,6 +338,7 @@ export function finishSkeleton(
       final = { ...final, cuts: drillRemainingCuts(vBoard, virtual, componentDefs, netAssignments, final.cuts, final.wires) };
     }
   }
+  phaseEnd("cutCleanupAndDrill", phaseTime);
   if (lab && final.boardSize) {
     const byPl2 = new Map(final.placements.map((pl) => [pl.componentId, pl]));
     const virt = components.map((c) => {
@@ -325,8 +358,13 @@ export function finishSkeleton(
   const overCap =
     (lockedColsCap !== undefined ? Math.max(0, (final.boardSize?.cols ?? 0) - lockedColsCap) : 0) +
     (lockedRowsCap !== undefined ? Math.max(0, (final.boardSize?.rows ?? 0) - lockedRowsCap) : 0);
-  const score = (final.quality + overCap * 40) * 1e9 + (offAxis + crossings) * 1e4 + price;
-  return { final, score };
+  const qualityCost = (final.quality + overCap * 40) * 1e9;
+  const messCost = (offAxis + crossings) * 1e4;
+  const score = qualityCost + messCost + price;
+  return { final, score, scoreTerms: {
+    quality: final.quality, overCap, offAxis, crossings, stacked: 0,
+    mess: offAxis + crossings, qualityCost, messCost, price,
+  } };
 }
 
 // ── The repair finish: the decoder's board, kept ──
@@ -401,7 +439,7 @@ export function finishRepair(
   skeleton: Skeleton,
   options?: FinishOptions,
   lab?: FinishLab
-): { final: AutoLayoutResult; score: number; ok: boolean } | null {
+): { final: AutoLayoutResult; score: number; ok: boolean; scoreTerms: FinishScoreTerms } | null {
   const w = skeleton.wiring;
   if (!w) return null;
   const lockedColsCap = board.lockedCols ? board.cols : undefined;
@@ -767,6 +805,11 @@ export function finishRepair(
   const overCap =
     (lockedColsCap !== undefined ? Math.max(0, (final.boardSize?.cols ?? 0) - lockedColsCap) : 0) +
     (lockedRowsCap !== undefined ? Math.max(0, (final.boardSize?.rows ?? 0) - lockedRowsCap) : 0);
-  const score = (final.quality + overCap * 40) * 1e9 + mess * 1e4 + price;
-  return { final, score, ok: final.quality === 0 && mess === 0 && overCap === 0 && geometryOk(virtual) };
+  const qualityCost = (final.quality + overCap * 40) * 1e9;
+  const messCost = mess * 1e4;
+  const score = qualityCost + messCost + price;
+  return { final, score, ok: final.quality === 0 && mess === 0 && overCap === 0 && geometryOk(virtual),
+    scoreTerms: { quality: final.quality, overCap, offAxis, crossings, stacked, mess,
+      qualityCost, messCost, price },
+  };
 }
