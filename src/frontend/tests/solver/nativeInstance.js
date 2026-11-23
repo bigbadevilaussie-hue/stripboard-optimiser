@@ -16,7 +16,10 @@ function install(decodeModule, routeModule) {
     ? path.resolve(process.env.V5_NATIVE_LIB_DIR)
     : BUILD;
   const addon = require(path.join(BUILD, "v5native.node"));
-  const libs = new Map([[decodeModule, path.join(libDir, "libv5decode.so")], [routeModule, path.join(BUILD, "libv5route.so")]]);
+  const routeLibDir = process.env.V5_NATIVE_ROUTE_LIB_DIR
+    ? path.resolve(process.env.V5_NATIVE_ROUTE_LIB_DIR)
+    : BUILD;
+  const libs = new Map([[decodeModule, path.join(libDir, "libv5decode.so")], [routeModule, path.join(routeLibDir, "libv5route.so")]]);
   const Instance = WebAssembly.Instance;
   WebAssembly.Instance = function (module, imports) {
     const lib = libs.get(module);
