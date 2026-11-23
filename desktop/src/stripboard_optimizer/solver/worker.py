@@ -1,4 +1,4 @@
-APP_VERSION = "v1.49"
+APP_VERSION = "v1.56"
 """Background worker for running isolated v5 solver seeds."""
 
 import json
@@ -19,7 +19,7 @@ PLANS = {
     "manual": [(4, 1.0)],
 }
 
-PASS1_MOVES = 10_000
+PASS1_MOVES = 15_000
 MAX_FINALISTS = 10000  # effectively unlimited
 
 
@@ -66,7 +66,7 @@ class SolveWorker(threading.Thread):
     def __init__(
         self, project_json, mode, q, parallel=None, native=False, drilled=False,
         no_wire_stacking=False, routing_preference="wires", manual_seeds=None,
-        manual_seed_base=0, manual_effort=None, tournament_candidates=2000,
+        manual_seed_base=0, manual_effort=None, tournament_candidates=1000,
         tournament_finalists=10000, output_dir=None,
     ):
         super().__init__(daemon=True)
@@ -74,10 +74,10 @@ class SolveWorker(threading.Thread):
         self.mode = mode
         self.q = q
         self.parallel = parallel or max(1, min(4, (os.cpu_count() or 2) - 1))
-        # Fixed benchmark configuration: native solver, knife cuts, stacking allowed.
+        # Native is mandatory; routing rules are user-selectable in the GUI.
         self.native = True
-        self.drilled = drilled
-        self.no_wire_stacking = False
+        self.drilled = bool(drilled)
+        self.no_wire_stacking = bool(no_wire_stacking)
         self.routing_preference = routing_preference
         self.manual_seeds = manual_seeds
         self.manual_seed_base = manual_seed_base
@@ -208,7 +208,7 @@ class SolveWorker(threading.Thread):
         random.SystemRandom().shuffle(names)
         contestant_names = {seed: names[(seed - 1) % len(names)] for seed in seeds}
 
-        self.q.put(("log", f"[SOLVER] Native=ON | drilled cuts=ON | wire stacking=ALLOWED | routing priority={self.routing_preference}"))
+        self.q.put(("log", f"[SOLVER] Native=ON | drilled cuts={'ON' if self.drilled else 'OFF'} | wire stacking={'BLOCKED' if self.no_wire_stacking else 'ALLOWED'} | routing priority={self.routing_preference}"))
         self.q.put(("log", f"🏁 PASS 1: {candidates} seeds × {PASS1_MOVES:,} moves (strict Q0, 0 diag)"))
         try:
             _jd = json.loads(Path(self.project_json).read_text(encoding="utf-8"))
