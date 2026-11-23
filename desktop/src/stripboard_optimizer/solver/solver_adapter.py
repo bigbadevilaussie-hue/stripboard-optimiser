@@ -64,6 +64,7 @@ def solve_one(
     native=True,
     drilled=False,
     no_wire_stacking=False,
+    strict_validation=False,
     routing_preference="wires",
     on_log=None,
     on_progress=None,
@@ -112,6 +113,8 @@ def solve_one(
         command.extend(["--drilled", "1"])
     if no_wire_stacking:
         command.extend(["--nostack", "1"])
+    if strict_validation:
+        command.extend(["--strict", "1"])
     command.extend(["--routing-preference", routing_preference])
 
     proc = subprocess.Popen(
@@ -171,6 +174,12 @@ def solve_one(
 
     if stderr_errors:
         raise RuntimeError(f"Could not read solver output: {stderr_errors[0]}")
+    allowed_exit_codes = (0, 2) if strict_validation else (0,)
+    if return_code not in allowed_exit_codes:
+        raise RuntimeError(
+            f"Solver process exited with code {return_code}; "
+            f"stdout tail: {stdout_text[-1200:]}"
+        )
 
     for line in reversed(stdout_text.strip().splitlines()):
         try:
@@ -184,6 +193,12 @@ def solve_one(
                 raise RuntimeError(f"Solver returned an incomplete summary: {result}")
             if not save_file.is_file():
                 raise RuntimeError("Solver returned a summary but did not save the solved project.")
+            if strict_validation:
+                compliant = result.get("strictValid")
+                if not isinstance(compliant, bool) or not isinstance(result.get("strictFailures"), list):
+                    raise RuntimeError("CLI did not provide strict validation; rebuild/update v1.60+ harness.")
+                if (return_code == 0) != compliant:
+                    raise RuntimeError("CLI strictValid disagrees with process exit code.")
             return result, save_file
 
     raise RuntimeError(
@@ -193,13 +208,8 @@ def solve_one(
 
 
 def is_valid(summary):
-    """Apply the solver harness's independent geometry/electrical result flags."""
-    return (
-        summary.get("conflicts") == 0
-        and summary.get("incomplete") == 0
-        and summary.get("geo") == 0
-        and not summary.get("issues")
-    )
+    """Only physically compliant, strictly verified CLI results qualify."""
+    return summary.get("strictValid") is True and not summary.get("strictFailures")
 
 
 def rank_key(summary, routing_preference="wires"):
