@@ -128,19 +128,22 @@ class SolveWorker(threading.Thread):
         self.q.put(("log",
             f"⏱ SPEED {count - len(batch) + 1}–{count} · "
             f"🧠 solve {solve:,.0f}ms ({solve / total * 100 if total else 0:.0f}%) · "
-            f"🚀 startup {avg('startupMs'):.0f}ms · "
+            f"🚀 start {avg('startupMs'):.0f}ms · "
             f"🔎 verify {avg('verifyMs'):.0f}ms · "
-            f"💻 CPU {avg('cpuMs'):.0f}ms · "
-            f"✅ {clean}/{len(batch)} clean · "
-            f"📦 {avg('rssMb'):.0f}MB"
-            + (f" · 🔁 anneal {avg('annealMs'):.0f}ms"
-               f" · 🧬 extract {avg('extractMs'):.0f}ms"
-               f" · 🦴 skeleton {avg('skeletonMs'):.0f}ms"
-               f" · 🩹 repair {avg('repairMs'):.0f}ms"
-               f" · 🧭 route {avg('routeMs'):.0f}ms"
-               f" · 🧩 exact {avg('exactRepairMs'):.0f}ms"
-               if detailed else " · ⚠️ rebuild frontend solver for deep timings")
+            f"✅ {clean}/{len(batch)} clean"
         ))
+        if detailed:
+            self.q.put(("log",
+                f"  🔬 🔁 anneal {avg('annealMs'):.0f}ms · "
+                f"🧬 extract {avg('extractMs'):.0f}ms · "
+                f"🦴 skeleton {avg('skeletonMs'):.0f}ms · "
+                f"🩹 repair {avg('repairMs'):.0f}ms · "
+                f"🧭 route {avg('routeMs'):.0f}ms · "
+                f"🧩 exact {avg('exactRepairMs'):.0f}ms"
+            ))
+        else:
+            self.q.put(("log", "  ⚠️ Deep profiling unavailable: rebuild the frontend TypeScript solver"))
+
 
     def cancel(self):
         self.cancelled = True
