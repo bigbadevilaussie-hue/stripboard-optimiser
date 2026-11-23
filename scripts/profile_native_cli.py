@@ -122,6 +122,30 @@ def run_case(row, bench, out):
         err = "strictValid and CLI exit code disagree"
     elif not saved.is_file():
         err = "missing solved output"
+    # Require both candidates' full score decomposition and project-level
+    # validation, not just a displayed score that could mask a missing term.
+    if not err:
+        for tr in finish:
+            for name in ("repair", "router"):
+                cand = tr.get(name)
+                if cand is None:
+                    continue  # repair can legitimately be unavailable
+                terms = cand.get("scoreTerms")
+                validation = cand.get("verification")
+                if not isinstance(terms, dict) or not isinstance(validation, dict):
+                    err = name + " missing score terms or harness verification"
+                    break
+                try:
+                    score_rebuilt = float(terms["qualityCost"]) + float(terms["messCost"]) + float(terms["price"])
+                    score_actual = float(cand["score"])
+                except (KeyError, TypeError, ValueError) as exc:
+                    err = name + " malformed score terms: " + str(exc)
+                    break
+                if abs(score_rebuilt - score_actual) > 1e-5 * max(1.0, abs(score_actual)):
+                    err = "{} score mismatch: {} vs {}".format(name, score_rebuilt, score_actual)
+                    break
+            if err:
+                break
     baseline_sig = row["sig"]
     match = result.get("sig") == baseline_sig if result and baseline_sig else None
     baseline_clean = str(row["clean"]).lower() in ("true", "1")
