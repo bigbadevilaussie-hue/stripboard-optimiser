@@ -42,7 +42,8 @@ const timingEnabled = process.env.STRIPBOARD_TIMING === "1";
 const fs = require("fs");
 const path = require("path");
 const { metrics } = require("./metricsLib.js");
-const { DEFAULT_COMPONENTS, checkGeometry, verify } = require("./helpers.js");
+const { DEFAULT_COMPONENTS, checkGeometry, verify, computeStripSegments, computeConnectivity,
+  flexGeometry, partGeometry, boardLayout, resolveComponentDef } = require("./helpers.js");
 
 const args = process.argv.slice(2);
 const argVal = (name) => {
@@ -199,6 +200,8 @@ const blankComps = data.components.map((c) => (
     : { ...c, boardPos: null, flexibleEndPos: undefined, rotation: 0, locked: undefined }
 ));
 const blankBoard = { ...data.board, cuts: [], wires: [] };
+const edgeMountDiagnostic = strict && blankComps.some((c) => c.locked && c.edge === true);
+let edgeFeasibility = null;
 const timingInputEnd = performance.now();
 
 // Harness-only validation for BOTH finish candidates. The normal solver still
@@ -333,6 +336,7 @@ try {
     ...(hint ? { msPerMoveHint: hint } : {}),
     ...(speedProbe ? { speedProbe, onSpeedProbe: (ms) => { process.stderr.write(`probeMs ${ms}\n`); } } : {}),
     debugSeeds: true,
+    ...(edgeMountDiagnostic ? { onEdgeFeasibility: (info) => { edgeFeasibility = info; } } : {}),
     ...(timingEnabled ? { onTiming: collectSolverTiming } : {}),
     ...(finishTraceEnabled ? { onFinishTrace: emitFinishTrace } : {}),
     ...(dumpDir ? { onSkeleton: (s, sk) => { fs.mkdirSync(dumpDir, { recursive: true }); fs.writeFileSync(path.join(dumpDir, `${id}_s${s}.json`), JSON.stringify(sk)); } } : {}),
@@ -419,6 +423,65 @@ const { wireStackDepth } = require(path.join(OUT, "components/stripboard/flexGeo
 const stacked = res.wires.filter((w, i) => wireStackDepth(w.from, w.to, res.wires.slice(0, i)) > 0).length;
 const v = verify(solvedBoard, boardComps, nets, view.netAssignments, defs);
 const geo = checkGeometry(solvedBoard, boardComps, defs).length;
+// Do not report a deliberately EMPTY fallback board as if the solver built
+// 35 badly connected nets. It is an explicit failure to find/finish placement.
+const unsolvedText = (res.issues || []).find((i) => typeof i === "string" && i.startsWith("UNSOLVED: "));
+const unsolvedReason = unsolvedText ? unsolvedText.slice("UNSOLVED: ".length).split(/[ —]/)[0] : null;
+
+// Edge-mount-only physical diagnostics. Nothing here is fed back to the solver;
+// net names are derived from the real connectivity checker, and per-wire
+// crossing tests use exactly the same geometry helpers as metrics().
+const incompleteNets = edgeMountDiagnostic && !unsolvedReason
+  ? v.incomplete.map((n) => ({ id: n.netId, name: n.netName,
+      groups: n.groups, unplacedPins: n.unplacedPins }))
+  : [];
+let wireViolations = [];
+if (edgeMountDiagnostic && !unsolvedReason) {
+  const segments = computeStripSegments(solvedBoard, boardComps, defs, view.netAssignments);
+  const groups = computeConnectivity(segments, solvedBoard.wires);
+  const groupBySegment = new Map();
+  groups.forEach((g, gi) => g.segmentIndices.forEach((si) => groupBySegment.set(si, gi)));
+  const groupNets = groups.map((g) => [...new Set(g.segmentIndices.flatMap((si) => segments[si]?.netIds || []))]);
+  const at = (p) => segments.findIndex((seg) =>
+    seg.row === p.row && seg.startCol <= p.col && p.col <= seg.endCol);
+  const obstacles = boardComps.filter((c) => c.boardPos && !c.boardExcluded).flatMap((c) => {
+    const def = resolveComponentDef(c, defs);
+    if (!def) return [];
+    if (def.flexible) {
+      const [a, b] = boardLayout.getFlexiblePinPositions(c, def);
+      if (!a || !b) return [];
+      const body = partGeometry.flexWireObstacle(def, a, b);
+      return [{ component: c.label || c.id, hit: (w) =>
+        flexGeometry.wireCrossesBody(w.from, w.to, body) }];
+    }
+    const body = partGeometry.rigidBody(def, c.boardPos, c.rotation ?? 0);
+    return [{ component: c.label || c.id, hit: (w) =>
+      flexGeometry.segmentIntersectsRect(w.from, w.to, body) }];
+  });
+  wireViolations = solvedBoard.wires.flatMap((w, i) => {
+    const nonvertical = w.from.col !== w.to.col;
+    const slanted = nonvertical && w.from.row !== w.to.row;
+    const horizontal = nonvertical && w.from.row === w.to.row;
+    const crossingComponents = obstacles.filter((o) => o.hit(w)).map((o) => o.component);
+    const stackedWith = solvedBoard.wires.slice(0, i)
+      .flatMap((other, j) => flexGeometry.wireStackDepth(w.from, w.to, [other]) > 0 ? [j + 1] : []);
+    const violations = [
+      ...(nonvertical ? ["NONVERTICAL"] : []),
+      ...(slanted ? ["SLANTED"] : []),
+      ...(horizontal ? ["HORIZONTAL"] : []),
+      ...(crossingComponents.length ? ["CROSSINGS"] : []),
+      ...(stackedWith.length ? ["STACKED"] : []),
+    ];
+    if (!violations.length) return [];
+    const sg = groupBySegment.get(at(w.from)) ?? groupBySegment.get(at(w.to));
+    const ids = sg === undefined ? [] : groupNets[sg];
+    const netNames = ids.length ? ids.map((id) => nets.find((n) => n.id === id)?.name || id)
+      : ["UNRESOLVED"];
+    return [{ wire: i + 1, netNames, from: w.from, to: w.to,
+      violations, crossingComponents, stackedWith }];
+  });
+}
+
 // This is a gate for the CLI, not a claim that the solver respected its flags.
 // Keep the rejected layout on disk when --save is supplied for diagnosis.
 const strictFailures = [];
@@ -429,15 +492,19 @@ if (strict) {
   diagonalsActual = solvedBoard.wires.filter((w) => w.from.col !== w.to.col).length;
   slantedWires = solvedBoard.wires.filter((w) => w.from.col !== w.to.col && w.from.row !== w.to.row).length;
   horizontalWires = solvedBoard.wires.filter((w) => w.from.col !== w.to.col && w.from.row === w.to.row).length;
-  if (res.quality !== 0) strictFailures.push(`QUALITY_${res.quality}`);
-  if (v.conflicts !== 0) strictFailures.push(`CONFLICTS_${v.conflicts}`);
-  const incompleteN = Array.isArray(v.incomplete) ? v.incomplete.length : v.incomplete;
-  if (incompleteN !== 0) strictFailures.push(`INCOMPLETE_${incompleteN}`);
-  if (geo !== 0) strictFailures.push(`GEOMETRY_${geo}`);
-  if (diagonalsActual !== 0) strictFailures.push(`NONVERTICAL_${diagonalsActual}`);
-  if (m.offAxisWires !== 0) strictFailures.push(`SLANTED_${m.offAxisWires}`);
-  if (m.crossings !== 0) strictFailures.push(`CROSSINGS_${m.crossings}`);
-  if (res.issues?.length) strictFailures.push("SOLVER_ISSUES");
+  if (unsolvedReason) {
+    strictFailures.push("UNSOLVED_" + unsolvedReason);
+  } else {
+    if (res.quality !== 0) strictFailures.push(`QUALITY_${res.quality}`);
+    if (v.conflicts !== 0) strictFailures.push(`CONFLICTS_${v.conflicts}`);
+    const incompleteN = Array.isArray(v.incomplete) ? v.incomplete.length : v.incomplete;
+    if (incompleteN !== 0) strictFailures.push(`INCOMPLETE_${incompleteN}`);
+    if (geo !== 0) strictFailures.push(`GEOMETRY_${geo}`);
+    if (diagonalsActual !== 0) strictFailures.push(`NONVERTICAL_${diagonalsActual}`);
+    if (m.offAxisWires !== 0) strictFailures.push(`SLANTED_${m.offAxisWires}`);
+    if (m.crossings !== 0) strictFailures.push(`CROSSINGS_${m.crossings}`);
+    if (res.issues?.length) strictFailures.push("SOLVER_ISSUES");
+  }
   if (blankBoard.lockedRows && solvedBoard.rows !== blankBoard.rows) strictFailures.push("LOCKED_ROWS");
   if (blankBoard.lockedCols && solvedBoard.cols !== blankBoard.cols) strictFailures.push("LOCKED_COLS");
   // Edge-mount exemptions apply only to the external *body*. No electrical
@@ -485,6 +552,8 @@ console.log(JSON.stringify({
   ...(decoded && !stackCap && !macroCap ? { decoded } : {}),
   ...(stackInfo ? { stack: stackInfo } : {}),
   quality: res.quality,
+  ...(edgeMountDiagnostic ? { unsolvedReason, firstFeasibleMove: edgeFeasibility?.firstMove ?? null,
+    firstFeasibleMs: edgeFeasibility?.firstMs ?? null, incompleteNets, wireViolations } : {}),
   rows: solvedBoard.rows, cols: solvedBoard.cols, area: solvedBoard.rows * solvedBoard.cols,
   wires: m.wires, offAxis: m.offAxisWires, crossings: m.crossings, stacked, cuts: m.cuts, knife, connOff, connIn,
   conflicts: v.conflicts, incomplete: v.incomplete.length ?? v.incomplete, geo,
