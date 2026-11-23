@@ -440,6 +440,13 @@ if (strict) {
   if (res.issues?.length) strictFailures.push("SOLVER_ISSUES");
   if (blankBoard.lockedRows && solvedBoard.rows !== blankBoard.rows) strictFailures.push("LOCKED_ROWS");
   if (blankBoard.lockedCols && solvedBoard.cols !== blankBoard.cols) strictFailures.push("LOCKED_COLS");
+  // Edge-mount exemptions apply only to the external *body*. No electrical
+  // pin, drill cut or wire endpoint can ever be outside the purchased PCB.
+  const outsideCopper = (p) => !p || p.row < 0 || p.col < 0 ||
+    p.row >= solvedBoard.rows || p.col >= solvedBoard.cols;
+  if (solvedBoard.cuts.some((c) => outsideCopper(c))) strictFailures.push("CUT_OUTSIDE_PHYSICAL_BOARD");
+  if (solvedBoard.wires.some((w) => outsideCopper(w.from) || outsideCopper(w.to)))
+    strictFailures.push("WIRE_OUTSIDE_PHYSICAL_BOARD");
   const actualComponents = new Map(solvedComps.map((c) => [c.id, c]));
   for (const original of blankComps) {
     if (!original.locked || !original.boardPos) continue;
