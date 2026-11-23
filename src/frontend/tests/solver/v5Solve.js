@@ -33,6 +33,9 @@
 //        [--mix <json>]      another move mix: {"early":[13 entries],"late":[13 entries],"lateFrom":0.5} (decode.c mixEarly;
 //                            a table of 12, as before 2026-09-27, has no pull and tie; joint solves only)
 //        [--hint <ms/move>]  decode speed of an earlier run: the time budget becomes a fixed count
+const timingProcessStart = performance.now();
+const timingCpuStart = process.cpuUsage();
+const timingEnabled = process.env.STRIPBOARD_TIMING === "1";
 const fs = require("fs");
 const path = require("path");
 const { metrics } = require("./metricsLib.js");
@@ -129,6 +132,7 @@ const moveLog = moveLogDir
     }
   : undefined;
 
+const timingStartupEnd = performance.now();
 const data = JSON.parse(fs.readFileSync(path.join(dataDir, "projects", `${id}.json`), "utf8"));
 const defs = [...DEFAULT_COMPONENTS, ...(data.componentDefs ?? [])];
 const nets = data.nets ?? [];
@@ -139,6 +143,7 @@ const blankComps = data.components.map((c) => (
     : { ...c, boardPos: null, flexibleEndPos: undefined, rotation: 0, locked: undefined }
 ));
 const blankBoard = { ...data.board, cuts: [], wires: [] };
+const timingInputEnd = performance.now();
 if (stackCap && stackMin) {
   const placeable = new Set(blankComps.filter((c) => !c.boardExcluded).map((c) => c.id));
   if (asg.filter((a) => placeable.has(a.componentId)).length < stackMin) stackCap = undefined;
@@ -218,10 +223,12 @@ try {
     ...(dumpDir ? { onSkeleton: (s, sk) => { fs.mkdirSync(dumpDir, { recursive: true }); fs.writeFileSync(path.join(dumpDir, `${id}_s${s}.json`), JSON.stringify(sk)); } } : {}),
   });
 } catch (err) {
+  if (timingEnabled) process.stderr.write(`timing ${JSON.stringify({pid: process.pid, seed, error: String(err), elapsedMs: +(performance.now() - timingProcessStart).toFixed(2)})}\n`);
   console.log(JSON.stringify({ id, seed, error: String(err && err.message ? err.message : err) }));
   process.exit(0);
 }
 console.log = origLog;
+const timingSolveEnd = performance.now();
 const ms = Date.now() - t0;
 if (logGz) {
   logFlush();
@@ -236,6 +243,7 @@ const sig = require("crypto").createHash("sha1").update(JSON.stringify({
   cuts: [...res.cuts].sort((a, b) => a.row - b.row || a.col - b.col || (a.kind < b.kind ? -1 : 1)),
   wires: [...res.wires].map((w) => [w.from.row, w.from.col, w.to.row, w.to.col]).sort(),
 })).digest("hex").slice(0, 12);
+const timingScoreEnd = performance.now();
 const byId = new Map(res.placements.map((p) => [p.componentId, p]));
 const solvedComps = blankComps.map((c) => {
   const p = byId.get(c.id);
@@ -268,6 +276,7 @@ if (saveFile) {
   };
   fs.writeFileSync(saveFile, JSON.stringify(saved));
 }
+const timingSaveEnd = performance.now();
 // measured as the editor sees the board: an off-board part is its pads, placed
 // where the layouter put them (until 2026-09-28 the parents were measured, so
 // every net through an off-board part counted as incomplete)
@@ -295,6 +304,26 @@ const { wireStackDepth } = require(path.join(OUT, "components/stripboard/flexGeo
 const stacked = res.wires.filter((w, i) => wireStackDepth(w.from, w.to, res.wires.slice(0, i)) > 0).length;
 const v = verify(solvedBoard, boardComps, nets, view.netAssignments, defs);
 const geo = checkGeometry(solvedBoard, boardComps, defs).length;
+const timingVerifyEnd = performance.now();
+if (timingEnabled) {
+  const cpu = process.cpuUsage(timingCpuStart);
+  const ms2 = (a, b) => +(b - a).toFixed(2);
+  const timing = {
+    pid: process.pid, seed, moves: moves ?? null, lockedParts: blankComps.filter(c => c.locked && c.boardPos).length,
+    startupMs: ms2(timingProcessStart, timingStartupEnd),
+    inputMs: ms2(timingStartupEnd, timingInputEnd),
+    solveMs: ms2(timingInputEnd, timingSolveEnd),
+    scoreMs: ms2(timingSolveEnd, timingScoreEnd),
+    saveMs: ms2(timingScoreEnd, timingSaveEnd),
+    verifyMs: ms2(timingSaveEnd, timingVerifyEnd),
+    totalMs: ms2(timingProcessStart, timingVerifyEnd),
+    cpuMs: +((cpu.user + cpu.system) / 1000).toFixed(2),
+    rssMb: +(process.memoryUsage().rss / 1048576).toFixed(1),
+    wires: m.wires, cuts: m.cuts, quality: res.quality,
+    conflicts: v.conflicts, incomplete: v.incomplete.length ?? v.incomplete, geo,
+  };
+  process.stderr.write(`timing ${JSON.stringify(timing)}\n`);
+}
 console.log(JSON.stringify({
   id, seed, ms, rate, ...(price !== undefined ? { price } : {}), sig,
   ...(budget ? { budget } : {}),
