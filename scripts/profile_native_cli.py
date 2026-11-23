@@ -313,8 +313,16 @@ def main():
              "eitherCompliant": ft.get("anyCompliant"),
              "routeMs": rec.get("timing", {}).get("routeMs"),
              "solveMs": rec.get("timing", {}).get("solveMs")}
+        move_stats = rec.get("result", {}).get("moveSummary", {})
+        for metric in ("attempted", "mutateFailed", "decodeFailed", "rejected", "accepted", "sameBoard"):
+            x["moves_" + metric] = move_stats.get(metric)
+            x["pct_" + metric] = (move_stats.get("percent") or {}).get(metric)
+        for phase in ("initialRoute", "fallbackRoute", "compaction", "insertWireChannels",
+                      "repairSlantWires", "freeLinePass", "trim", "cutCleanupAndDrill"):
+            x["phase_" + phase + "_ms"] = (ft.get("routePhases") or {}).get(phase)
         for label in ("repair", "router"):
             c = ft.get(label) or {}
+            x[label + "_ok"] = c.get("eligible")
             v = c.get("verification") or {}
             terms = c.get("scoreTerms") or {}
             for key in ("quality", "columnShiftWires", "slantedWires", "horizontalWires",
