@@ -1,4 +1,4 @@
-APP_VERSION = "v1.58-debug"
+APP_VERSION = "v1.61-debug"
 """Background worker for running isolated v5 solver seeds."""
 
 import json
@@ -8,6 +8,7 @@ import shutil
 import tempfile
 import threading
 import time
+from collections import Counter
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
@@ -25,26 +26,33 @@ MAX_FINALISTS = 10000  # effectively unlimited
 
 
 def _layout_signature(path):
-    """Return a stable signature for a board arrangement, ignoring run metadata."""
+    """Fingerprint the complete physical board, not just placements.
+
+    Identical placements with different wires or cuts are distinct tournament
+    candidates. Exclude irrelevant wire IDs and project metadata.
+    """
     saved = json.loads(Path(path).read_text(encoding="utf-8"))
     board = saved.get("board", {})
     components = []
-    for component in saved.get("components", []):
-        if component.get("boardExcluded"):
+    for comp in saved.get("components", []):
+        if comp.get("boardExcluded"):
             continue
         components.append((
-            str(component.get("id", "")),
-            component.get("boardPos"),
-            component.get("rotation", 0),
+            str(comp.get("id", "")), comp.get("boardPos"),
+            comp.get("rotation", 0), comp.get("flexibleEndPos"),
+            comp.get("leads"),
         ))
     components.sort(key=lambda item: item[0])
-    return json.dumps(
-        {"rows": board.get("rows", saved.get("rows")),
-         "cols": board.get("cols", saved.get("cols")),
-         "components": components},
-        sort_keys=True, separators=(",", ":"),
-    )
-
+    cuts = sorted((c.get("row"), c.get("col"), c.get("kind", "hole"))
+                  for c in board.get("cuts", []))
+    wires = sorted(tuple(sorted(((w["from"]["row"], w["from"]["col"]),
+                                  (w["to"]["row"], w["to"]["col"]))))
+                   for w in board.get("wires", []))
+    return json.dumps({
+        "rows": board.get("rows", saved.get("rows")),
+        "cols": board.get("cols", saved.get("cols")),
+        "components": components, "cuts": cuts, "wires": wires,
+    }, sort_keys=True, separators=(",", ":"))
 
 CONTESTANT_NAMES = [
     "Ada", "Ben", "Cleo", "Dan", "Eva", "Finn", "Gala", "Hank", "Iris", "Jack",
@@ -183,6 +191,7 @@ class SolveWorker(threading.Thread):
                 effort=effort,
                 moves=moves, native=self.native, drilled=self.drilled,
                 no_wire_stacking=self.no_wire_stacking,
+                strict_validation=True,
                 routing_preference=self.routing_preference,
                 on_log=self._solver_log if self._timing_file else None,
                 on_progress=lambda current_seed, fraction: self.q.put(
@@ -191,17 +200,9 @@ class SolveWorker(threading.Thread):
                 register_process=self._register_process,
                 unregister_process=self._unregister_process,
             )
-            # --- LIE DETECTOR (Match CLI) ---
-            try:
-                saved = json.loads(Path(path).read_text(encoding="utf-8"))
-                actual_diags = sum(1 for w in saved.get("board", {}).get("wires", []) 
-                                   if w["from"]["row"] != w["to"]["row"] and w["from"]["col"] != w["to"]["col"])
-                summary["offAxis"] = actual_diags # Override the solver's fake number
-            except Exception:
-                summary["offAxis"] = 999 # Fail safe
-            # --------------------------------
-            
-            ok = (summary.get("quality") == 0 and summary.get("offAxis", 0) == 0)
+            # The strict native CLI verifies electrical and physical compliance.
+            # Never qualify a board using Q0 and slanted-wire count alone.
+            ok = is_valid(summary)
             try:
                 saved = json.loads(Path(path).read_text(encoding="utf-8"))
                 parts = sum(
@@ -210,7 +211,7 @@ class SolveWorker(threading.Thread):
                 )
             except Exception:
                 parts = "?"
-            diagonals = summary.get("offAxis", "?")
+            diagonals = summary.get("slantedWires", summary.get("offAxis", "?"))
             elapsed = summary.get("ms", "?")
             price = summary.get("price", summary.get("rate", "?"))
             try:
@@ -231,11 +232,13 @@ class SolveWorker(threading.Thread):
                 f"{phase} {label} #{seed:04d} {status} · "
                 f"📐{summary.get('rows', '?')}×{summary.get('cols', '?')} · "
                 f"🔌{summary.get('wires', '?')} · ✂️{summary.get('cuts', '?')} · "
-                f"🎯Q{summary.get('quality', '?')} · ↘{summary.get('offAxis', '?')} · "
+                f"🎯Q{summary.get('quality', '?')} · ↘{diagonals} "
+                f"↔{summary.get('horizontalWires', '?')} · "
+                f"🔪{summary.get('knife', '?')} · 🧵{summary.get('stacked', '?')} · "
                 f"⏱{elapsed}ms · 💰{price_text}"
             )
             if not ok:
-                reasons = []
+                reasons = ["STRICT=" + ",".join(summary.get("strictFailures", ["MISSING_VALIDATION"]))]
                 if summary.get("quality") is not None:
                     reasons.append(f"Q={summary.get('quality')}")
                 reasons.extend((f"CONFLICTS={conflicts}", f"INCOMPLETE={incomplete}",
