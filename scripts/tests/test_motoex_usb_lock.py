@@ -1,10 +1,19 @@
 """motoex USB-overhang regression contract tests; no solver runtime required."""
 import copy
+import importlib.util
 import json
 from pathlib import Path
 import unittest
 
-import test_motoex_usb_lock as motoex
+# The runner and this unittest intentionally share the same filename.
+# Import it by absolute path under a distinct module name: normal
+# "import test_motoex_usb_lock" resolves to THIS test module under discover.
+_RUNNER = Path(__file__).resolve().parents[1] / "test_motoex_usb_lock.py"
+_SPEC = importlib.util.spec_from_file_location("motoex_usb_lock_runner", _RUNNER)
+if _SPEC is None or _SPEC.loader is None:
+    raise ImportError("Cannot load MOTOEX native regression runner")
+motoex = importlib.util.module_from_spec(_SPEC)
+_SPEC.loader.exec_module(motoex)
 
 
 class MotoexUsbLockTests(unittest.TestCase):
