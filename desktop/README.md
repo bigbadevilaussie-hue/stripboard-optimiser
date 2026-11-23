@@ -31,7 +31,7 @@ The current tournament is implemented in `src/stripboard_optimizer/solver/worker
 - **Pass 2:** all selected qualifiers are re-run at 25,000–100,000 moves, stepping by 5,000. The solver starts each run from the source project rather than continuing from an earlier budget. Retain the best 10 overall results.
 - **Physical controls:** drilled cuts only and no stacking are independent opt-in constraints. With the corresponding controls off, knife cuts and stacked wires may appear. Do not assume zero diagonals or an overall Q0 score independently proves geometry, connectivity, locked component location or buildability.
 - **Speed profiling:** launch with `STRIPBOARD_TIMING=1` to write full per-seed JSONL timings in the work directory and show two compact, emoji-labelled timing lines every 25 seeds. After editing `autoLayout5.ts`, rebuild with `cd src/frontend && npx tsc -p tests/solver/tsconfig.json`.
-- **Detailed reproducibility record:** [Native solver profiling, MOTO/MOTOMIX comparison and 5k–50k locked-F1 ladder](../docs/native-solver-benchmark-2026-11-23.md). Ladder results above 20k were not yet provided at the time of documentation.
+- **Detailed reproducibility record:** [Native solver profiling, MOTO/MOTOMIX comparison and 5k–50k locked-F1 ladder](../docs/native-solver-benchmark-2026-11-23.md). The full 5k–50k ladder is complete: 200 runs, with a best reported clean locked result of 21 wires / 36 cuts at 50k seed #03; knife cuts and stacking were allowed.
 
 ### Ranking
 
