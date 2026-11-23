@@ -71,6 +71,10 @@ export interface AutoLayout5Options {
   // Only sever strips by drilling holes: knife cuts the drill upgrade
   // cannot absorb are priced in the skeleton and the finish
   drilledCutsOnly?: boolean;
+  // Experimental native-only generic rotation-domain switch. Undefined
+  // retains current behavior; false disables the filter for A/B signature
+  // comparisons without rebuilding or changing other anneal flags.
+  drilledRotationDomain?: boolean;
   // No wire may run on top of another in one channel
   noWireStacking?: boolean;
   routingPreference?: "wires" | "cuts";
@@ -850,7 +854,8 @@ export function computeAutoLayout5(
       annealDecInst = new V5WasmDecoder(wasmOf(), wasmModel());
       // General pin/net constraint, experimentally available in the native
       // Edge decoder only. No special-casing of GPS or any project fixture.
-      if (options?.drilledCutsOnly) annealDecInst.setDrilledRotationDomain(true);
+      if (options?.drilledCutsOnly && options?.drilledRotationDomain !== false)
+        annealDecInst.setDrilledRotationDomain(true);
     }
     return annealDecInst;
   };
