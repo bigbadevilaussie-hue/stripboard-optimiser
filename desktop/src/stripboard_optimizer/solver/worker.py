@@ -1,4 +1,4 @@
-APP_VERSION = "v1.56"
+APP_VERSION = "v1.57"
 """Background worker for running isolated v5 solver seeds."""
 
 import json
@@ -7,6 +7,7 @@ import random
 import shutil
 import tempfile
 import threading
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
@@ -89,6 +90,49 @@ class SolveWorker(threading.Thread):
         self._cancel_event = threading.Event()
         self._procs = []
         self._procs_lock = threading.Lock()
+        self._timing_lock = threading.Lock()
+        self._timing_batch = []
+        self._timing_count = 0
+        self._timing_file = None
+        if os.environ.get("STRIPBOARD_TIMING") == "1":
+            timing_dir = self.output_dir or Path(self.project_json).parent
+            timing_dir.mkdir(parents=True, exist_ok=True)
+            self._timing_file = timing_dir / f"seed_timings_{time.strftime('%Y%m%d_%H%M%S')}.jsonl"
+
+    def _solver_log(self, message):
+        """Write full diagnostics to disk, show a readable digest every 25 seeds."""
+        if " timing {" not in message or not self._timing_file:
+            self.q.put(("log", message))
+            return
+        try:
+            timing = json.loads(message.split(" timing ", 1)[1])
+        except (ValueError, IndexError):
+            self.q.put(("log", message))
+            return
+        with self._timing_lock:
+            with self._timing_file.open("a", encoding="utf-8") as out:
+                out.write(json.dumps(timing, separators=(",", ":")) + "\n")
+            self._timing_count += 1
+            self._timing_batch.append(timing)
+            if len(self._timing_batch) < 25:
+                return
+            batch = self._timing_batch
+            self._timing_batch = []
+            count = self._timing_count
+        def avg(key):
+            return sum(float(t.get(key) or 0) for t in batch) / len(batch)
+        total = avg("totalMs")
+        solve = avg("solveMs")
+        clean = sum(1 for t in batch if not (t.get("conflicts") or t.get("incomplete") or t.get("geo")))
+        self.q.put(("log",
+            f"⏱ SPEED {count - len(batch) + 1}–{count} · "
+            f"🧠 solve {solve:,.0f}ms ({solve / total * 100 if total else 0:.0f}%) · "
+            f"🚀 startup {avg('startupMs'):.0f}ms · "
+            f"🔎 verify {avg('verifyMs'):.0f}ms · "
+            f"💻 CPU {avg('cpuMs'):.0f}ms · "
+            f"✅ {clean}/{len(batch)} clean · "
+            f"📦 {avg('rssMb'):.0f}MB"
+        ))
 
     def cancel(self):
         self.cancelled = True
@@ -129,7 +173,7 @@ class SolveWorker(threading.Thread):
                 moves=moves, native=self.native, drilled=self.drilled,
                 no_wire_stacking=self.no_wire_stacking,
                 routing_preference=self.routing_preference,
-                on_log=(lambda message: self.q.put(("log", message))) if os.environ.get("STRIPBOARD_TIMING") == "1" else None,
+                on_log=self._solver_log if self._timing_file else None,
                 on_progress=lambda current_seed, fraction: self.q.put(
                     ("progress", current_seed, fraction)
                 ),
@@ -208,6 +252,8 @@ class SolveWorker(threading.Thread):
         random.SystemRandom().shuffle(names)
         contestant_names = {seed: names[(seed - 1) % len(names)] for seed in seeds}
 
+        if self._timing_file:
+            self.q.put(("log", f"🔬 Speed profiling ON · summary every 25 seeds · full data: {self._timing_file}"))
         self.q.put(("log", f"[SOLVER] Native=ON | drilled cuts={'ON' if self.drilled else 'OFF'} | wire stacking={'BLOCKED' if self.no_wire_stacking else 'ALLOWED'} | routing priority={self.routing_preference}"))
         self.q.put(("log", f"🏁 PASS 1: {candidates} seeds × {PASS1_MOVES:,} moves (strict Q0, 0 diag)"))
         try:
