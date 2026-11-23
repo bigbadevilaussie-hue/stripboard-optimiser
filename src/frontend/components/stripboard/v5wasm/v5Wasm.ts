@@ -140,6 +140,15 @@ export class V5WasmDecoder {
   // the cooling curve's shape (decode.c L_shape; 1 is the plain curve)
   setShape(p: number) { this.ex.v5_setShape(p); }
 
+  // Experimental native-only, generic proof of a drilled-cut rotation
+  // domain. Release WASM does not export this setter and stays unchanged.
+  setDrilledRotationDomain(on: boolean): boolean {
+    const setter = this.ex.v5_setDrilledRotations;
+    if (typeof setter !== "function") return false;
+    setter(on ? 1 : 0);
+    return true;
+  }
+
   // the move mix (decode.c mixEarly/mixLate, 13 entries each; a table of 12,
   // as the harness took before pull and tie, has none of it) and the share
   // of the walk from which the late table applies (above 1: never)
