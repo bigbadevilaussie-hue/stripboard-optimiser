@@ -442,6 +442,15 @@ static i32 H, W, GH, GW, overlapBad, floatNet;
 
 static void claim(i32 r, i32 c, i32 v, i32 net, i32 pi) {
   if (r < 0 || c < 0 || r >= H || c >= W) {
+#ifdef V5_EXPERIMENT_EDGE_MOUNT
+    // A locked Edge mount is a panel-mounted part. Its *body* may occupy
+    // space beyond the PCB, but its copper pins absolutely may not. Ignore
+    // only body cells beyond a truly locked physical dimension; every
+    // on-board body cell still claims a hole and prevents collisions.
+    if (v == 1 && pKind[pi] == 0 && pLocked[pi] && pSides[pi] == -2 &&
+        ((lockRowsCap >= 0 && (r < 0 || r >= lockRowsCap)) ||
+         (lockColsCap >= 0 && (c < 0 || c >= lockColsCap)))) return;
+#endif
     overlapBad++;
     return;
   }
@@ -950,8 +959,27 @@ static i32 decode(void) {
   H = 0; W = 0;
   for (i32 pi = 0; pi < nP; pi++) {
     i32 bot = geoMode[pi] == 2 ? yI[vBotArr[pi]] : yI[pi] + geoH[pi] - 1;
+    i32 right = xI[pi] + geoW[pi];
+#ifdef V5_EXPERIMENT_EDGE_MOUNT
+    if (pKind[pi] == 0 && pLocked[pi] && pSides[pi] == -2) {
+      // An edge mount contributes only its ON-BOARD portion to the
+      // physical board extent. An off-board body cannot expand a locked
+      // 24x56 board. Check every electrical pin *before* clipping.
+      i32 sh = geoShape[pi];
+      for (i32 q = sPinStart[sh]; q < sPinStart[sh] + sPinCnt[sh]; q++) {
+        i32 r = yI[pi] + spRow[q], c = xI[pi] + spCol[q];
+        if (r < 0 || c < 0 || (lockRowsCap >= 0 && r >= lockRowsCap) ||
+            (lockColsCap >= 0 && c >= lockColsCap)) {
+          outI[0] = 0;
+          return 0;
+        }
+      }
+      if (lockRowsCap >= 0) bot = imin(bot, lockRowsCap - 1);
+      if (lockColsCap >= 0) right = imin(right, lockColsCap);
+    }
+#endif
     H = imax(H, bot + 1);
-    W = imax(W, xI[pi] + geoW[pi]);
+    W = imax(W, right);
   }
   // one blank line of margin on every free side: the finish pads its board the
   // same way, so edge segments really do have an attachment hole there and the
