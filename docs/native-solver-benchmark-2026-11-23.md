@@ -105,6 +105,10 @@ MOTO seed 9 had a **1,696 ms routing outlier**, inflating the mean. The 0.3% dif
 
 ## Completed 80-run drill/stack matrix (20k moves, 10 common seeds)
 
+**Metric correction (subsequent CLI audit):** The old `diagonals_actual` field counted every wire with different endpoint **columns**—including horizontal wires. The harness `offAxis` metric counts only genuine slants where both row and column change. Therefore the 80-run `clean` gate was *vertical-wires-only*, not simply 'no diagonal wires'. The original results are preserved for comparability; see [CLI audit](cli-audit-2026-11-23.md) for the corrected categories.
+
+
+
 A separate test used [`scripts/benchmark_drill_stack.py`](../scripts/benchmark_drill_stack.py) with fixed sampled seeds **382, 639, 736, 820, 897, 1036, 1121, 1277, 1437, 1552** (all between 1 and 2,000), **20,000 moves** per run, native solver, wire-priority routing. Each input was forced to a **locked 24×56 board**. The MOTO source's F1 remained **unlocked and unplaced**; the MOTOMIX source's F1 remained **locked at row 0, col 1**. Thus the *boards* were locked in both projects, but **F1 was not locked in MOTO**. These are different source projects, not a controlled lock-only comparison.
 
 All 80 processes finished. The harness output includes actual endpoint-column diagonal counts (`↘`), knife cuts (`🔪`) and stacked wires (`🧵`). The benchmark independently inspects the saved layout for output dimensions and F1 lock retention, and its strict `clean` predicate requires zero diagonals, Q0, zero electrical/geometry problems, and the drill/stack restrictions selected for that run.
