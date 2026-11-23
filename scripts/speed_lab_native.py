@@ -108,8 +108,10 @@ def safe_dir(path):
 
 
 def parse_json_line(output, prefix="{"):
-    matches = [line.removeprefix(prefix) for line in output.splitlines()
-               if line.startswith(prefix)]
+    # A leading '{' is JSON syntax, not a log prefix. For timing diagnostics,
+    # strip only the non-JSON 'timing ' prefix before parsing the object.
+    matches = [line if prefix == "{" else line[len(prefix):]
+               for line in output.splitlines() if line.startswith(prefix)]
     if not matches:
         return None
     return json.loads(matches[-1])
