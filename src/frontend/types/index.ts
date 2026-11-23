@@ -159,6 +159,14 @@ export interface Component {
 
   // Locked on the board: auto-layout never moves this component.
   locked?: boolean;
+  // Opt-in native edge mount: pins stay on the physical board, but the
+  // package's unpopulated body may overhang a locked board edge. It still
+  // blocks other parts and wires wherever it overlaps the physical board.
+  edge?: boolean;
+  // With locked+edge, an external native search controller may try every
+  // position parallel to the same board edge; within each solve the part
+  // stays fully locked, including rotation and perpendicular coordinate.
+  slide?: boolean;
 }
 
 // ── Nets ───────────────────────────────────────────────
