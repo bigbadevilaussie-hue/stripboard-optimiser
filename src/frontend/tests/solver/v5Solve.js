@@ -435,6 +435,32 @@ const incompleteNets = edgeMountDiagnostic && !unsolvedReason
   ? v.incomplete.map((n) => ({ id: n.netId, name: n.netName,
       groups: n.groups, unplacedPins: n.unplacedPins }))
   : [];
+// Necessary condition for drill-only separation, for ANY rigid part:
+/// adjacent hole centres on one copper row must not carry different nets.
+/// Unassigned pins are separate floating nets in the real strip checker.
+const invalidDrilledOrientations = edgeMountDiagnostic && drilled && !unsolvedReason
+  ? boardComps.flatMap((c) => {
+      if (!c.boardPos || c.boardExcluded) return [];
+      const def = resolveComponentDef(c, defs);
+      if (!def || def.flexible) return [];
+      const pins = boardLayout.getComponentPinPositions(c, def);
+      const assignments = new Map(view.netAssignments.filter((a) => a.componentId === c.id)
+        .map((a) => [a.pinId, a.netId]));
+      const adjacent = [];
+      for (let i = 0; i < pins.length; i++) for (let j = i + 1; j < pins.length; j++) {
+        if (pins[i].row !== pins[j].row ||
+            Math.abs(pins[i].col - pins[j].col) !== 1) continue;
+        const ni = assignments.get(pins[i].pinId), nj = assignments.get(pins[j].pinId);
+        if (ni && ni === nj) continue;
+        adjacent.push({ pins: [pins[i].pinId, pins[j].pinId],
+          nets: [ni ? nets.find((n) => n.id === ni)?.name || ni : "FLOATING",
+            nj ? nets.find((n) => n.id === nj)?.name || nj : "FLOATING"] });
+      }
+      return adjacent.length ? [{
+        component: c.label || c.id, rotation: c.rotation ?? 0, adjacent
+      }] : [];
+    })
+  : [];
 let wireViolations = [];
 if (edgeMountDiagnostic && !unsolvedReason) {
   const segments = computeStripSegments(solvedBoard, boardComps, defs, view.netAssignments);
@@ -553,7 +579,8 @@ console.log(JSON.stringify({
   ...(stackInfo ? { stack: stackInfo } : {}),
   quality: res.quality,
   ...(edgeMountDiagnostic ? { unsolvedReason, firstFeasibleMove: edgeFeasibility?.firstMove ?? null,
-    firstFeasibleMs: edgeFeasibility?.firstMs ?? null, incompleteNets, wireViolations } : {}),
+    firstFeasibleMs: edgeFeasibility?.firstMs ?? null,
+    incompleteNets, invalidDrilledOrientations, wireViolations } : {}),
   rows: solvedBoard.rows, cols: solvedBoard.cols, area: solvedBoard.rows * solvedBoard.cols,
   wires: m.wires, offAxis: m.offAxisWires, crossings: m.crossings, stacked, cuts: m.cuts, knife, connOff, connIn,
   conflicts: v.conflicts, incomplete: v.incomplete.length ?? v.incomplete, geo,
