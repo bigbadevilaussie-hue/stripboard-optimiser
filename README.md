@@ -21,6 +21,8 @@ Further development and release capabilities include:
 
 The detailed requirements and staged development plan are maintained in [project.md](project.md).
 
+**Solver-first integration plan:** [Route-Mate GUI + sidecar with the native solver (GUI migration deferred until solver quality gates)](docs/route-mate-native-solver-integration-roadmap.md).
+
 **Native CLI development:** [v1.63 audio 5k–50k native ladder](docs/native-audio-ladder-v163.md), [v1.62 C1 capacitor correction and source migration](docs/moto-c1-correction-v162.md), [v1.61 budget sweep and failure matrix](docs/native-cli-budget-sweep-v161.md), and [native CLI validation/diagnostics](docs/cli-audit-2026-11-23.md). **Important:** the original 80-run/36-run results were generated with an incorrectly labelled 1000mF C1; they are historical and must not be treated as corrected-input baselines. Current work is CLI-only; GUI integration may remain stale.
 
 ## Development working agreement (v1)
