@@ -9,12 +9,10 @@ Then from the repo root:
 Runs each 20k seed with --strict, --move-summary, --finish-trace,
 and STRIPBOARD_TIMING=1; reads existing 24x56 benchmark input copies.
 """
-import csv
 import json
 import os
 from pathlib import Path
 import subprocess
-import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 FRONTEND = ROOT / "src" / "frontend"
@@ -37,7 +35,7 @@ def read_lines(text, prefix):
     for line in text.splitlines():
         if line.startswith(prefix):
             try:
-                found.append(json.loads(line[len(prefix):]))
+                found.append(json.loads(line if prefix == "{" else line[len(prefix):]))
             except json.JSONDecodeError:
                 pass
     return found
