@@ -9,6 +9,7 @@
 //        [--routing-preference wires|cuts] favour fewer wires or fewer cuts
 //        [--drilled 1]       drilled cuts only
 //        [--drill-domain 0|1]  opt-in native drilled rotation domain toggle; 0 restores baseline rotation search
+//        [--wire-polish 0|1]  verified fixed-board wire-column and drill-hole local search (default OFF)
 //        [--nostack 1]       no wire stacking
 //        [--strict 1]        reject invalid/physically noncompliant layouts (exit 2; retain --save for diagnosis)
 //        [--move-summary 1]  count anneal outcomes in memory (no massive per-move gzip file)
@@ -57,7 +58,7 @@ const valueFlags = new Set([
   "data", "drilled", "dump", "effort", "exact", "finish-trace", "hint", "id",
   "levels", "macro", "macrogap", "mincompress", "mix", "move-summary", "movelog",
   "moves", "native", "nostack", "out", "portcap", "progress", "protect",
-  "repair", "routewasm", "routing-preference", "drill-domain", "save", "sched", "seed",
+  "repair", "routewasm", "routing-preference", "drill-domain", "wire-polish", "save", "sched", "seed",
   "skeleton", "speedprobe", "stack", "stackfree", "stackmin", "strict",
   "time", "topmoves", "toptime", "upperparts", "wasm",
 ]);
@@ -73,7 +74,7 @@ for (let i = 0; i < args.length; i += 2) {
   if (seenFlags.has(flag)) cliUsageError(`duplicate ${flag}`);
   seenFlags.add(flag);
 }
-for (const flag of ["native", "drilled", "drill-domain", "nostack", "strict", "move-summary", "finish-trace", "progress", "exact", "protect", "stackfree"]) {
+for (const flag of ["native", "drilled", "drill-domain", "wire-polish", "nostack", "strict", "move-summary", "finish-trace", "progress", "exact", "protect", "stackfree"]) {
   const val = argVal(flag);
   if (val !== undefined && val !== "0" && val !== "1") cliUsageError(`--${flag} must be 0 or 1`);
 }
@@ -107,6 +108,8 @@ const speedProbe = argVal("speedprobe") ? Number(argVal("speedprobe")) : undefin
 const onProgress = argVal("progress") === "1" ? (p) => console.error(`progress ${p.frac.toFixed(3)} ${((performance.now() - tProg) / 1000).toFixed(2)}s`) : undefined;
 const drilled = argVal("drilled") === "1";
 const drillDomain = argVal("drill-domain") === undefined ? undefined : argVal("drill-domain") === "1";
+const wirePolish = argVal("wire-polish") === "1";
+let wirePolishStats = null;
 const noStack = argVal("nostack") === "1";
 const strict = argVal("strict") === "1";
 const moveSummaryEnabled = argVal("move-summary") === "1";
@@ -332,6 +335,8 @@ try {
     ...(effort !== undefined ? { effort } : {}),
     ...(drilled ? { drilledCutsOnly: true } : {}),
     ...(drillDomain !== undefined ? { drilledRotationDomain: drillDomain } : {}),
+    ...(wirePolish ? { wirePolish: true,
+      onWirePolish: (stats) => { wirePolishStats = stats; } } : {}),
     ...(noStack ? { noWireStacking: true } : {}),
     routingPreference,
     ...(exact ? { exactBest: true } : {}),
@@ -586,7 +591,7 @@ console.log(JSON.stringify({
   quality: res.quality,
   ...(edgeMountDiagnostic ? { unsolvedReason, firstFeasibleMove: edgeFeasibility?.firstMove ?? null,
     firstFeasibleMs: edgeFeasibility?.firstMs ?? null, drilledRotationDomain: drillDomain ?? drilled,
-    incompleteNets, invalidDrilledOrientations, knifeCuts, wireViolations } : {}),
+    wirePolish: wirePolishStats, incompleteNets, invalidDrilledOrientations, knifeCuts, wireViolations } : {}),
   rows: solvedBoard.rows, cols: solvedBoard.cols, area: solvedBoard.rows * solvedBoard.cols,
   wires: m.wires, offAxis: m.offAxisWires, crossings: m.crossings, stacked, cuts: m.cuts, knife, connOff, connIn,
   conflicts: v.conflicts, incomplete: v.incomplete.length ?? v.incomplete, geo,
