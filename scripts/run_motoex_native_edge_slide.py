@@ -124,6 +124,12 @@ def run(args) -> bool:
     columns = slide_positions(usb, definition, 24, 56, args.slide)
     if args.slide and not args.edge:
         raise ValueError("Slide=yes requires Edge=yes")
+    if args.column is not None:
+        if not args.edge or not args.slide:
+            raise ValueError("--column requires --edge yes --slide yes")
+        if args.column not in columns:
+            raise ValueError("--column must be a legal USB slide column, 0..50")
+        columns = [args.column]
     if not EDGE_LIB.joinpath("libv5decode.so").is_file():
         raise ValueError("Native edge decoder missing: (cd src/frontend && npm run build:native:edge)")
     output = args.out.expanduser().resolve()
@@ -222,6 +228,7 @@ def main() -> int:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--edge", type=bool_option, default=True, metavar="yes/no")
     p.add_argument("--slide", type=bool_option, default=False, metavar="yes/no")
+    p.add_argument("--column", type=int, default=None, help="diagnose one legal slide column (0..50); omit to sweep all 51")
     p.add_argument("--seed-start", type=int, default=1)
     p.add_argument("--seeds", type=int, default=1)
     p.add_argument("--moves", type=int, default=20000)
