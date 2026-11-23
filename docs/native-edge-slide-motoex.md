@@ -24,6 +24,14 @@ With `-DV5_EXPERIMENT_EDGE_MOUNT=1`, `v5wasm/decode.c` counts only the on-board 
 `npm run build:native:edge` builds a separate experimental decoder at `src/frontend/tests/solver/native/build/edge/libv5decode.so`. It also enables the previously verified grid-clear and identical-genome speed shortcuts. It does not overwrite the standard native decoder, native router, browser WASM, CLI protocol or WR artifacts.
 
 
+## Controlled comparison and physical cut diagnostics
+
+The optional `--drill-domain 0|1` CLI flag (and fixture-runner `--drill-domain no/yes`) runs **the exact same opt-in native Edge decoder** with the generic drilled rotation domain disabled or enabled. The compiled `FAST_GRID_CLEAR` and `FAST_IDENTICAL_GENOME` flags remain identical for both arms. The default continues to be enabled in drilled-only Edge trials. This allows direct signature checks against earlier hard-lock runs without changing other anneal flags. A synthetic opt-out RNG smoke test is provided; a full 80-signature regression is **not yet measured** and must be checked against a preserved historical baseline rather than assumed.
+
+The read-only generic cut auditor `tests/solver/knifeCutAudit.js` records the row and copper gap for each knife cut, nearest actual pins and their net names, whether two directly adjacent pins on different nets force that exact gap, plus pin/wire-endpoint blockers and two **possible** drilled flank candidates. These are explanations, **not** automatic proof that cutting a particular hole preserves routing; the actual cut upgrader has additional electrical and geometry checks. `tests/solver/inspectSavedCuts.js` can inspect existing saved JSON without rerunning any anneal; the strict fixture output also writes `knifeCuts` into `results.json` and logs each one.
+
+The filter is disabled for patterned boards, whose copper is not necessarily horizontal. For unlocked `halfTurnOnly` rigid parts, the mechanical domain remains 0/180; if neither orientation is drill-safe, it must report infeasible rather than silently grant 90/270. Locked user placements are never rotated. No named component is exempted or hardcoded.
+
 ## Experimental generic drill-only rotation domain
 
 The native Edge build now optionally enforces **a proven necessary drill-only condition** for **every rigid footprint**, computed solely from the model's existing rotated pin coordinates and assigned net IDs. If any two pins of **different nets** are in **adjacent holes on the same horizontal strip**, no spare hole exists to drill between them, so that orientation cannot be used when drilled cuts are mandatory. A pin without a net claims a private floating net. Adjacent pins on the **same assigned net** are not restricted by this condition. This is **necessary but not sufficient** for a clean route: cuts, starved pins and other nets still need exact electrical/physical verification.
