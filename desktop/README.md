@@ -10,7 +10,7 @@ From the repository root:
 cd desktop && PYTHONPATH=src python3 -m stripboard_optimizer.main
 ```
 
-The GUI is version **v1.60-debug** (November 2026). For current profiling and locked-F1 experiments, see [Native solver benchmark — 23 Nov 2026](../docs/native-solver-benchmark-2026-11-23.md).
+The GUI is version **v1.61-debug** (November 2026). For current profiling and locked-F1 experiments, see [Native solver benchmark — 23 Nov 2026](../docs/native-solver-benchmark-2026-11-23.md).
 
 ## Runtime requirements
 
