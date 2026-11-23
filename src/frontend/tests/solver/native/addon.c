@@ -17,6 +17,11 @@
 #include <sys/mman.h>
 #include <unistd.h>
 
+// macOS does not always expose MAP_NORESERVE; reserving without it is valid.
+#ifndef MAP_NORESERVE
+#define MAP_NORESERVE 0
+#endif
+
 #define ARENA_BYTES (2ull << 30)
 
 typedef struct {
