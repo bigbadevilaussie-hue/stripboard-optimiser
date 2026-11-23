@@ -10,7 +10,9 @@ From the repository root:
 cd desktop && PYTHONPATH=src python3 -m stripboard_optimizer.main
 ```
 
-The GUI is version **v1.61-debug** (November 2026). For current profiling and locked-F1 experiments, see [Native solver benchmark — 23 Nov 2026](../docs/native-solver-benchmark-2026-11-23.md).
+The GUI is version **v1.61-debug** (November 2026).
+
+**v1.61 qualification fix:** Pass 1, Pass 2 and manual/full-auto mode now require the CLI's complete `--strict 1` verdict, not just Q0/zero slants. The CLI must be v1.60 or later. If no board meets the requested drill/stack constraints, the result is **unsolved with rejection reasons**, not a misleading VALID finalist. Duplicate removal now distinguishes alternate wiring and cut arrangements. See [CLI audit and 80-run measurements](../docs/cli-audit-2026-11-23.md). For current profiling and locked-F1 experiments, see [Native solver benchmark — 23 Nov 2026](../docs/native-solver-benchmark-2026-11-23.md).
 
 ## Runtime requirements
 
