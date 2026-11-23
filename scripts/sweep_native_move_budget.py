@@ -87,8 +87,8 @@ def flatten(rec, budget):
         c = trace.get(name) or {}
         verified = c.get("verification") or {}
         terms = c.get("scoreTerms") or {}
-        row[name + "_failed"] = ",".join(verified.get("failReasons", []))
-        row[name + "_verified_compliant"] = verified.get("compliant")
+        row[name + "_failed"] = ",".join(verified.get("failReasons", [])) if c else "UNAVAILABLE"
+        row[name + "_verified_compliant"] = verified.get("compliant", False)
         row[name + "_eligible"] = c.get("eligible")
         for field in ("quality", "columnShiftWires", "slantedWires",
                       "horizontalWires", "stacked", "knife", "avoidableKnife",
@@ -222,8 +222,8 @@ def main():
         budgets = tuple(sorted(parse_positive_ints(args.budgets, "--budgets")))
     except ValueError as exc:
         parser.error(str(exc))
-    if 20000 not in budgets:
-        parser.error("include 20000 in --budgets so baseline reproduction is checked first")
+    if not budgets or budgets[0] != 20000:
+        parser.error("start budgets at 20000, with no smaller value, to gate higher budgets on baseline reproduction")
     bench = args.bench.expanduser().resolve()
     baseline = bench / "comparison.csv"
     if not baseline.is_file():
