@@ -1398,7 +1398,15 @@ static double rngMain(void) {
 }
 static i32 rint_(i32 n) { return (i32)__builtin_floor(rngMain() * n); }
 
-static void copyI(i32 *d, const i32 *s, i32 n) { for (i32 i = 0; i < n; i++) d[i] = s[i]; }
+static void copyI(i32 *d, const i32 *s, i32 n) {
+#ifdef V5_EXPERIMENT_FAST_GENOME_COPY
+  // Optional native-lab experiment: all current users pass disjoint buffers.
+  // The ordinary per-element copy remains the production reference.
+  __builtin_memcpy(d, s, (u32)n * sizeof(i32));
+#else
+  for (i32 i = 0; i < n; i++) d[i] = s[i];
+#endif
+}
 static void curToProp(void) {
   copyI(gGp, cGp, nP); copyI(gGn, cGn, nP); copyI(gRot, cRot, nRigid); copyI(gHv, cHv, nFlex); copyI(gBr, cBr, nFlex);
   copyI(gGap, cGap, nP); copyI(gXgap, cXgap, nP); copyI(gGrp, cGrp, nNP);
