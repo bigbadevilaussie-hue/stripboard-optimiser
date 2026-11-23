@@ -22,13 +22,21 @@ import argparse
 from collections import Counter
 import copy
 import hashlib
+import importlib.util
 import json
 import os
 from pathlib import Path
 import subprocess
 import sys
 
-import test_motoex_usb_lock as contract
+# Avoid test discovery importing scripts/tests/test_motoex_usb_lock.py in
+# place of our actual scripts/test_motoex_usb_lock.py contract runner.
+_CONTRACT_PATH = Path(__file__).resolve().with_name("test_motoex_usb_lock.py")
+_SPEC = importlib.util.spec_from_file_location("motoex_usb_lock_contract", _CONTRACT_PATH)
+if _SPEC is None or _SPEC.loader is None:
+    raise ImportError("Cannot load MOTOEX source/strict contract")
+contract = importlib.util.module_from_spec(_SPEC)
+_SPEC.loader.exec_module(contract)
 
 ROOT = Path(__file__).resolve().parents[1]
 FRONTEND = ROOT / "src" / "frontend"
