@@ -3,7 +3,8 @@ import { resolveComponentDef } from "@/utils/resolveComponentDef";
 import { getComponentBounds, getComponentPinPositions, getRotatedPinPositions } from "./boardLayout";
 import { AutoLayoutProgress, AutoLayoutResult, effortMoves } from "./layoutTypes";
 import { Rot, allowedDrows } from "./layout2/tileModel";
-import { FootprintRect, coveredHoles } from "./flexGeometry";
+import { FootprintRect, coveredHoles, wireStackDepth } from "./flexGeometry";
+import { avoidableBetweenCuts, wireMessScore } from "./layout2/tidyScore";
 import { flexBody, flexProfile, rigidGeometry } from "./partGeometry";
 import { expandOffBoard, leadSiblings } from "./offBoard";
 import { MM_PER_HOLE, bodyWidth, resolvePackage } from "./packageBodies";
@@ -77,6 +78,8 @@ export interface AutoLayout5Options {
   debugSeeds?: boolean;
   // Harness-only per-phase profiling, no effect on search decisions.
   onTiming?: (stats: Record<string, number>) => void;
+  // Harness-only diagnostic of both finishes: scores and compliance, without changing selection.
+  onFinishTrace?: (trace: Record<string, unknown>) => void;
   // Harness-only: every finalist's skeleton, with the decoder's wiring, before
   // it goes to the finish (stored and replayed by the finish-only runner)
   onSkeleton?: (seed: number, skeleton: Skeleton) => void;
@@ -972,7 +975,33 @@ export function computeAutoLayout5(
     const routed = finishSkeleton(board, components, componentDefs, nets, netAssignments, sk, finishOpts);
     const routeMs = profiling ? performance.now() - routeStart : 0;
     options?.onTiming?.({ skeletonMs: skMs, repairMs, routeMs });
-    return repaired && repaired.ok && repaired.score < routed.score ? { final: repaired.final, score: repaired.score } : routed;
+    const repairWins = !!(repaired && repaired.ok && repaired.score < routed.score);
+    if (options?.onFinishTrace) {
+      const describe = (candidate: { final: AutoLayoutResult; score: number; ok?: boolean } | null) => {
+        if (!candidate) return null;
+        const fin = candidate.final;
+        const pl = new Map(fin.placements.map((p) => [p.componentId, p]));
+        const virtual = components.map((c) => {
+          const p = pl.get(c.id);
+          return p ? { ...c, boardPos: p.boardPos, rotation: p.rotation ?? c.rotation, flexibleEndPos: p.flexibleEndPos } : c;
+        });
+        const knife = fin.cuts.filter((c) => c.kind !== "hole").length;
+        const avoidableKnife = avoidableBetweenCuts(fin.cuts, virtual, componentDefs);
+        const diagonals = fin.wires.filter((w) => w.from.col !== w.to.col).length;
+        const stacked = fin.wires.filter((w, i) => wireStackDepth(w.from, w.to, fin.wires.slice(0, i)) > 0).length;
+        return {
+          score: candidate.score, eligible: candidate.ok ?? null, quality: fin.quality,
+          diagonals, crossings: wireMessScore(fin, virtual, componentDefs).crossings,
+          stacked, knife, forcedKnife: knife - avoidableKnife, avoidableKnife,
+          wires: fin.wires.length, cuts: fin.cuts.length, issues: fin.issues,
+        };
+      };
+      options.onFinishTrace({
+        seed: seed ?? null, selected: repairWins ? "repair" : "router",
+        repair: describe(repaired), router: describe(routed),
+      });
+    }
+    return repairWins ? { final: repaired!.final, score: repaired!.score } : routed;
   }
 
   // ── lab: hand everything to the explainer and stop ──
