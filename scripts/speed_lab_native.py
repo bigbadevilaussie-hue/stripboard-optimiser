@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Native decoder speed laboratory v1.64 — A/B, exact-output-gated, CLI-only.
+"""Native decoder speed laboratory v1.65 — A/B, exact-output-gated, CLI-only.
 
 Compile each decoder variant into its OWN temporary output directory. Never
 replace the native decoder or WASM used by the editor. Run fixed paired
@@ -46,7 +46,8 @@ FIELDS = [
 ]
 DEFAULT_VARIANTS = (
     "o3", "o2", "fp_off", "cpu", "no_errno", "unroll",
-    "grid", "identical", "both", "cpu_both", "lto",
+    "grid", "identical", "both", "copy", "copy_both",
+    "cpu_both", "lto",
 )
 ROUTER_VARIANTS = ("o3", "o2", "fp_off", "cpu", "no_errno", "unroll", "lto")
 POLICIES = {
@@ -94,6 +95,10 @@ def compile_flags(variant):
         "grid": ["-O3", "-DV5_EXPERIMENT_FAST_GRID_CLEAR=1"],
         "identical": ["-O3", "-DV5_EXPERIMENT_FAST_IDENTICAL_GENOME=1"],
         "both": ["-O3", "-DV5_EXPERIMENT_FAST_GRID_CLEAR=1", "-DV5_EXPERIMENT_FAST_IDENTICAL_GENOME=1"],
+        "copy": ["-O3", "-DV5_EXPERIMENT_FAST_GENOME_COPY=1"],
+        "copy_both": ["-O3", "-DV5_EXPERIMENT_FAST_GENOME_COPY=1",
+                      "-DV5_EXPERIMENT_FAST_GRID_CLEAR=1",
+                      "-DV5_EXPERIMENT_FAST_IDENTICAL_GENOME=1"],
         "cpu_both": ["-O3", *cpu, "-DV5_EXPERIMENT_FAST_GRID_CLEAR=1", "-DV5_EXPERIMENT_FAST_IDENTICAL_GENOME=1"],
         "lto": ["-O3", "-flto"],
     }
@@ -209,7 +214,7 @@ def main():
     if not policies or len(policies) != len(set(policies)) or any(v not in POLICIES for v in policies):
         parser.error("Unknown or duplicate policy")
     try:
-        out = safe_dir(args.out or Path("/tmp/v5_native_speed_lab_v164_" + args.target))
+        out = safe_dir(args.out or Path("/tmp/v5_native_speed_lab_v165_" + args.target))
     except ValueError as err:
         parser.error(str(err))
     if not HARNESS.is_file() or not SOURCES[args.target].is_file():
@@ -230,7 +235,7 @@ def main():
     info = subprocess.run([args.clang, "--version"], capture_output=True, text=True)
     out.mkdir(parents=True, exist_ok=True)
     metadata = {
-        "version": "v1.64-native-speed-lab",
+        "version": "v1.65-native-speed-lab",
         "fixture_sha256": {name: sha256(FIXTURES[name].read_bytes()) for name in fixtures},
         "target": args.target,
         "target_source_sha256": sha256(SOURCES[args.target].read_bytes()),
