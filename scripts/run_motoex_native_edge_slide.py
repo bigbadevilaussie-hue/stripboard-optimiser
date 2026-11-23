@@ -150,6 +150,7 @@ def run(args) -> bool:
     print("↔️ Edge positions: {} | {}".format(len(columns), columns if args.slide else "fixed 47"), flush=True)
     print("🛡️ Hard pass: 24x56 + USB lock + strict electrical/geometry + vertical wires + drilled + no-stack", flush=True)
     print("🔄 Generic drilled rotation domain: {}".format("ON" if args.drill_domain else "OFF"), flush=True)
+    print("🛠️ Verified fixed-board wire polish: {}".format("ON" if args.wire_polish else "OFF"), flush=True)
     results = []
     solved = 0
     for seed in range(args.seed_start, args.seed_start + args.seeds):
@@ -163,6 +164,7 @@ def run(args) -> bool:
                    "--id", "1", "--seed", str(seed), "--moves", str(args.moves),
                    "--native", "1", "--strict", "1", "--drilled", "1",
                    "--nostack", "1", "--drill-domain", "1" if args.drill_domain else "0",
+                   "--wire-polish", "1" if args.wire_polish else "0",
                    "--routing-preference", args.routing,
                    "--save", str(saved_path)]
             try:
@@ -185,6 +187,7 @@ def run(args) -> bool:
                                 "incompleteNets": result.get("incompleteNets", []),
                                 "invalidDrilledOrientations": result.get("invalidDrilledOrientations", []),
                                 "knifeCuts": result.get("knifeCuts", []),
+                                "wirePolish": result.get("wirePolish"),
                                 "wireViolations": result.get("wireViolations", [])})
                 if saved_path.exists():
                     saved = json.loads(saved_path.read_text(encoding="utf-8"))
@@ -221,6 +224,13 @@ def run(args) -> bool:
                     part.get("component", "?"), part.get("rotation", "?"),
                     "; ".join("{} vs {}".format(*(edge.get("nets") or ["?", "?"]))
                               for edge in part.get("adjacent", []))), flush=True)
+            if attempt.get("wirePolish"):
+                stats = attempt["wirePolish"]
+                print("   🛠️ POLISH {} accepted / {} tested | {} wires moved | {} knives drilled".format(
+                    stats.get("accepted"), stats.get("tried"),
+                    stats.get("columnsMoved"), stats.get("drillsRecovered")), flush=True)
+                print("      BEFORE {} | AFTER {}".format(
+                    stats.get("before"), stats.get("after")), flush=True)
             for cut in attempt.get("knifeCuts", []):
                 flanks = cut.get("flanks", [])
                 near = "{} / {}".format(
@@ -241,6 +251,9 @@ def run(args) -> bool:
                     wire.get("from"), wire.get("to"), ",".join(wire.get("violations") or []),
                     " | crosses " + ",".join(wire["crossingComponents"])
                     if wire.get("crossingComponents") else ""), flush=True)
+                if wire.get("stackedWith"):
+                    print("      🧷 STACK PARTNERS: {}".format(
+                        ", ".join("WIRE " + str(i) for i in wire["stackedWith"])), flush=True)
             if attempt["ok"]:
                 winner = col
                 solved += 1
@@ -263,6 +276,7 @@ def run(args) -> bool:
                 "row": 13, "originalCol": 47, "overhangRows": overhang},
         "moves": args.moves, "routing": args.routing,
         "drilledRotationDomain": args.drill_domain,
+        "wirePolish": args.wire_polish,
         "results": results
     }, indent=2) + "\n")
     print("🏁 MOTOEX native EDGE/SLIDE: {}/{} strict PASS | {}".format(
@@ -283,6 +297,8 @@ def main() -> int:
     p.add_argument("--routing", choices=["wires", "cuts"], default="wires")
     p.add_argument("--drill-domain", type=bool_option, default=True, metavar="yes/no",
                    help="enable or disable generic drill-only rotation-domain pruning for A/B comparison")
+    p.add_argument("--wire-polish", type=bool_option, default=False, metavar="yes/no",
+                   help="run verified wire-column and drilled-cut polish after native finishing")
     p.add_argument("--timeout", type=int, default=600, help="seconds per candidate")
     p.add_argument("--out", type=Path, default=DEFAULT_OUT)
     args = p.parse_args()
