@@ -28,7 +28,7 @@ FONT_SANS = ("Helvetica Neue", 12)
 FONT_SANS_BOLD = ("Helvetica Neue", 13, "bold")
 FONT_MONO = ("Menlo", 11)
 
-APP_VERSION = "v1.55"
+APP_VERSION = "v1.56"
 
 class MainWindow(tk.Tk):
     def __init__(self):
@@ -135,7 +135,7 @@ class MainWindow(tk.Tk):
         modes = [
             ("manual", "Manual (Expert Mode)", "Control every seed and weight manually."),
             ("full_auto", "Auto (Cross your fingers and pray)", "The solver picks the settings and runs a massive sweep."),
-            ("2pass", "2-Pass Tournament (Preferred)", "Pass 1: 2,000 seeds at 25k moves (strict). Pass 2: Audit all qualifiers at 25k, keep top 10.")
+            ("2pass", "2-Pass Tournament (Preferred)", "Pass 1: 1,000 seeds at 15k moves. Pass 2: Audit all qualifiers from 25k to 100k, keep top 10.")
         ]
         for val, label, desc in modes:
             rb = tk.Radiobutton(self.mode_frame, text=label, variable=self.mode_var, value=val,
@@ -180,19 +180,26 @@ class MainWindow(tk.Tk):
         ttk.Spinbox(board_settings, from_=1, to=500, width=7, textvariable=self.manual_cols_var).grid(row=0, column=4, sticky="w")
         ttk.Checkbutton(board_settings, text="Lock columns", variable=self.manual_lock_cols_var).grid(row=0, column=5, sticky="w", padx=(12, 0))
 
+        # Tournament-only switches, placed above the scrollable component inventory.
+        self.tournament_options_frame = ttk.LabelFrame(self.manual_frame, text="Routing rules", padding=10)
+        self.tournament_drilled_var = tk.BooleanVar(value=True)
+        self.tournament_stack_var = tk.BooleanVar(value=True)
+        ttk.Checkbutton(self.tournament_options_frame, text="Drilled cuts only (OFF = allow knife cuts)", variable=self.tournament_drilled_var).pack(anchor="w")
+        ttk.Checkbutton(self.tournament_options_frame, text="Allow stacked wires (OFF = no stacking)", variable=self.tournament_stack_var).pack(anchor="w", pady=(5, 0))
+
         self.solver_settings_frame = ttk.LabelFrame(self.manual_frame, text="Routing and solver", padding=10)
         self.solver_settings_frame.pack(fill="x", pady=(0, 10))
         solver_settings = self.solver_settings_frame
         self.manual_cut_var = tk.StringVar(value="knife")
         ttk.Label(solver_settings, text="Cuts").grid(row=0, column=0, sticky="w")
-        ttk.Radiobutton(solver_settings, text="Drilled only (disabled)", variable=self.manual_cut_var, value="drilled", state="disabled").grid(row=0, column=1, sticky="w", padx=(8, 12))
-        ttk.Radiobutton(solver_settings, text="Allow knife cuts", variable=self.manual_cut_var, value="knife", state="disabled").grid(row=0, column=2, sticky="w")
+        ttk.Radiobutton(solver_settings, text="Drilled only", variable=self.manual_cut_var, value="drilled").grid(row=0, column=1, sticky="w", padx=(8, 12))
+        ttk.Radiobutton(solver_settings, text="Allow knife cuts", variable=self.manual_cut_var, value="knife").grid(row=0, column=2, sticky="w")
         self.manual_routing_preference_var = tk.StringVar(value="wires")
         ttk.Label(solver_settings, text="Routing priority").grid(row=2, column=0, sticky="w", pady=(8, 0))
         ttk.Radiobutton(solver_settings, text="Fewer wires", variable=self.manual_routing_preference_var, value="wires").grid(row=2, column=1, sticky="w", pady=(8, 0))
         ttk.Radiobutton(solver_settings, text="Fewer cuts (disabled)", variable=self.manual_routing_preference_var, value="cuts", state="disabled").grid(row=2, column=2, sticky="w", pady=(8, 0))
         self.manual_no_stack_var = tk.BooleanVar(value=False)
-        ttk.Checkbutton(solver_settings, text="No stacked wires (disabled)", variable=self.manual_no_stack_var, state="disabled").grid(row=1, column=0, columnspan=3, sticky="w", pady=(6, 0))
+        ttk.Checkbutton(solver_settings, text="No stacked wires", variable=self.manual_no_stack_var).grid(row=1, column=0, columnspan=3, sticky="w", pady=(6, 0))
         tk.Label(solver_settings, text="Rotation and diagonal routing are solver-managed; this solver build has no separate on/off switches for them.", bg=BG_PANEL, fg="#737373", font=("Helvetica Neue", 10), anchor="w").grid(row=1, column=3, columnspan=3, sticky="w", padx=(8, 0), pady=(6, 0))
         self.manual_seeds_var = tk.IntVar(value=12)
         self.manual_seed_base_var = tk.IntVar(value=0)
@@ -446,8 +453,9 @@ class MainWindow(tk.Tk):
             for widget in self.manual_frame.winfo_children():
                 if isinstance(widget, ttk.Label) and widget.cget("text") == "2-Pass Tournament settings":
                     widget.configure(text="Manual optimisation settings")
-            # Restore solver settings for manual mode
-            self.solver_settings_frame.pack(fill="x", pady=(0, 10), after=self.manual_frame.winfo_children()[0])
+            # Restore expert controls; hide the tournament-only switches.
+            self.tournament_options_frame.pack_forget()
+            self.solver_settings_frame.pack(fill="x", pady=(0, 10), after=self.manual_frame.winfo_children()[1])
             self.manual_frame.pack(fill="both", expand=True)
         else:
             self.show_questions()
@@ -497,8 +505,9 @@ class MainWindow(tk.Tk):
             if isinstance(widget, ttk.Label) and "Manual optimisation settings" in widget.cget("text"):
                 widget.configure(text="2-Pass Tournament settings")
         
-        # Hide the background solver settings
+        # Keep tournament-specific routing controls visible without exposing manual seed fields.
         self.solver_settings_frame.pack_forget()
+        self.tournament_options_frame.pack(fill="x", pady=(0, 10), after=self.manual_frame.winfo_children()[1])
         
         self.manual_frame.pack(fill="both", expand=True)
     def start_optimisation(self):
@@ -508,7 +517,7 @@ class MainWindow(tk.Tk):
         no_wire_stacking = False
         routing_preference = "wires"
         parallel = None
-        tournament_candidates = 2000
+        tournament_candidates = 1000
         tournament_finalists = 10000
 
         if mode == "manual":
@@ -536,8 +545,8 @@ class MainWindow(tk.Tk):
                 board["rows"], board["cols"] = rows, cols
                 board["lockedRows"] = bool(self.manual_lock_rows_var.get())
                 board["lockedCols"] = bool(self.manual_lock_cols_var.get())
-                drilled = False
-                no_wire_stacking = False
+                drilled = self.manual_cut_var.get() == "drilled"
+                no_wire_stacking = bool(self.manual_no_stack_var.get())
                 routing_preference = self.manual_routing_preference_var.get()
                 for component in raw.get("components", []):
                     component_id = component.get("id")
@@ -555,7 +564,7 @@ class MainWindow(tk.Tk):
 
             self.log("\n--- MANUAL SETTINGS CONFIRMED ---")
             self.log(f"[INFO] Board: {rows}x{cols} | lock rows={self.manual_lock_rows_var.get()} | lock columns={self.manual_lock_cols_var.get()}")
-            self.log("[INFO] Solver constraints: drilled cuts OFF | wire stacking ALLOWED")
+            self.log(f"[INFO] Solver constraints: drilled cuts {'ON' if drilled else 'OFF'} | wire stacking {'BLOCKED' if no_wire_stacking else 'ALLOWED'}")
             self.log(f"[INFO] Seeds: {seeds} starting at {seed_base} | effort={effort:g} | threads={parallel}")
             self.log("[INFO] Effort 1.0 is the normal search depth; higher values increase moves per seed.")
             if self.probe_result and self.probe_result.ok and self.probe_result.ms_per_decode is not None:
@@ -595,6 +604,8 @@ class MainWindow(tk.Tk):
                 self.log("[ERROR] Board settings must contain valid numbers.")
                 return
                 
+            drilled = bool(self.tournament_drilled_var.get())
+            no_wire_stacking = not bool(self.tournament_stack_var.get())
             self.log("--- 5. PLACEMENT STRATEGY ---")
             self.log(f"[INFO] Board dimensions set to {rows}x{cols} (Lock Rows: {self.manual_lock_rows_var.get()}, Lock Cols: {self.manual_lock_cols_var.get()})")
             
@@ -625,9 +636,9 @@ class MainWindow(tk.Tk):
         self.log_frame.pack(fill="both", expand=True)
         self.log(f"\n[OPTIMISE] Starting mode: {mode.upper()}")
         if mode == "2pass":
-            self.log("[TOURNAMENT] Pass 1: 2,000 seeds × 25,000 moves. Pass 2: Audit all qualifiers at 25,000 moves, save top 10.")
+            self.log("[TOURNAMENT] Pass 1: 1,000 seeds × 15,000 moves. Pass 2: Audit all qualifiers at 25k–100k in 5k steps; save top 10 overall.")
             self.log("[TOURNAMENT] Finalists are re-run strictly (no diagonals) from the original project JSON.")
-        self.log("[SOLVER] Native=ON | drilled cuts=ON | wire stacking=ALLOWED | routing priority=wires")
+        self.log(f"[SOLVER] Native=ON | drilled cuts={'ON' if drilled else 'OFF'} | wire stacking={'BLOCKED' if no_wire_stacking else 'ALLOWED'} | routing priority={routing_preference}")
         self.log("[SOLVE] Each seed is an independent starting arrangement; the best fully valid result wins.")
         self.best = None
         self.btn_preview.pack_forget()
@@ -635,9 +646,9 @@ class MainWindow(tk.Tk):
         self.btn_stop.pack(side="left", padx=8)
         self.solver = SolveWorker(
             str(job), mode, self.solver_q,
-            parallel=parallel, native=True, drilled=True,
-            no_wire_stacking=False,
-            routing_preference="wires",
+            parallel=parallel, native=True, drilled=drilled,
+            no_wire_stacking=no_wire_stacking,
+            routing_preference=routing_preference,
             manual_seeds=seeds if mode == "manual" else None,
             manual_seed_base=seed_base if mode == "manual" else 0,
             manual_effort=effort if mode == "manual" else None,
