@@ -95,9 +95,9 @@ def main():
             for label in ("repair", "router"):
                 cand = ft.get(label)
                 if cand:
-                    print("  {} {:<6} Q{} | ↘{} 🧵{} 🔪{} (forced {} avoidable {}) | score {} | eligible {}".format(
+                    print("  {} {:<6} Q{} | ↘slant {} ↔horizontal {} column-shift {} 🧵{} 🔪{} (forced {} avoidable {}) | score {} | eligible {}".format(
                         "🏆" if ft["selected"] == label else "  ",
-                        label, cand["quality"], cand["diagonals"], cand["stacked"], cand["knife"],
+                        label, cand["quality"], cand["slantedWires"], cand["horizontalWires"], cand["columnShiftWires"], cand["stacked"], cand["knife"],
                         cand["forcedKnife"], cand["avoidableKnife"], round(cand["score"], 1),
                         cand["eligible"]), flush=True)
             print("  📌 SELECTED:", ft["selected"], flush=True)
