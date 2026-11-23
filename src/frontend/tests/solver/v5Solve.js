@@ -9,6 +9,8 @@
 //        [--routing-preference wires|cuts] favour fewer wires or fewer cuts
 //        [--drilled 1]       drilled cuts only
 //        [--nostack 1]       no wire stacking
+//        [--strict 1]        reject invalid/physically noncompliant layouts (exit 2; retain --save for diagnosis)
+//        [--move-summary 1]  count anneal outcomes in memory (no massive per-move gzip file)
 //        [--protect 1]       strip groups are never dissolved by the decoder (contradicting proposals refused)
 //        [--wasm <file>]     the decoder module (default components/stripboard/v5wasm/v5decode.wasm)
 //        [--routewasm <file>] the wire router module (default components/stripboard/v5wasm/v5route.wasm)
@@ -69,6 +71,8 @@ const speedProbe = argVal("speedprobe") ? Number(argVal("speedprobe")) : undefin
 const onProgress = argVal("progress") === "1" ? (p) => console.error(`progress ${p.frac.toFixed(3)} ${((performance.now() - tProg) / 1000).toFixed(2)}s`) : undefined;
 const drilled = argVal("drilled") === "1";
 const noStack = argVal("nostack") === "1";
+const strict = argVal("strict") === "1";
+const moveSummaryEnabled = argVal("move-summary") === "1";
 const routingPreference = argVal("routing-preference") === "cuts" ? "cuts" : "wires";
 const exact = argVal("exact") === "1";
 const protect = argVal("protect") === "1";
@@ -120,8 +124,22 @@ const logFlush = () => {
   fs.writeSync(logGz, require("zlib").gzipSync(logBuf.join("\n") + "\n", { level: 1 }));
   logBuf = [];
 };
-const moveLog = moveLogDir
+const moveSummary = moveSummaryEnabled
+  ? { attempted: 0, mutateFailed: 0, decodeFailed: 0, rejected: 0, accepted: 0, sameBoard: 0, newBest: 0, byKind: {} }
+  : undefined;
+const moveLog = (moveLogDir || moveSummaryEnabled)
   ? (r, leaf) => {
+      if (moveSummary) {
+        moveSummary.attempted++;
+        if (r.out === 0) moveSummary.mutateFailed++;
+        else if (r.out === 1) moveSummary.decodeFailed++;
+        else if (r.out === 2) moveSummary.rejected++;
+        else if (r.out === 3) moveSummary.accepted++;
+        if (r.out >= 2 && r.same) moveSummary.sameBoard++;
+        if (r.best) moveSummary.newBest++;
+        moveSummary.byKind[r.kind] = (moveSummary.byKind[r.kind] ?? 0) + 1;
+      }
+      if (!moveLogDir) return;
       if (!logGz) {
         fs.mkdirSync(moveLogDir, { recursive: true });
         logGz = fs.openSync(path.join(moveLogDir, `${id}_s${seed}.csv.gz`), "w");
@@ -230,7 +248,7 @@ try {
 } catch (err) {
   if (timingEnabled) process.stderr.write(`timing ${JSON.stringify({pid: process.pid, seed, error: String(err), elapsedMs: +(performance.now() - timingProcessStart).toFixed(2)})}\n`);
   console.log(JSON.stringify({ id, seed, error: String(err && err.message ? err.message : err) }));
-  process.exit(0);
+  process.exit(1);
 }
 console.log = origLog;
 const timingSolveEnd = performance.now();
@@ -309,6 +327,34 @@ const { wireStackDepth } = require(path.join(OUT, "components/stripboard/flexGeo
 const stacked = res.wires.filter((w, i) => wireStackDepth(w.from, w.to, res.wires.slice(0, i)) > 0).length;
 const v = verify(solvedBoard, boardComps, nets, view.netAssignments, defs);
 const geo = checkGeometry(solvedBoard, boardComps, defs).length;
+// This is a gate for the CLI, not a claim that the solver respected its flags.
+// Keep the rejected layout on disk when --save is supplied for diagnosis.
+const strictFailures = [];
+let diagonalsActual;
+if (strict) {
+  diagonalsActual = solvedBoard.wires.filter((w) => w.from.col !== w.to.col).length;
+  if (res.quality !== 0) strictFailures.push(`QUALITY_${res.quality}`);
+  if (v.conflicts !== 0) strictFailures.push(`CONFLICTS_${v.conflicts}`);
+  const incompleteN = Array.isArray(v.incomplete) ? v.incomplete.length : v.incomplete;
+  if (incompleteN !== 0) strictFailures.push(`INCOMPLETE_${incompleteN}`);
+  if (geo !== 0) strictFailures.push(`GEOMETRY_${geo}`);
+  if (diagonalsActual !== 0) strictFailures.push(`DIAGONALS_${diagonalsActual}`);
+  if (m.offAxisWires !== 0) strictFailures.push(`OFF_AXIS_${m.offAxisWires}`);
+  if (m.crossings !== 0) strictFailures.push(`CROSSINGS_${m.crossings}`);
+  if (res.issues?.length) strictFailures.push("SOLVER_ISSUES");
+  if (blankBoard.lockedRows && solvedBoard.rows !== blankBoard.rows) strictFailures.push("LOCKED_ROWS");
+  if (blankBoard.lockedCols && solvedBoard.cols !== blankBoard.cols) strictFailures.push("LOCKED_COLS");
+  const actualComponents = new Map(solvedComps.map((c) => [c.id, c]));
+  for (const original of blankComps) {
+    if (!original.locked || !original.boardPos) continue;
+    const actual = actualComponents.get(original.id);
+    if (!actual || !actual.boardPos || actual.boardPos.row !== original.boardPos.row ||
+        actual.boardPos.col !== original.boardPos.col ||
+        (actual.rotation ?? 0) !== (original.rotation ?? 0)) strictFailures.push(`LOCKED_PART_${original.id}`);
+  }
+  if (drilled && knife !== 0) strictFailures.push(`KNIFE_${knife}`);
+  if (noStack && stacked !== 0) strictFailures.push(`STACKED_${stacked}`);
+}
 const timingVerifyEnd = performance.now();
 if (timingEnabled) {
   const cpu = process.cpuUsage(timingCpuStart);
@@ -340,4 +386,7 @@ console.log(JSON.stringify({
   wires: m.wires, offAxis: m.offAxisWires, crossings: m.crossings, stacked, cuts: m.cuts, knife, connOff, connIn,
   conflicts: v.conflicts, incomplete: v.incomplete.length ?? v.incomplete, geo,
   issues: res.issues,
+  ...(strict ? { strictValid: strictFailures.length === 0, strictFailures, diagonalsActual } : {}),
+  ...(moveSummary ? { moveSummary } : {}),
 }));
+if (strict && strictFailures.length) process.exitCode = 2;
