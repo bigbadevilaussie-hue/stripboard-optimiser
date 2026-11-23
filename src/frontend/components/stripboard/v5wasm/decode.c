@@ -108,6 +108,12 @@ static i32 *spRow, *spCol, *spNet;
 static i32 *npStart, *npPi, *npKind, *npEnd, *npPinIdx;
 static i32 *flexList, *rigidList;
 static i32 *sgStart, *sgPi;
+#ifdef V5_EXPERIMENT_EDGE_MOUNT
+// Experimental generic drill-only rotation domain, inferred from existing
+// footprint pin geometry and assigned nets (never from component labels).
+static i32 drillRotationMode;
+static i32 *drillRotMask; // 4-bit allowed-rotation mask per rigid component
+#endif
 
 // genome, reference board and results: shared with the TypeScript side
 static i32 *gGp, *gGn, *gRot, *gHv, *gBr, *gGap, *gXgap, *gGrp;
@@ -252,6 +258,9 @@ static double *rdarr(i32 n) {
 static i32 *exHdr;
 EXPORT(v5_init) i32 *v5_init(i32 *mi, double *md) {
   M = mi; F = md; rd = 0; fd = 0;
+#ifdef V5_EXPERIMENT_EDGE_MOUNT
+  drillRotationMode = 0; drillRotMask = 0;
+#endif
   nP = ri(); nNets = ri(); nFlex = ri(); nRigid = ri(); mRow = ri(); mCol = ri();
   lockRowsCap = ri(); lockColsCap = ri(); sidesDef = ri(); nNP = ri(); clrPad = ri(); maxNet = ri(); maxK = ri(); nSib = ri();
   i32 nShapes = ri(), nShapePins = ri(), nVd = ri(), nSibPi = ri();
@@ -662,6 +671,12 @@ static i32 decode(void) {
     vBotArr[pi] = -1;
     if (pKind[pi] == 0) {
       i32 rot = pLocked[pi] ? pLockRot[pi] : gRot[pIdx[pi]];
+#ifdef V5_EXPERIMENT_EDGE_MOUNT
+      if (drillRotationMode && !(drillRotMask[pIdx[pi]] & (1 << rot))) {
+        outI[0] = 0;
+        return 0;
+      }
+#endif
       rotOf[pi] = rot;
       i32 s = pShapeBase[pi] + rot;
       geoShape[pi] = s; geoW[pi] = sW[s]; geoH[pi] = sH[s]; geoMode[pi] = 0;
@@ -1425,6 +1440,44 @@ static double rngMain(void) {
   return (double)(t ^ (t >> 14)) / 4294967296.0;
 }
 static i32 rint_(i32 n) { return (i32)__builtin_floor(rngMain() * n); }
+#ifdef V5_EXPERIMENT_EDGE_MOUNT
+// Adjacent different-net pins occupy neighboring holes on one copper row.
+// There is no empty drilled hole between them, hence every placement of
+// this rotation requires a knife cut. Unassigned pins are private nets.
+static i32 drillShapeAllowed(i32 s) {
+  i32 end = sPinStart[s] + sPinCnt[s];
+  for (i32 p = sPinStart[s]; p < end; p++)
+    for (i32 q = p + 1; q < end; q++)
+      if (spRow[p] == spRow[q] && iabs(spCol[p] - spCol[q]) == 1 &&
+          !(spNet[p] >= 0 && spNet[p] == spNet[q]))
+        return 0;
+  return 1;
+}
+// Called by native harness after decoder initialization; no WASM ABI change.
+EXPORT(v5_setDrilledRotations) void v5_setDrilledRotations(i32 enabled) {
+  drillRotationMode = !!enabled;
+  if (!drillRotationMode) return;
+  if (!drillRotMask) drillRotMask = ALLOC(i32, nRigid);
+  for (i32 k = 0; k < nRigid; k++) {
+    i32 mask = 0, base = pShapeBase[rigidList[k]];
+    for (i32 rot = 0; rot < 4; rot++)
+      if (drillShapeAllowed(base + rot)) mask |= 1 << rot;
+    drillRotMask[k] = mask;
+  }
+}
+static i32 drillNextRotation(i32 k, i32 old) {
+  i32 mask = drillRotMask[k];
+  if (halfTurn[k]) mask &= (old & 1) ? 0xA : 0x5;
+  mask &= ~(1 << old);
+  i32 count = 0;
+  for (i32 r = 0; r < 4; r++) if (mask & (1 << r)) count++;
+  if (!count) return old;
+  i32 pick = rint_(count);
+  for (i32 r = 0; r < 4; r++) if (mask & (1 << r))
+    if (pick-- == 0) return r;
+  return old;
+}
+#endif
 
 static void copyI(i32 *d, const i32 *s, i32 n) {
 #ifdef V5_EXPERIMENT_FAST_GENOME_COPY
@@ -1565,6 +1618,13 @@ static i32 mutate(int cold) {
   if (nP < 2) {
     mvKind = 5;
     if (nRigid > 0 && !pLocked[rigidList[0]]) {
+#ifdef V5_EXPERIMENT_EDGE_MOUNT
+      if (drillRotationMode) {
+        i32 next = drillNextRotation(0, gRot[0]);
+        if (next == gRot[0]) return 0;
+        gRot[0] = next;
+      } else
+#endif
       gRot[0] = (gRot[0] + (halfTurn[0] ? 2 : 1 + rint_(3))) % 4;
       return 1;
     }
@@ -1580,6 +1640,13 @@ static i32 mutate(int cold) {
     mvKind = 5;
     if (lean && !nRotK) return 0;
     i32 k = lean ? rotK[rint_(nRotK)] : rint_(nRigid);
+#ifdef V5_EXPERIMENT_EDGE_MOUNT
+    if (drillRotationMode) {
+      i32 next = drillNextRotation(k, gRot[k]);
+      if (next == gRot[k]) return 0;
+      gRot[k] = next;
+    } else
+#endif
     gRot[k] = (gRot[k] + (halfTurn[k] ? 2 : 1 + rint_(3))) % 4;
   } else if (r < M[7] && nFlex > 0) {
     mvKind = 6;
@@ -1633,6 +1700,15 @@ static void initGenome(void) {
   for (i32 i = 0; i < nP; i++) gGn[i] = i;
   for (i32 i = nP - 1; i > 0; i--) { i32 j = (i32)__builtin_floor(rngMain() * (i + 1)); i32 t = gGn[i]; gGn[i] = gGn[j]; gGn[j] = t; }
   fillI(gRot, 0, nRigid); fillI(gHv, 0, nFlex); fillI(gBr, 0, nFlex);
+#ifdef V5_EXPERIMENT_EDGE_MOUNT
+  if (drillRotationMode) for (i32 k = 0; k < nRigid; k++) {
+    if (pLocked[rigidList[k]]) continue;
+    if (drillRotMask[k] & 1) continue;
+    for (i32 rot = 1; rot < 4; rot++) if (drillRotMask[k] & (1 << rot)) {
+      gRot[k] = rot; break;
+    }
+  }
+#endif
   fillI(gGrp, 0, nNP); fillI(gGap, 0, nP); fillI(gXgap, 0, nP);
 }
 
