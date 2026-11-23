@@ -31,6 +31,14 @@ python3 scripts/fix_moto_c1.py --apply
 
 Before changing any local file, the updater copies its original bytes into `~/Desktop/stripboard_c1_originals/` (preserving the original path under that directory), validates the backup, and atomically writes the corrected source. It generates `c1_migration_manifest.json` containing original and corrected SHA256 hashes and paths. An ambiguous C1 value, unexpected duplicate, or malformed JSON is reported rather than guessed at. For additional folders, run `python3 scripts/fix_moto_c1.py --apply --root /path/to/other/folder` (repeat `--root` if needed). Without `--apply`, the command is a read-only dry run.
 
+### World-record (WR) solve provenance — explicitly flagged
+
+**The user's earlier WR MOTO solve was obtained using the erroneous `C1 = 1000mf` source value and the editor's oversized **16 mm** capacitor body model (versus **10 mm** for the corrected `1000µF` input).** Treat it as a **historical WR under the old, incorrectly specified fixture**, not as a corrected-input reference result. Do not silently reclassify the old solve as a new corrected-input record, mix its scores with fresh v1.62 runs, or delete its original file.
+
+Since the wrong capacitor body was **larger**, the historical result may still be buildable with a smaller actual component; its electrical correctness and actual purchased capacitor footprint need separate checking. This provenance warning alone does **not** establish that its wiring is invalid. The next WR should be measured on the corrected fixture and explicitly labelled with the new input revision and source hash.
+
+**Mac-local correction confirmed from user log:** 5/5 migration tests passed, **33 files updated**, archived 80-run/36-run outputs were skipped, and a subsequent dry-run reported **0 remaining matches requiring correction** among scanned candidates. Files in `Desktop/Route-Mate/benchmarks/moto/` reported `Other C1 value` were **left untouched deliberately**; that message does not establish their C1 equals `1000µF`. Preserve existing named quality baselines/WR files rather than rewriting their provenance.
+
 ### Historical benchmark provenance
 
 The original **80-run/36-run** benchmarks were computed using the old C1 value in their source snapshots. Their saved layouts and `sig` fingerprints are **historical evidence for that old input**, not valid goldens for the corrected input. The local updater deliberately skips `stripboard_drill_stack_80*`, `stripboard_baseline_80*`, `cli_profile_v160*` and `cli_budget_sweep_v161*` archive directories. This is not a partial source correction: it is necessary to avoid silently contaminating immutable measurements.
