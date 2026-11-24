@@ -196,7 +196,7 @@ def run_pass_one(project, moves, workers, drilled_only, stacking_allowed,
                                 f"{row['time_taken']:.3f}s")
                         else:
                             log(f"[PASS1][REJECT] seed={row['seed']:04d} "
-                                f"{row['time_taken']:.3f}s {row['reason']}")
+                                f"{row['seconds']:.3f}s {row['reason']}")
                         on_progress({"done": checked, "total": seeds,
                                      "qualified": qualified, "last": row})
                 except BaseException:
