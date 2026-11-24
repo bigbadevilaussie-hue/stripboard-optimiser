@@ -23,6 +23,8 @@ from gui.work_directory import (
     clear_started_pass, read_pass_one, prepare_pass_two,
     ensure_workspace_root, project_workspace, list_project_workspaces,
     adopt_matching_legacy_pass_one,
+    pass_one_budget_dir, winner_budget_dir, campaign_existing_files,
+    clear_pass_one_budget, pass_one_campaign_sources,
 )
 
 # The GUI has its own release counter; the top-level VERSION stays at 2.00
@@ -311,9 +313,10 @@ class PassOneDialog(QDialog):
         heading.setStyleSheet("font-size: 17px; font-weight: 800;")
         layout.addWidget(heading)
         explanation = QLabel(
-            "Run 2,000 independent seeds. Save verified seed, cut, W, "
-            "Q/100 and elapsed seconds to this project's pass 1/results.csv. "
-            "No solved JSONs are retained."
+            "Run 2,000 independent seeds. Save PASS, FAIL and ERROR attempts "
+            "with seed, cuts, wires, Q/100 and seconds to this project's "
+            "selected 10k/20k directory. The verified winner is replayed "
+            "and saved separately when the campaign completes."
         )
         explanation.setWordWrap(True)
         layout.addWidget(explanation)
@@ -357,7 +360,7 @@ class PassOneDialog(QDialog):
         layout.addWidget(self.ten_k)
         layout.addWidget(self.twenty_k)
         self.confirm = QCheckBox(
-            "Are you sure? Clear this project's Pass One results only."
+            "I confirm the selected Pass One budget and want to continue."
         )
         layout.addWidget(self.confirm)
         buttons = QDialogButtonBox(
@@ -375,6 +378,72 @@ class PassOneDialog(QDialog):
 
     def moves(self):
         return 10000 if self.ten_k.isChecked() else 20000
+
+
+class PassOneExistingDialog(QDialog):
+    """A separate, explicit gate before overwriting previous test results."""
+
+    def __init__(self, source_name, moves, existing, resume_info=None,
+                 resume_error=None, parent=None):
+        super().__init__(parent)
+        self.setWindowFlag(Qt.WindowType.FramelessWindowHint, True)
+        self.setWindowTitle("Pass One — Previous results found")
+        self.setMinimumWidth(540)
+        self.action = None
+        layout = QVBoxLayout(self)
+        heading = QLabel("⚠ PREVIOUS PASS ONE TEST RESULTS EXIST")
+        heading.setStyleSheet("font-weight: 800; font-size: 15px; color: #842c32;")
+        layout.addWidget(heading)
+        warning = QLabel(
+            f"Project: {source_name}\n"
+            f"Move budget: {moves // 1000}k\n"
+            f"Existing files: {len(existing)}\n"
+            "RESTART will overwrite ONLY this project's selected move-budget "
+            "CSV/log and its winner JSON/SVG. Other budgets and projects remain untouched."
+        )
+        warning.setWordWrap(True)
+        layout.addWidget(warning)
+        if resume_info is not None and resume_info["state"] != "COMPLETED":
+            details = QLabel(
+                f"Saved campaign: {resume_info['state']} · "
+                f"{resume_info['done']:,}/{2000:,} confirmed seeds · "
+                f"{resume_info['qualified']} verified · "
+                f"{resume_info['errors']} errors to retry."
+            )
+            details.setWordWrap(True)
+            layout.addWidget(details)
+        elif resume_error:
+            caution = QLabel(f"Resume unavailable: {resume_error}")
+            caution.setWordWrap(True)
+            layout.addWidget(caution)
+        else:
+            layout.addWidget(QLabel("This campaign is already marked COMPLETED."))
+
+        self.confirm = QCheckBox(
+            "I understand these existing test results will be overwritten"
+        )
+        layout.addWidget(self.confirm)
+        buttons = QHBoxLayout()
+        self.resume_button = QPushButton("RESUME")
+        self.resume_button.setEnabled(
+            resume_info is not None and resume_info["state"] != "COMPLETED"
+        )
+        self.restart_button = QPushButton("OVERWRITE & START")
+        self.restart_button.setEnabled(False)
+        self.restart_button.setObjectName("nextActionButton")
+        cancel_button = QPushButton("CANCEL")
+        self.confirm.toggled.connect(self.restart_button.setEnabled)
+        self.resume_button.clicked.connect(lambda: self._choose("resume"))
+        self.restart_button.clicked.connect(lambda: self._choose("restart"))
+        cancel_button.clicked.connect(self.reject)
+        buttons.addWidget(self.resume_button)
+        buttons.addWidget(self.restart_button)
+        buttons.addWidget(cancel_button)
+        layout.addLayout(buttons)
+
+    def _choose(self, action):
+        self.action = action
+        self.accept()
 
 
 class PassTwoDialog(QDialog):
@@ -801,7 +870,7 @@ class PassOneWorker(QThread):
     failed = Signal(str)
     cancelled = Signal()
 
-    def __init__(self, project, moves, workers, drilled, stacking, output, parent=None):
+    def __init__(self, project, moves, workers, drilled, stacking, output, parent=None, *, resume=False):
         super().__init__(parent)
         self.project = copy.deepcopy(project)
         self.moves = moves
@@ -809,6 +878,7 @@ class PassOneWorker(QThread):
         self.drilled = drilled
         self.stacking = stacking
         self.output = output
+        self.resume = resume
 
     def run(self):
         from gui.pass_one import run_pass_one
@@ -817,7 +887,8 @@ class PassOneWorker(QThread):
             result = run_pass_one(
                 self.project, self.moves, self.workers,
                 self.drilled, self.stacking, self.output,
-                self.tick.emit, self.diagnostic.emit, self.isInterruptionRequested
+                self.tick.emit, self.diagnostic.emit, self.isInterruptionRequested,
+                resume=self.resume,
             )
             self.completed.emit(result)
         except Cancelled:
@@ -848,6 +919,8 @@ class RouteMateWindow(QMainWindow):
         self._speed_probe_worker = None
         self._calibration_worker = None
         self._pass_one_worker = None
+        self._pass_one_resume_done = 0
+        self._pass_one_previous_average = None
         self._move_probe_result = None
         self._pass_one_prompt_pending = False
         self.work_root = WORK_ROOT
@@ -1839,7 +1912,7 @@ class RouteMateWindow(QMainWindow):
             QTimer.singleShot(0, self.start_pass_one)
 
     def start_pass_one(self):
-        """GO is the only action allowed to clear Work/pass 1."""
+        """Explicit GO; never clear a campaign without budget-specific consent."""
         if (self._pass_one_worker is not None
             or self._calibration_worker is not None
             or self._speed_probe_worker is not None):
@@ -1864,45 +1937,100 @@ class RouteMateWindow(QMainWindow):
             stacking_allowed=self._probe_stacking_allowed,
         )
         if dialog.exec() != QDialog.DialogCode.Accepted:
-            self.log_line("[PASS1][CANCELLED] GO not pressed; project Pass One untouched.")
+            self.log_line("[PASS1][CANCELLED] GO not pressed; results untouched.")
             return
         moves = dialog.moves()
         try:
-            # Validate the external native binaries before deleting old Pass One.
             from gui.native_calibration import prerequisites
-            from gui.pass_one import AUDITOR
+            from gui.pass_one import AUDITOR, inspect_pass_one_campaign
             prerequisites()
             if not AUDITOR.is_file():
                 raise RuntimeError(f"Independent saved-board auditor is missing: {AUDITOR}")
             workspace = project_workspace(self.project_path, self.work_root, create=False)
             if workspace != self.active_workspace:
                 raise ValueError("Loaded project and workspace disagree — no files cleared.")
-            folder = clear_started_pass(PASS_ONE, workspace)
+            folder = pass_one_budget_dir(workspace, moves)
+            existing = campaign_existing_files(workspace, moves)
+            resume = False
+            snapshot = None
+            if existing:
+                try:
+                    snapshot = inspect_pass_one_campaign(
+                        self.project, moves, self._recommended_workers,
+                        self._probe_cut_drilled_only, self._probe_stacking_allowed,
+                        folder,
+                    )
+                    error = None
+                except (OSError, ValueError, KeyError, TypeError) as exc:
+                    error = str(exc)
+                original = {
+                    str(p): (p.stat().st_size, p.stat().st_mtime_ns)
+                    for p in existing
+                }
+                choice = PassOneExistingDialog(
+                    self.project_path.name, moves, existing, snapshot, error, self
+                )
+                if choice.exec() != QDialog.DialogCode.Accepted or choice.action is None:
+                    self.log_line("[PASS1][CANCELLED] Existing results preserved.")
+                    return
+                # Re-check every saved file after the user reviews the warning.
+                current = {
+                    str(p): (p.stat().st_size, p.stat().st_mtime_ns)
+                    for p in campaign_existing_files(workspace, moves)
+                }
+                if current != original:
+                    raise ValueError("Results changed while confirming; nothing overwritten.")
+                resume = choice.action == "resume"
+                if resume:
+                    if snapshot is None or snapshot["state"] == "COMPLETED":
+                        raise ValueError("Resume is not available for this campaign")
+                else:
+                    folder = clear_pass_one_budget(workspace, moves)
+            else:
+                folder = pass_one_budget_dir(workspace, moves, create=True)
         except (OSError, ValueError, RuntimeError) as exc:
             QMessageBox.critical(self, "Pass One startup", str(exc))
             return
+
         self._calibration_stages["PASS1"] = "running"
         self._refresh_checklist()
-        self._solve_done = 0
+        self._solve_done = snapshot["done"] if resume else 0
+        self._pass_one_resume_done = self._solve_done
+        self._pass_one_previous_average = (
+            snapshot["seconds_per_seed"] if resume else None
+        )
         self._solve_budget = 2000
         self.solve_progress.setRange(0, 2000)
-        self.solve_progress.setValue(0)
+        self.solve_progress.setValue(self._solve_done)
         self.solve_progress.setFormat("Pass One: %v/%m seeds")
-        self.solve_activity.setText(f"Pass One · {moves:,} moves · 0/2000")
+        self.solve_activity.setText(
+            f"Pass One · {moves:,} moves · {self._solve_done:,}/2,000"
+        )
+        self.solve_worker_status.setText(
+            f"{self._recommended_workers} workers · "
+            f"{snapshot['qualified'] if resume else 0} verified seeds"
+        )
+        self._set_board_summary(
+            f"Pass One {'resuming' if resume else 'running'} · "
+            f"{moves // 1000}k moves · not a final routed board",
+            level="working",
+        )
         self.load_action.setEnabled(False)
         self.pass_one_action.setEnabled(False)
         self.pass_two_action.setEnabled(False)
         self.stop_action.setEnabled(True)
         self._solve_started = perf_counter()
         self._solve_clock.start()
-        self.log_line(f"[PASS1][GO] 2,000 native seeds × {moves:,} moves; "
-                      f"{self._recommended_workers} workers; ONLY {folder} cleared.")
-        self.log_line(f"[PASS1][FILES] {folder / 'results.csv'} and activity.log; "
-                      "saved-board JSONs exist only in temporary directories.")
+        self.log_line(
+            f"[PASS1][{'RESUME' if resume else 'GO'}] "
+            f"2,000 native seeds × {moves:,} moves; {self._recommended_workers} "
+            f"workers; folder={folder}; "
+            f"{'existing PASS/FAIL rows preserved' if resume else 'selected budget only cleared'}."
+        )
         worker = PassOneWorker(
             self.project, moves, self._recommended_workers,
             self._probe_cut_drilled_only, self._probe_stacking_allowed,
-            folder, self
+            folder, self, resume=resume
         )
         self._pass_one_worker = worker
         worker.tick.connect(self._pass_one_tick)
