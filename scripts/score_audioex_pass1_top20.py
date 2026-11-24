@@ -21,7 +21,8 @@ from scripts import run_audioex_native_ladder as core
 
 PITCH_MM=2.54
 FIELDS=("seed","strictPass","wires","cuts","wireLengthMm","unplaced","nonvertical",
-        "auditValid","quality100","auditFailures","file")
+        "auditValid","quality100","penaltyWires","penaltyCuts","penaltyWireLength",
+        "penaltyDiagonals","penaltyUnplaced","penaltyInvalid","auditFailures","file")
 
 def compute(board):
     comps=[c for c in board["components"]
@@ -38,7 +39,13 @@ def compute(board):
     # NEVER interpret the provisional score as physical validity.
     quality=max(0.,100.0-15*missing-10*nonvertical-.4*cuts-.6*len(wires)-.02*length)
     return dict(wires=len(wires),cuts=cuts,wireLengthMm=round(length,2),
-                unplaced=missing,nonvertical=nonvertical,quality100=round(quality,2))
+                unplaced=missing,nonvertical=nonvertical,quality100=round(quality,2),
+                penaltyWires=round(.6*len(wires),3),
+                penaltyCuts=round(.4*cuts,3),
+                penaltyWireLength=round(.02*length,3),
+                penaltyDiagonals=round(10*nonvertical,3),
+                penaltyUnplaced=round(15*missing,3),
+                penaltyInvalid=0.0)
 
 def last_json(text):
     for line in reversed(text.strip().splitlines()):
@@ -83,7 +90,8 @@ def main():
             audit=last_json(proc.stdout) or {}
             report.update(seed=r["seed"],strictPass=r.get("strictPass"),
                           auditValid=proc.returncode==0 and audit.get("valid") is True,
-                          auditFailures=audit.get("failures") or [f"AUDIT_EXIT_{proc.returncode}"],
+                          auditFailures=(audit.get("failures",[]) if (proc.returncode==0 and audit.get("valid") is True)
+                                         else audit.get("failures") or [f"AUDIT_EXIT_{proc.returncode}: {proc.stderr.strip()}"]),
                           file=filename)
             if report["wires"]!=r["wires"] or report["cuts"]!=r["cuts"]:
                 ap.error(f"Saved counts differ from Pass 1: {filename}")
@@ -112,7 +120,10 @@ def main():
     })
     for pos,r in enumerate(by_quality,1):
         print(f"🏆 QUALITY {pos:02d} seed {r['seed']:04d} | {r['quality100']:.2f}/100 | "
-              f"{r['wires']}W/{r['cuts']}C | {r['wireLengthMm']:.1f} mm",flush=True)
+              f"{r['wires']}W/{r['cuts']}C | {r['wireLengthMm']:.1f} mm | "
+              f"penalties W -{r['penaltyWires']:.2f}, C -{r['penaltyCuts']:.2f}, "
+              f"L -{r['penaltyWireLength']:.2f}, diagonal -{r['penaltyDiagonals']:.2f}, "
+              f"unplaced -{r['penaltyUnplaced']:.2f}, invalid -{r['penaltyInvalid']:.2f}",flush=True)
     print(f"🛡️ {len(results)} audited finalists | 🛑 NO PASS 2",flush=True)
 
 if __name__=="__main__":
