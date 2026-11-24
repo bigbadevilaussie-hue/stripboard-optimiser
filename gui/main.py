@@ -21,6 +21,8 @@ if str(REPO_ROOT) not in sys.path:
 from gui.work_directory import (
     WORK_ROOT, PASS_ONE, PASS_TWO, ensure_work,
     clear_started_pass, read_pass_one, prepare_pass_two,
+    ensure_workspace_root, project_workspace, list_project_workspaces,
+    adopt_matching_legacy_pass_one,
 )
 
 # The GUI has its own release counter; the top-level VERSION stays at 2.00
@@ -56,7 +58,7 @@ from PySide6.QtSvgWidgets import QGraphicsSvgItem
 from PySide6.QtWidgets import (
     QApplication, QCheckBox, QDialog, QDialogButtonBox, QFileDialog,
     QFormLayout, QGraphicsScene, QGraphicsView, QGroupBox, QHBoxLayout,
-    QLabel, QMainWindow, QMessageBox, QPlainTextEdit, QPushButton, QRadioButton, QComboBox,
+    QLabel, QMainWindow, QMessageBox, QPlainTextEdit, QPushButton, QRadioButton, QComboBox, QInputDialog,
     QLineEdit, QSplitter, QToolBar, QVBoxLayout, QWidget, QProgressBar, QTabWidget, QFrame, QSplashScreen,
 )
 
@@ -310,7 +312,7 @@ class PassOneDialog(QDialog):
         layout.addWidget(heading)
         explanation = QLabel(
             "Run 2,000 independent seeds. Save verified seed, cut, W, "
-            "Q/100 and elapsed seconds to Work/pass 1/results.csv. "
+            "Q/100 and elapsed seconds to this project's pass 1/results.csv. "
             "No solved JSONs are retained."
         )
         explanation.setWordWrap(True)
@@ -355,7 +357,7 @@ class PassOneDialog(QDialog):
         layout.addWidget(self.ten_k)
         layout.addWidget(self.twenty_k)
         self.confirm = QCheckBox(
-            "Are you sure? Starting Pass One clears Work/pass 1 only."
+            "Are you sure? Clear this project's Pass One results only."
         )
         layout.addWidget(self.confirm)
         buttons = QDialogButtonBox(
@@ -388,14 +390,14 @@ class PassTwoDialog(QDialog):
         label = QLabel(
             f"Found {candidate_count:,} independently verified Pass One "
             f"seed record(s):\n{csv_path}\n\n"
-            "GO copies all records to Work/pass 2/candidates.csv. "
+            "GO copies all records into this project's pass 2/candidates.csv. "
             "No Pass Two solver search runs yet because its move-budget "
             "and survivor-processing strategy have not been specified."
         )
         label.setWordWrap(True)
         layout.addWidget(label)
         self.confirm = QCheckBox(
-            "Are you sure? Clear Work/pass 2 only; keep Pass One and JSONs."
+            "Are you sure? Clear only this project's Pass Two; keep Pass One and JSONs."
         )
         layout.addWidget(self.confirm)
         buttons = QDialogButtonBox(
@@ -849,6 +851,7 @@ class RouteMateWindow(QMainWindow):
         self._move_probe_result = None
         self._pass_one_prompt_pending = False
         self.work_root = WORK_ROOT
+        self.active_workspace: Path | None = None
         self._stop_requested = False
         self._close_when_idle = False
         self._recommended_workers = None  # Original CPU probe chooses 3 or 4
@@ -918,7 +921,7 @@ class RouteMateWindow(QMainWindow):
         toolbar.addAction(self.pass_one_action)
         self.pass_two_action = QAction("Pass Two", self)
         self.pass_two_action.setToolTip(
-            "Find Work/pass 1/results.csv from a previous session without rerunning Pass One"
+            "Choose a project's saved Pass One CSV without rerunning Pass One"
         )
         self.pass_two_action.triggered.connect(self.start_pass_two)
         toolbar.addAction(self.pass_two_action)
@@ -1074,13 +1077,13 @@ class RouteMateWindow(QMainWindow):
         self.log_line("Workflow: import → input sanity → footprints → dimensions → locks → cuts → stacking → CPU probe → 100-point move check → STOP.")
         self.log_line("[SOLVER] CPU and 100-point probes remain separate from Pass One/Two.")
         try:
-            ensure_work(self.work_root)  # creates folders; NEVER clears contents
-            self.log_line(f"[WORK] Persistent directory: {self.work_root}")
-            self.log_line("[WORK] Folders: pass 1 / pass 2 / jsons / logs; "
-                          "each pass clears ONLY its own folder when GO is clicked.")
+            ensure_workspace_root(self.work_root)  # Work root only; legacy remains untouched
+            self.log_line(f"[WORK] Project workspaces root: {self.work_root}")
+            self.log_line("[WORK] One directory per source JSON: pass 1 / pass 2 / jsons / logs.")
+            self.log_line("[WORK] Old root-level pass folders are preserved; never reused for new jobs.")
         except (OSError, ValueError) as exc:
             self.log_line(f"[WORK][ERROR] {exc}")
-        self.statusBar().showMessage("Ready. Pass Two can load an existing CSV immediately.")
+        self.statusBar().showMessage("Ready. Pass Two can select a previous project without loading its JSON.")
 
     def _set_board_summary(self, message: str, *, project: dict | None = None,
                            level: str = "neutral"):
@@ -1564,6 +1567,19 @@ class RouteMateWindow(QMainWindow):
             {"constraints": copy.deepcopy(self.presolve_constraints)},
         )
         self._quick_source = copy.deepcopy(self.project)
+        # Old Work/pass 1/ is NOT moved/deleted. Only copy when the exact
+        # original Pass One input signature matches this reviewed project.
+        if self.active_workspace is not None:
+            try:
+                if adopt_matching_legacy_pass_one(
+                    self.project, self.active_workspace, self.work_root
+                ):
+                    self.log_line(
+                        f"[WORK][LEGACY COPIED] Fingerprint-matched Pass One data copied to "
+                        f"{self.active_workspace / PASS_ONE}; originals preserved."
+                    )
+            except (OSError, ValueError, KeyError) as exc:
+                self.log_line(f"[WORK][LEGACY SKIPPED] {exc}")
         preview, _ = self._render_component_side(self.project)
         self._show_board(preview)
 
@@ -1830,7 +1846,7 @@ class RouteMateWindow(QMainWindow):
             QMessageBox.information(self, "Pass One busy",
                                     "Finish or stop the active task first.")
             return
-        if self.project is None:
+        if self.project is None or self.project_path is None or self.active_workspace is None:
             QMessageBox.information(self, "Pass One", "Load a project JSON first.")
             return
         if (self._calibration_stages.get("CALIBRATION") != "done"
@@ -1848,7 +1864,7 @@ class RouteMateWindow(QMainWindow):
             stacking_allowed=self._probe_stacking_allowed,
         )
         if dialog.exec() != QDialog.DialogCode.Accepted:
-            self.log_line("[PASS1][CANCELLED] GO not pressed; Work/pass 1 untouched.")
+            self.log_line("[PASS1][CANCELLED] GO not pressed; project Pass One untouched.")
             return
         moves = dialog.moves()
         try:
@@ -1858,7 +1874,10 @@ class RouteMateWindow(QMainWindow):
             prerequisites()
             if not AUDITOR.is_file():
                 raise RuntimeError(f"Independent saved-board auditor is missing: {AUDITOR}")
-            folder = clear_started_pass(PASS_ONE, self.work_root)
+            workspace = project_workspace(self.project_path, self.work_root, create=False)
+            if workspace != self.active_workspace:
+                raise ValueError("Loaded project and workspace disagree — no files cleared.")
+            folder = clear_started_pass(PASS_ONE, workspace)
         except (OSError, ValueError, RuntimeError) as exc:
             QMessageBox.critical(self, "Pass One startup", str(exc))
             return
@@ -1947,10 +1966,9 @@ class RouteMateWindow(QMainWindow):
             self.close()
 
     def start_pass_two(self):
-        """Find the prior Pass One CSV even on a fresh, unloaded GUI launch.
+        """Import CSV from exactly one named project workspace, even cold-start.
 
-        Until Pass Two's search is specified, prepare the full candidate CSV;
-        do not misrepresent import as an optimiser run or a completed Pass Two.
+        Pass Two still imports candidates only; it does not start an optimiser.
         """
         if (self._pass_one_worker is not None
             or self._calibration_worker is not None
@@ -1959,38 +1977,70 @@ class RouteMateWindow(QMainWindow):
                 self, "Pass Two busy", "Stop the active task first."
             )
             return
+
         try:
-            rows = read_pass_one(self.work_root)
-        except (OSError, ValueError) as exc:
+            if self.project is not None and self.project_path is not None:
+                workspace = project_workspace(
+                    self.project_path, self.work_root, create=False
+                )
+                if workspace != self.active_workspace:
+                    raise ValueError("Loaded project and workspace disagree.")
+                chosen = self.project_path.name
+            else:
+                available = list_project_workspaces(self.work_root)
+                if not available:
+                    raise FileNotFoundError(
+                        "No project workspaces found. Load a source JSON once "
+                        "to create its own Work/<project-id>/ folders. "
+                        "Old Work/pass 1/ data has been preserved."
+                    )
+                if len(available) == 1:
+                    chosen, workspace = available[0]
+                else:
+                    selection, accepted = QInputDialog.getItem(
+                        self, "Pass Two — Choose Project",
+                        "Load Pass One results for which JSON?",
+                        [label for label, _ in available],
+                        0, False,
+                    )
+                    if not accepted:
+                        self.log_line("[PASS2][CANCELLED] No project selected; all files untouched.")
+                        return
+                    workspace = dict(available)[selection]
+                    chosen = selection
+            rows = read_pass_one(workspace)
+        except (OSError, ValueError, KeyError) as exc:
             self.log_line("[PASS2][INPUT ERROR] " + str(exc))
-            QMessageBox.warning(self, "Pass Two needs Pass One CSV", str(exc))
+            QMessageBox.warning(self, "Pass Two needs project Pass One CSV", str(exc))
             return
         if not rows:
             QMessageBox.information(
-                self, "Pass Two", "Pass One results.csv contains no verified seeds."
+                self, "Pass Two", "This project's results.csv contains no verified seeds."
             )
             return
-        source = self.work_root / PASS_ONE / "results.csv"
+        source = workspace / PASS_ONE / "results.csv"
         dialog = PassTwoDialog(source, len(rows), self)
         if dialog.exec() != QDialog.DialogCode.Accepted:
-            self.log_line("[PASS2][CANCELLED] Work/pass 2 unchanged.")
+            self.log_line(f"[PASS2][CANCELLED] {workspace / PASS_TWO} unchanged.")
             return
         try:
-            path, count = prepare_pass_two(self.work_root)
+            # A different project's directories can never be the clear target.
+            path, count = prepare_pass_two(workspace)
         except (OSError, ValueError) as exc:
             self.log_line("[PASS2][ERROR] " + str(exc))
             QMessageBox.critical(self, "Pass Two import failed", str(exc))
             return
+        self.log_line(f"[PASS2][PROJECT] {chosen} · {workspace}")
         self.log_line(f"[PASS2][GO] Imported {count:,} prior strict+audited "
                       f"seed records from {source}.")
-        self.log_line(f"[PASS2][FILES] {path}; pass 1 and jsons untouched.")
+        self.log_line(f"[PASS2][FILES] {path}; this project's pass 1 and jsons untouched.")
         self.log_line("[PASS2][WAITING] Pass Two native search is NOT implemented; "
                       "no moves have been run.")
         self.solve_activity.setText(
             f"Pass Two · {count:,} seeds loaded · search not started"
         )
         self.statusBar().showMessage(
-            f"Pass Two CSV ready: {path} — search not yet configured."
+            f"Pass Two CSV ready for {chosen}: {path} — search not yet configured."
         )
 
     def solve_board(self):
@@ -2749,8 +2799,11 @@ class RouteMateWindow(QMainWindow):
                     f"boardPos={component.get('boardPos')} rotation={component.get('rotation', 0)}"
                 )
 
+            workspace = project_workspace(path, self.work_root, create=True)
             self.project = project
             self.project_path = path
+            self.active_workspace = workspace
+            self.log_line(f"[WORK][PROJECT] {path.name} → {workspace}")
             self._solved_verified = False
             self._quick_source = None
 
@@ -2758,7 +2811,7 @@ class RouteMateWindow(QMainWindow):
 
             self.project_summary.setText(
                 f"{path.name}\n{len(project['components'])} components · "
-                f"{len(project['nets'])} nets"
+                f"{len(project['nets'])} nets\nWork: {workspace.name}"
             )
             self._set_board_summary("Imported · reviewing placement constraints", project=project)
             top_svg, renderer_log = self._render_component_side(project)
