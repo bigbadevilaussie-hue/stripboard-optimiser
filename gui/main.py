@@ -752,6 +752,7 @@ class RouteMateWindow(QMainWindow):
         self._calibration_worker = None
         self._pass_one_worker = None
         self._move_probe_result = None
+        self._pass_one_prompt_pending = False
         self.work_root = WORK_ROOT
         self._stop_requested = False
         self._close_when_idle = False
@@ -1629,6 +1630,7 @@ class RouteMateWindow(QMainWindow):
             return
         self.load_action.setEnabled(False)
         self.stop_action.setEnabled(True)
+        self._pass_one_prompt_pending = False
         self._solve_started = perf_counter()
         self._solve_done = 0
         self._solve_budget = 100
@@ -1666,6 +1668,7 @@ class RouteMateWindow(QMainWindow):
     def _calibration_completed(self, result):
         self._calibration_stages["CALIBRATION"] = "done"
         self._move_probe_result = dict(result)
+        self._pass_one_prompt_pending = True
         self._refresh_checklist()
         self._solve_done = 100
         self.solve_progress.setRange(0, 100)
@@ -1676,11 +1679,12 @@ class RouteMateWindow(QMainWindow):
             f"{result['decodes_per_second']:,.0f} decodes/s")
         self.log_line("[MOVE100][DONE] 100/100 random decoder points; "
                       "0 placement, routing, solve attempts or final electrical check.")
-        self.log_line("[MOVE100][STOP] No Pass One/Two auto-start; press a pass button when ready.")
-        self.statusBar().showMessage("MOVE CALIBRATION COMPLETE — press Pass One to open its launch popup.")
+        self.log_line("[MOVE100][READY] Pass One confirmation opens after the native probe exits; no solver campaign starts without GO.")
+        self.statusBar().showMessage("MOVE CALIBRATION COMPLETE — Pass One confirmation will open.")
         self._set_board_summary("Move calibration complete · no final routed board", level="neutral")
 
     def _calibration_failed(self, error):
+        self._pass_one_prompt_pending = False
         self._calibration_stages["CALIBRATION"] = "failed"
         self._refresh_checklist()
         self.solve_progress.setRange(0, 100)
@@ -1691,6 +1695,7 @@ class RouteMateWindow(QMainWindow):
         self.log_line("[MOVE100][STOP] No optimisation pass started.")
 
     def _calibration_cancelled(self):
+        self._pass_one_prompt_pending = False
         self.solve_progress.setRange(0, 100)
         self.solve_progress.setValue(0)
         self.solve_activity.setText("100-point move check cancelled")
@@ -1705,8 +1710,17 @@ class RouteMateWindow(QMainWindow):
         self._calibration_worker = None
         self.load_action.setEnabled(True)
         self.stop_action.setEnabled(False)
+        offer_pass_one = (self._pass_one_prompt_pending and
+                          self._calibration_stages.get("CALIBRATION") == "done" and
+                          self.project is not None and not self._close_when_idle)
+        self._pass_one_prompt_pending = False
         if self._close_when_idle:
             self.close()
+        elif offer_pass_one:
+            # Wait for the calibration thread to finish and its references to be
+            # released before showing the existing GO-gated launch dialog.
+            self.log_line("[PASS1][PROMPT] Calibration complete; choose 10k/20k and confirm GO or Cancel.")
+            QTimer.singleShot(0, self.start_pass_one)
 
     def start_pass_one(self):
         """GO is the only action allowed to clear Work/pass 1."""
@@ -2543,6 +2557,7 @@ class RouteMateWindow(QMainWindow):
             from pipeline import PipelineRun, project_import_stage_result
             self._calibration_stages = {}
             self._move_probe_result = None
+            self._pass_one_prompt_pending = False
             self._probe_cut_drilled_only = None
             self._probe_stacking_allowed = None
             self.checklist.reset()

@@ -23,6 +23,54 @@ class PassControlTests(unittest.TestCase):
     def setUpClass(cls):
         cls.app = QApplication.instance() or QApplication([])
 
+    def test_successful_calibration_prompts_once_after_worker_finishes(self):
+        window = RouteMateWindow()
+        try:
+            window.project = {"board": {"rows": 24, "cols": 56}}
+            window._probe_cut_drilled_only = False
+            window._probe_stacking_allowed = True
+            window._recommended_workers = 3
+            window._calibration_worker = object()
+            result = {"ms_per_decode": 0.17, "decodes_per_second": 5882.0}
+            with patch("gui.main.QTimer.singleShot") as queue, \
+                 patch.object(window, "start_pass_one") as launch:
+                window._calibration_completed(result)
+                self.assertTrue(window._pass_one_prompt_pending)
+                queue.assert_not_called()  # Worker must exit before any popup.
+                window._calibration_finished()
+                queue.assert_called_once_with(0, launch)
+                self.assertFalse(window._pass_one_prompt_pending)
+                self.assertIsNone(window._calibration_worker)
+                self.assertEqual(window._calibration_stages["CALIBRATION"], "done")
+                window._calibration_finished()
+                queue.assert_called_once()  # No duplicate popup.
+        finally:
+            window.close()
+
+    def test_failed_cancelled_or_closing_calibration_never_prompts(self):
+        window = RouteMateWindow()
+        try:
+            window.project = {"board": {"rows": 24, "cols": 56}}
+            with patch("gui.main.QTimer.singleShot") as queue:
+                window._pass_one_prompt_pending = True
+                window._calibration_failed("probe failed")
+                window._calibration_finished()
+                queue.assert_not_called()
+                window._pass_one_prompt_pending = True
+                window._calibration_cancelled()
+                window._calibration_finished()
+                queue.assert_not_called()
+                window._calibration_stages["CALIBRATION"] = "done"
+                window._pass_one_prompt_pending = True
+                window._close_when_idle = True
+                with patch.object(window, "close") as close:
+                    window._calibration_finished()
+                    close.assert_called_once()
+                queue.assert_not_called()
+        finally:
+            window._close_when_idle = False
+            window.close()
+
     def test_routing_rules_popup_needs_explicit_confirmation(self):
         dialog = RoutingRulesDialog()
         try:

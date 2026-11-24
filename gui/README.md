@@ -247,3 +247,13 @@ also repeats those choices in its launch popup before its separate
 **Are you sure? / GO** confirmation. The selected policies are used by
 the existing native solver and are not changed by the Pass One dialog.
 Pass Two remains CSV import only.
+
+## GUI 2.12 — automatic Pass One launch prompt after calibration
+
+When the 100-decode native calibration completes successfully and its worker
+has fully finished, Route-Mate automatically opens the **existing Pass One**
+10k/20k launch dialog. The user still has to select a budget, tick
+**Are you sure?**, and press **GO** to start any optimisation or clear
+`Work/pass 1`. **Cancel** changes no work files; Pass One can be opened
+again with its toolbar button. No prompt is shown for a failed, cancelled,
+or closing calibration. Pass Two remains independently available on startup.

@@ -1,5 +1,11 @@
 # Changelog
 
+### GUI 2.12 — Prompt for Pass One immediately after successful move calibration (25 November 2026)
+- After a successful native 100-decode measurement, schedule the existing Pass One 10k/20k confirmation dialog once the calibration worker has finished. The user is no longer required to find the toolbar button.
+- No optimisation starts, and no Work folder is cleared, until the user ticks **Are you sure?** and explicitly presses **GO**. Cancel preserves all files and the toolbar remains available for later manual launch.
+- Failed/cancelled calibration and closing the GUI do not open a Pass One prompt. No changes to Pass Two or the native solver.
+- The six pending cosmetic improvements remain deferred.
+
 ### GUI 2.11 — Make cut and stacking choices unmistakable (25 November 2026)
 - The existing dedicated routing-rules popup now shows two large, labelled radio-button groups: knife/drilled cut policy and allowed/forbidden jumper stacking. Defaults remain knife allowed and stacking allowed.
 - Explicit "I have checked both routing settings" confirmation is required before the popup can continue to CPU and 100-decode calibration. Cancel still starts no probes and never clears Work.
