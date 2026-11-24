@@ -322,6 +322,14 @@ The controller defaults to **4 parallel workers** (only 3 and 4 accepted), one s
 
 In the next chat **do not run the previous round-robin** and **do not alter the fixed 200×25k output**. Use [full Slide sweep instructions](native-full-slide-200x25k-sweep.md). The prior fixed 200×25k study remains 0/200 strict passes and is a useful control.
 
+## 8G. Research underway while exhaustive 200×51 Slide runs — 24 Nov
+
+The user asked for a creative solution after early positions failed. The pasted live log shows **seeds 1–4 completed all 51 USB columns without a single strict pass**, and seeds 5–8 underway. **This is interim evidence, not the final 200-seed outcome.** The live scripts and binaries must not be edited or rebuilt mid-run.
+
+Current key discovery: `src/frontend/components/stripboard/v5wasm/route.c` **already implements two-vertical-wire relay routing** (`findRelayBest`, existing strip donation, donor tails and direct-vs-relay choice), so the real gap is its greedy single-route decision/no rip-up or backtracking, the mostly width-selected nominal 32 relay-candidate set, and a fresh placement reset across every USB column. The mere absence of a direct shared free column doesn't mean a net is impossible to connect; a multi-hop path through spare copper or a part shift can still work.
+
+**Research report committed with external references, code line pointers, architecture-specific remedy and validation tests:** [docs/research-conflict-directed-slide-and-routing-2026-11-24.md](research-conflict-directed-slide-and-routing-2026-11-24.md). It recommends opt-in conflict-directed local rip-up/reorder/beam routing on existing rejected JSONs, then bounded movable-component shifts, then (later, separately) in-anneal USB column mutations/warm starts. Maintain full independent strict validation and do **not** hardcode fixture names or alter old default behaviour. Benchmark with fixed sweep seeds 157 (one body crossing) and 129 (one nonvertical), plus the current Slide archive; **no need to rerun annealing** to diagnose first.
+
 ## 9. Starting a new ChatGPT chat
 
 Suggested initial instruction: **“Read `docs/START_HERE_NATIVE_SOLVER_HANDOFF_2026-11-24.md`, root `README.md`, `project.md` and `docs/native-edge-slide-motoex.md` from branch `feature/native-edge-slide-motoex` in `bigbadevilaussie-hue/stripboard-optimiser`. Continue the general-purpose native optimiser where we left off. The immediate job is to compile/test/replay `wireColumnPolish.ts` on existing 500k saved layouts and fix it, then tackle net6 and integrate edge-slide into native anneal. Do not hard-code for MOTOEX. Quality/strict verification first; use existing branch; make code and commits, not just plans.”**
