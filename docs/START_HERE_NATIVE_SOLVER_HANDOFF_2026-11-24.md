@@ -309,6 +309,19 @@ python3 scripts/analyze_motoex_native_sweep.py --out ~/Desktop/motoex_native_fix
 
 Latest detailed run results: [docs/native-fixed-usb-200x25k-sweep.md](native-fixed-usb-200x25k-sweep.md). Previous §8D “not run” language is historical and superseded by this section.
 
+## 8F. Next requested tournament — **200 seeds × ALL 51 USB Slide positions each** (pending Mac run)
+
+The user explicitly reversed the prior **fixed USB** comparison requirement for a **new separate Slide sweep**, while keeping the previous policy `drilled-only OFF` (knives allowed), `no stacking OFF` (stacks allowed), **25,000 moves per attempted column**, and a strict final verifier. This Slide study must try **every legal column for each seed**, sequentially within that seed, **stopping at the first independently verified strict solve or after all 51 have failed**. There are **200 seeds × up to 51 columns = up to 10,200 solver invocations**; it is **NOT** the older round-robin `--slide yes` mode of `run_motoex_native_sweep.py`, which gave each seed only one USB column. **Use the dedicated new `scripts/run_motoex_native_full_slide_sweep.py`**.
+
+The controller defaults to **4 parallel workers** (only 3 and 4 accepted), one seed per worker with each seed visiting 51 columns in the generic Edge order `47, 46, 48, 45, 49, ...`. It writes **per-attempt checkpoint immediately**, all saved failed candidate JSONs, **all strict-solved JSONs**, seed outcomes, precise solve/CPU/memory timing, finisher diagnostics, and ranks the top five **distinct strict** boards by wire count, then cut count, wire length and weighted price. Each seed stops after its **first** independently verified PASS, but other seeds keep running. Resume requires matching source/binary fingerprints; no change to source master. The algorithm is fixture-independent; only benchmark controller names USB and locks it at each legal trial.
+
+**New files, committed but NOT YET Mac-tested:**
+- `scripts/run_motoex_native_full_slide_sweep.py`
+- `scripts/tests/test_motoex_native_full_slide_sweep.py`
+- `docs/native-full-slide-200x25k-sweep.md` — **authoritative one-paste Mac command and archive/resume guide**.
+
+In the next chat **do not run the previous round-robin** and **do not alter the fixed 200×25k output**. Use [full Slide sweep instructions](native-full-slide-200x25k-sweep.md). The prior fixed 200×25k study remains 0/200 strict passes and is a useful control.
+
 ## 9. Starting a new ChatGPT chat
 
 Suggested initial instruction: **“Read `docs/START_HERE_NATIVE_SOLVER_HANDOFF_2026-11-24.md`, root `README.md`, `project.md` and `docs/native-edge-slide-motoex.md` from branch `feature/native-edge-slide-motoex` in `bigbadevilaussie-hue/stripboard-optimiser`. Continue the general-purpose native optimiser where we left off. The immediate job is to compile/test/replay `wireColumnPolish.ts` on existing 500k saved layouts and fix it, then tackle net6 and integrate edge-slide into native anneal. Do not hard-code for MOTOEX. Quality/strict verification first; use existing branch; make code and commits, not just plans.”**
