@@ -4,6 +4,8 @@
 
 > **LATEST verified ON-domain 500k replay:** col25 polished from **2→1 knife cut** (213 candidates, 1 accepted) while remaining electrically complete; col41 unchanged after 78 tries, with **three disconnected groups on net6** and no clean direct vertical path. Both 24×56, no independent checker regression; still **0 strict PASS**. See [handover §8C](docs/START_HERE_NATIVE_SOLVER_HANDOFF_2026-11-24.md#8c-user-verified-rotation-domain-on-500k-replay--24-nov-2026-latest). **Next:** generic conflict-directed bounded part moves plus multiwire rerouting, not another round of single-column tweaking.
 
+> **New pending sweep (NOT YET RUN):** [200 seeds × 25,000 moves — fixed USB, drilled-only OFF, stacking allowed](docs/native-fixed-usb-200x25k-sweep.md). **Slide is OFF for all 200 seeds**, USB stays at (13,47); `--slide yes` is a separate future sweep option. The tournament archives **every** strict solved JSON, every rejected JSON, per-seed timing, move-summary/finish diagnostics, and reports the top five **distinct physical layouts** by wires then cuts. Command and resume instructions are in that dedicated document.
+
 ## 🚀 Current work — START HERE (24 November 2026)
 
 **If resuming in a new chat, read the [complete native optimiser handover](docs/START_HERE_NATIVE_SOLVER_HANDOFF_2026-11-24.md) FIRST.** It contains the working branch, code map, verified build tests, exact MOTOEX on/off/500k results, remaining defects, saved result paths, reproducible commands and next engineering steps. Companion source-of-truth notes: [native Edge/Slide implementation](docs/native-edge-slide-motoex.md), [project specification](project.md), [Route-Mate GUI integration roadmap](docs/route-mate-native-solver-integration-roadmap.md).
