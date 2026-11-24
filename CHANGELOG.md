@@ -179,3 +179,19 @@ documentation together. A Git release tag is separate from the branch version.
 - Updated AUDIOEX ladder instructions to run the finish regression and use
   fresh `edgefix2` archives rather than resuming the previous failed builds.
 - No GUI source change: GUI 2.02 retained. Full AUDIOEX strict solve not yet validated.
+
+### AUDIOEX native edge diagnostics and four-edge regressions (24 November 2026)
+
+- Extended synthetic edge decoder tests across top/bottom/left/right overhangs,
+  distinguishing allowed locked body overhang from off-board electrical pins.
+- Added a CLI validation regression that rejects a BMS pin outside the board
+  with a precise pre-solve reason (no move-budget waste).
+- Archived the native CLI's existing `firstFeasibleMove` and
+  `firstFeasibleMs` diagnostic fields in the AUDIOEX ladder checkpoint/CSV,
+  and included first-fit and failure reason in each printed trial line.
+- Verified from AUDIOEX: custom footprint labelled "10-pin" actually defines
+  eight pins, only B+ and B− have net assignments; floating-pin isolation
+  remains unchanged. No fabricated pins or clearance rule changes.
+- Native solver C/TS, saved-board auditor, case-locked BMS, original AUDIOEX
+  fixture, GUI implementation and GUI version are unchanged.
+- Target Mac must run the extended tests before a fresh smoke/ladder.

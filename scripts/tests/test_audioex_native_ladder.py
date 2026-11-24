@@ -73,6 +73,14 @@ class AudioexBmsLadderTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "pin off physical board"):
             ladder.prepare_audioex(changed)
 
+    def test_first_fit_diagnostics_are_archived(self):
+        self.assertIn("firstFeasibleMove", ladder.FIELDS)
+        self.assertIn("firstFeasibleMs", ladder.FIELDS)
+        import inspect
+        source = inspect.getsource(ladder.run_one)
+        self.assertIn('result.get("firstFeasibleMove")', source)
+        self.assertIn('result.get("firstFeasibleMs")', source)
+
     def test_checkpoint_rejects_duplicate_or_mismatched_archive(self):
         from tempfile import TemporaryDirectory
         with TemporaryDirectory() as tmp:

@@ -31,6 +31,43 @@ The runner refuses an unexpected source BMS position, a sliding BMS, a
 changed pin footprint or a second locked part. It does **not** falsely
 claim the original BMS was flagged `edge=true` in Git.
 
+## BMS footprint audit (AUDIOEX master)
+
+The actual committed custom definition is **7 columns × 12 rows**, with
+**8 defined electrical pins** despite its display name "BMS (10-pin)".
+The distinction is an **unresolved physical-footprint documentation question**,
+not permission to invent two pads. Only **B+** at (row 9, col 24) and
+**B−** at (row 9, col 30) have assigned nets in this JSON. D, NTC, G,
+b+, BM and b− are **unassigned**, but the current electrical model still
+requires isolation of floating pins. No change to that policy is made.
+
+The empty top two rows of this particular BMS are a permissible *body*
+overhang; its earliest defined pin is at footprint row 4 (physical row 2).
+The current **case lock stays row −2, col 24**. Do not slide, trim the
+footprint, or alter pin positions merely to improve solver feasibility.
+
+## Four-edge and diagnostics regression
+
+After compiling the opt-in native edge decoder, run:
+
+```sh
+node tests/solver/testNativeNegativeEdgeAnchor.js
+node tests/solver/testNativeNegativeEdgeFinish.js
+```
+
+The native tests exercise **top, bottom, left, and right** body-only
+overhangs, ensure ordinary unflagged parts cannot silently qualify, and
+reject an edge-mount pin outside purchased copper. The full CLI finish
+regression also expects an explicit `pin outside the physical board`
+pre-solve error for an invalid BMS pin.
+
+For strict Edge-mode CLI attempts, `unsolvedReason`,
+`firstFeasibleMove` and `firstFeasibleMs` are already in the JSON
+result (null if no first fit was recorded). The AUDIOEX Python runner now
+retains those telemetry fields in `results.jsonl` and `results.csv`,
+and prints the first fit plus a reason on every trial line. This is
+diagnostic evidence, not a change to the optimiser's scoring or anneal.
+
 ## Native solver configuration
 
 **Drill OFF** = `--drilled 0`, so knife/between-hole cuts **allowed**.

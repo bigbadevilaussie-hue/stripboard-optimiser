@@ -20,7 +20,11 @@ function model({row, col, edge}) {
   // actual BMS pin at column offset zero.
   const pins = col < 0
     ? [{rowOff:4,colOff:4,net:0},{rowOff:11,colOff:6,net:1}]
-    : [{rowOff:4,colOff:0,net:0},{rowOff:11,colOff:6,net:1}];
+    : col >= 52
+      ? [{rowOff:4,colOff:0,net:0},{rowOff:11,colOff:3,net:1}]
+      : row >= 19
+        ? [{rowOff:0,colOff:0,net:0},{rowOff:4,colOff:6,net:1}]
+        : [{rowOff:4,colOff:0,net:0},{rowOff:11,colOff:6,net:1}];
   const shape = {
     w:7, h:12, entry:-1,
     body:[0,11,0,6],
@@ -71,6 +75,23 @@ assert.equal(leftEdge.lockOver, 0,
 const leftUnapproved = run({row:4, col:-2, edge:false});
 assert.equal(leftUnapproved.status, 0,
   "non-edge part cannot use negative X origin");
+// Bottom and right overhangs must also retain the purchased 24x56 board.
+// In these synthetic cases the pins are moved *within the footprint* so
+// that only plastic overhangs. The actual AUDIOEX BMS has different pins.
+for (const {row,col,name} of [
+  {row:19,col:24,name:"bottom"},
+  {row:4,col:52,name:"right"},
+]) {
+  const accepted = run({row,col,edge:true});
+  assert.equal(accepted.status,2,name+" edge body overhang should decode");
+  assert.equal(accepted.lockOver,0,name+" must not expand physical PCB");
+  const rejected = run({row,col,edge:false});
+  assert.equal(rejected.lockOver > 0 || rejected.status === 0, true,
+    name+" non-edge package must not silently qualify an over-cap board");
+}
+// A pin outside the PCB is never exempted by an Edge mount.
+const pinOff = run({row:-5,col:24,edge:true});
+assert.equal(pinOff.status,0,"off-board BMS pin must reject at decoder");
 // A valid fixed on-board part must keep pre-existing behaviour.
 const normal = run({row:4, col:24, edge:false});
 assert.equal(normal.status, 2,

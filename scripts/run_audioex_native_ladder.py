@@ -44,7 +44,8 @@ SCHEMA = "audioex-native-fixed-bms-ladder/v1"
 FIELDS = ("moves", "seed", "strictPass", "cliValid", "auditValid", "exit",
           "wires", "cuts", "wireLength", "price", "knife", "stacked",
           "nonvertical", "crossings", "conflicts", "incomplete", "geometry",
-          "quality", "unsolvedReason", "elapsedWallMs", "solveMs",
+          "quality", "unsolvedReason", "firstFeasibleMove", "firstFeasibleMs",
+          "elapsedWallMs", "solveMs",
           "strictFailures", "auditFailures", "auditWarnings", "errors",
           "savedJson", "savedSha256", "layoutSig")
 
@@ -202,6 +203,8 @@ def run_one(folder: Path, prepared: dict, moves: int, seed: int,
               "errors": [], "strictFailures": result.get("strictFailures") or [],
               "auditFailures": [], "auditWarnings": [],
               "unsolvedReason": result.get("unsolvedReason"),
+              "firstFeasibleMove": result.get("firstFeasibleMove"),
+              "firstFeasibleMs": result.get("firstFeasibleMs"),
               "command": command,
               "stdoutLog": str(stdout_path.relative_to(folder)),
               "stderrLog": str(stderr_path.relative_to(folder)),
@@ -438,9 +441,15 @@ def main(argv=None) -> int:
                 status = "✅ PASS" if row.get("strictPass") else ("🛑 NO FIT" if row.get("unsolvedReason") else "❌ REJECT")
                 champion = summary.get("champion")
                 best = f"{champion['wires']}W/{champion['cuts']}C" if champion else "none"
+                first = row.get("firstFeasibleMove")
+                fit = f"fit@{first}" if first is not None else "fit@none"
+                why = row.get("unsolvedReason") or (
+                    "STRICT_PASS" if row.get("strictPass") else
+                    "STRICT_OR_AUDIT_REJECT")
                 print(f"{status} {moves_count//1000}k seed {seed:02d} | "
                       f"{row.get('wires','?')}W/{row.get('cuts','?')}C | "
-                      f"best {best} | pass {summary['strictPasses']}/{summary['finished']} "
+                      f"{fit} | {why} | best {best} "
+                      f"| pass {summary['strictPasses']}/{summary['finished']} "
                       f"| ⏱ {row.get('elapsedWallMs',0)/1000:.2f}s", flush=True)
                 if not row.get("strictPass"):
                     reason = row.get("strictFailures") or row.get("auditFailures") or row.get("errors") or []

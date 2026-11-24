@@ -54,7 +54,32 @@ try {
   assert.equal(actual.slide,false);
   assert.equal(saved.board.rows,24);
   assert.equal(saved.board.cols,56);
-  console.log("✅ Native AUDIOEX BMS finish gate: negative locked body anchor preserved");
+  // The CLI must explain a pin that hangs past the purchased edge;
+  // do not confuse this with an allowable plastic body overhang.
+  const invalid = JSON.parse(JSON.stringify(trial));
+  const invalidDef = invalid.componentDefs.find(d => d.id === bms.defId);
+  assert.ok(invalidDef, "BMS custom definition missing");
+  invalidDef.pins[0].offsetRow = 0; // BMS row -2 + pin row 0 => off-board
+  fs.writeFileSync(path.join(folder,"1.json"), JSON.stringify(invalid));
+  const invalidProc = spawnSync(process.execPath,[
+    path.join(__dirname,"v5Solve.js"), "--data",path.join(temp,"input"),
+    "--id","1","--seed","1","--moves","5000",
+    "--native","1","--strict","1","--drilled","0","--nostack","0",
+    "--drill-domain","0","--wire-polish","0",
+    "--routing-preference","wires",
+  ],{
+    cwd:path.join(__dirname,"../.."),
+    env:{...process.env,V5_NATIVE_LIB_DIR:path.join(__dirname,"native/build/edge")},
+    encoding:"utf8",timeout:120000,
+  });
+  assert.equal(invalidProc.status,1,
+    "off-board pin should fail pre-solve, not spend move budget");
+  const invalidResults=invalidProc.stdout.split("\n").filter(s=>s.startsWith("{"));
+  assert.ok(invalidResults.length, "missing explicit validation failure");
+  const failure=JSON.parse(invalidResults[invalidResults.length-1]);
+  assert.match(failure.error||"", /pin outside the physical board/,
+    "pin overhang must provide a clear user-facing error");
+  console.log("✅ Native AUDIOEX edge finish and pin-outside preflight regression passed");
 } finally {
   fs.rmSync(temp,{recursive:true,force:true});
 }
