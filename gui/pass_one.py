@@ -13,6 +13,7 @@ import hashlib
 import json
 import math
 import os
+import uuid
 from pathlib import Path
 import subprocess
 import tempfile
@@ -21,7 +22,10 @@ from time import perf_counter
 from gui.native_calibration import (
     Cancelled, CLI, FRONTEND, NATIVE, prerequisites, run_process,
 )
-from gui.work_directory import CSV_FIELDS
+from gui.work_directory import (
+    CAMPAIGN_FIELDS, CAMPAIGN_MANIFEST, load_campaign_records,
+    winner_budget_dir,
+)
 
 AUDITOR = FRONTEND / "tests/solver/auditSavedStrict.js"
 DEFAULT_SEEDS = 2000
@@ -67,7 +71,8 @@ def quality100(saved: dict) -> float:
                      15 * unplaced), 2)
 
 
-def _run_seed(project, moves, seed, drilled_only, stacking_allowed, cancelled):
+def _run_seed(project, moves, seed, drilled_only, stacking_allowed, cancelled,
+              *, retained_candidate=None):
     if cancelled():
         raise Cancelled()
     with tempfile.TemporaryDirectory(prefix=f"route_mate_pass1_s{seed:04d}_") as tmp:
@@ -124,6 +129,13 @@ def _run_seed(project, moves, seed, drilled_only, stacking_allowed, cancelled):
         if drilled_only and any(c.get("kind", "between") != "hole"
                                 for c in saved["board"]["cuts"]):
             raise RuntimeError(f"Seed {seed} drilled-only rule violated")
+        if retained_candidate is not None:
+            # Only the separately verified replay champion is persisted.
+            target = Path(retained_candidate)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            temporary = target.with_suffix(".json.tmp")
+            temporary.write_bytes(candidate.read_bytes())
+            os.replace(temporary, target)
         return {
             "seed": seed, "valid": True, "cut": int(audit["cuts"]),
             "w": int(audit["wires"]), "q": quality100(saved),
@@ -131,17 +143,8 @@ def _run_seed(project, moves, seed, drilled_only, stacking_allowed, cancelled):
         }
 
 
-def run_pass_one(project, moves, workers, drilled_only, stacking_allowed,
-                 pass_directory, on_progress, on_log, cancelled,
-                 seeds=DEFAULT_SEEDS):
-    """The GUI must clear the Pass One directory before launching this call."""
-    if moves not in MOVE_CHOICES or workers not in (3, 4):
-        raise ValueError("Pass One requires 10k/20k moves and 3/4 workers")
-    if not isinstance(seeds, int) or seeds < 1:
-        raise ValueError("Seed count must be positive")
-    prerequisites()
-    if not AUDITOR.is_file():
-        raise RuntimeError(f"Independent saved-board auditor is missing: {AUDITOR}")
+
+def _prepared_input(project):
     prepared = copy.deepcopy(project)
     board = prepared["board"]
     if board.get("rows", 0) <= 0 or board.get("cols", 0) <= 0:
@@ -151,67 +154,267 @@ def run_pass_one(project, moves, workers, drilled_only, stacking_allowed,
     fingerprint = hashlib.sha256(
         json.dumps(prepared, sort_keys=True).encode("utf-8")
     ).hexdigest()
+    return prepared, fingerprint
+
+
+def _campaign_identity(fingerprint, moves, workers, drilled_only,
+                       stacking_allowed, seeds):
+    return {
+        "schema": 1,
+        "input_sha256": fingerprint,
+        "moves": moves,
+        "workers": workers,
+        "drilled_only": bool(drilled_only),
+        "stacking_allowed": bool(stacking_allowed),
+        "seeds": seeds,
+    }
+
+
+def _save_state(path, state):
+    """Atomic state change; a crash never leaves a half-written manifest."""
+    temporary = Path(path).with_name(Path(path).name + f".{uuid.uuid4().hex}.tmp")
+    try:
+        temporary.write_text(json.dumps(state, indent=2) + "\n", encoding="utf-8")
+        os.replace(temporary, path)
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
+def inspect_pass_one_campaign(project, moves, workers, drilled_only,
+                              stacking_allowed, pass_directory,
+                              seeds=DEFAULT_SEEDS):
+    """Preflight resume BEFORE the GUI offers Resume, Restart or Cancel."""
+    _, fingerprint = _prepared_input(project)
+    expected = _campaign_identity(
+        fingerprint, moves, workers, drilled_only, stacking_allowed, seeds
+    )
     folder = Path(pass_directory)
-    if not folder.is_dir():
-        raise FileNotFoundError(f"Pass One work directory missing: {folder}")
+    metadata = folder / CAMPAIGN_MANIFEST
+    csv_path = folder / "results.csv"
+    if not metadata.is_file() or metadata.is_symlink():
+        raise ValueError("Cannot resume: campaign metadata is missing or unsafe")
+    if not csv_path.is_file() or csv_path.is_symlink():
+        raise ValueError("Cannot resume: campaign CSV is missing or unsafe")
+    info = json.loads(metadata.read_text(encoding="utf-8"))
+    for key, value in expected.items():
+        if info.get(key) != value:
+            raise ValueError(f"Cannot resume: {key} differs from the saved campaign")
+    records = load_campaign_records(csv_path)
+    if any(seed > seeds for seed in records):
+        raise ValueError("Cannot resume: saved CSV has out-of-budget seed numbers")
+    confirmed = {seed: row for seed, row in records.items()
+                 if row["status"] in ("PASS", "FAIL")}
+    failed = [seed for seed, row in records.items() if row["status"] == "ERROR"]
+    saved_times = [float(row["time_taken"]) for row in confirmed.values()
+                   if row.get("time_taken") not in (None, "")]
+    return {
+        "state": info.get("state", "INCOMPLETE"),
+        "done": len(confirmed),
+        "qualified": sum(row["status"] == "PASS" for row in confirmed.values()),
+        "errors": len(failed),
+        "remaining": seeds - len(confirmed),
+        "seconds_per_seed": (sum(saved_times) / len(saved_times)
+                             if saved_times else None),
+        "records": confirmed,
+        "identity": expected,
+    }
+
+
+def run_pass_one(project, moves, workers, drilled_only, stacking_allowed,
+                 pass_directory, on_progress, on_log, cancelled,
+                 seeds=DEFAULT_SEEDS, *, resume=False):
+    """Persist PASS/FAIL/ERROR per seed; resume only missing or errored seeds.
+
+    The caller chooses an empty budget folder (Restart) or a matching existing
+    campaign (Resume). Legacy success-only CSVs are never silently overwritten.
+    """
+    if moves not in MOVE_CHOICES or workers not in (3, 4):
+        raise ValueError("Pass One requires 10k/20k moves and 3/4 workers")
+    if not isinstance(seeds, int) or seeds < 1:
+        raise ValueError("Seed count must be positive")
+    prerequisites()
+    if not AUDITOR.is_file():
+        raise RuntimeError(f"Independent saved-board auditor is missing: {AUDITOR}")
+    prepared, fingerprint = _prepared_input(project)
+    identity = _campaign_identity(
+        fingerprint, moves, workers, drilled_only, stacking_allowed, seeds
+    )
+    folder = Path(pass_directory)
+    if not folder.is_dir() or folder.is_symlink():
+        raise FileNotFoundError(f"Pass One work directory missing/unsafe: {folder}")
     csv_path = folder / "results.csv"
     log_path = folder / "activity.log"
-    checked = qualified = 0
-    with (csv_path.open("w", newline="", encoding="utf-8") as stream,
-          log_path.open("w", encoding="utf-8") as report):
-        writer = csv.DictWriter(stream, fieldnames=CSV_FIELDS)
-        writer.writeheader()
+    manifest = folder / CAMPAIGN_MANIFEST
+    if resume:
+        snapshot = inspect_pass_one_campaign(
+            project, moves, workers, drilled_only, stacking_allowed,
+            folder, seeds=seeds
+        )
+        if snapshot["state"] == "COMPLETED":
+            raise ValueError("Campaign already complete; use Restart to run again")
+        retained = snapshot["records"]
+        # Remove previous ERROR rows atomically: they are the seeds to retry.
+        temporary = folder / f"results.{uuid.uuid4().hex}.tmp"
+        try:
+            with temporary.open("w", newline="", encoding="utf-8") as out:
+                writer = csv.DictWriter(out, fieldnames=CAMPAIGN_FIELDS)
+                writer.writeheader()
+                for seed in sorted(retained):
+                    writer.writerow(retained[seed])
+                out.flush()
+                os.fsync(out.fileno())
+            os.replace(temporary, csv_path)
+        finally:
+            temporary.unlink(missing_ok=True)
+    else:
+        if csv_path.exists() or manifest.exists() or log_path.exists():
+            raise ValueError("Pass One files already exist; confirm Restart or Resume first")
+        retained = {}
+
+    checked = len(retained)
+    qualified = sum(row["status"] == "PASS" for row in retained.values())
+    failures = sum(row["status"] == "FAIL" for row in retained.values())
+    errors = 0
+    attempts = [seed for seed in range(1, seeds + 1) if seed not in retained]
+    _save_state(manifest, {**identity, "state": "INCOMPLETE",
+                           "confirmed": checked, "qualified": qualified})
+
+    with (csv_path.open("a" if resume else "w", newline="", encoding="utf-8") as stream,
+          log_path.open("a" if resume else "w", encoding="utf-8") as report):
+        writer = csv.DictWriter(stream, fieldnames=CAMPAIGN_FIELDS)
+        if not resume:
+            writer.writeheader()
+            stream.flush()
+
         def log(message):
             report.write(message + "\n")
             report.flush()
             on_log(message)
+
+        def progress(last=None):
+            on_progress({"done": checked, "total": seeds,
+                         "qualified": qualified, "failed": failures,
+                         "errors": errors, "last": last})
+
         log(
-            f"[PASS1][START] seeds=1..{seeds} moves={moves} workers={workers} "
-            f"drilled_only={drilled_only} stacking_allowed={stacking_allowed} "
-            f"input_sha256={fingerprint}"
+            f"[PASS1][{'RESUME' if resume else 'START'}] seeds=1..{seeds} "
+            f"moves={moves} workers={workers} drilled_only={drilled_only} "
+            f"stacking_allowed={stacking_allowed} input_sha256={fingerprint} "
+            f"retained={checked} pending={len(attempts)}"
         )
+        progress()
+
+        def safe_seed(seed):
+            started = perf_counter()
+            try:
+                return _run_seed(prepared, moves, seed, drilled_only,
+                                 stacking_allowed, cancelled)
+            except Cancelled:
+                raise
+            except Exception as exc:
+                return {
+                    "seed": seed, "valid": None,
+                    "seconds": round(perf_counter() - started, 3),
+                    "reason": f"{type(exc).__name__}: {exc}",
+                }
+
         try:
             with ThreadPoolExecutor(max_workers=workers) as pool:
-                futures = [
-                    pool.submit(_run_seed, prepared, moves, seed, drilled_only,
-                                stacking_allowed, cancelled)
-                    for seed in range(1, seeds + 1)
-                ]
+                futures = [pool.submit(safe_seed, seed) for seed in attempts]
                 try:
                     for future in as_completed(futures):
                         if cancelled():
                             raise Cancelled()
                         row = future.result()
-                        checked += 1
-                        if row["valid"]:
+                        seed = row["seed"]
+                        seconds = row.get("time_taken", row.get("seconds", 0.0))
+                        if row["valid"] is True:
+                            status = "PASS"
+                            checked += 1
                             qualified += 1
-                            writer.writerow({
-                                "seed": f"{row['seed']:04d}", "cut": row["cut"],
-                                "w": row["w"], "q": f"{row['q']:.2f}",
-                                "time_taken": f"{row['time_taken']:.3f}",
-                            })
-                            stream.flush()
-                            log(f"[PASS1][PASS] seed={row['seed']:04d} "
-                                f"{row['w']}W/{row['cut']}C Q={row['q']:.2f} "
-                                f"{row['time_taken']:.3f}s")
+                        elif row["valid"] is False:
+                            status = "FAIL"
+                            checked += 1
+                            failures += 1
                         else:
-                            log(f"[PASS1][REJECT] seed={row['seed']:04d} "
-                                f"{row['seconds']:.3f}s {row['reason']}")
-                        on_progress({"done": checked, "total": seeds,
-                                     "qualified": qualified, "last": row})
+                            status = "ERROR"
+                            errors += 1
+                        data = {
+                            "seed": f"{seed:04d}",
+                            "cut": row.get("cut", ""),
+                            "w": row.get("w", ""),
+                            "q": f"{row['q']:.2f}" if status == "PASS" else "",
+                            "time_taken": f"{seconds:.3f}",
+                            "status": status,
+                            "reason": str(row.get("reason") or "").replace("\n", " ")[:1000],
+                        }
+                        writer.writerow(data)
+                        stream.flush()
+                        os.fsync(stream.fileno())
+                        if status == "PASS":
+                            log(f"[PASS1][PASS] seed={seed:04d} "
+                                f"{row['w']}W/{row['cut']}C Q={row['q']:.2f} "
+                                f"{seconds:.3f}s")
+                        else:
+                            log(f"[PASS1][{status}] seed={seed:04d} "
+                                f"{seconds:.3f}s {data['reason']}")
+                        progress(row)
                 except BaseException:
                     for future in futures:
                         future.cancel()
                     raise
         except Cancelled:
-            log(f"[PASS1][CANCELLED] {checked}/{seeds} attempted; "
-                f"{qualified} audited rows retained in CSV")
+            _save_state(manifest, {**identity, "state": "STOPPED",
+                                   "confirmed": checked, "qualified": qualified})
+            log(f"[PASS1][CANCELLED] {checked}/{seeds} confirmed; "
+                f"{qualified} PASS, {failures} FAIL, {errors} ERROR rows retained")
             raise
         except BaseException as exc:
+            _save_state(manifest, {**identity, "state": "INCOMPLETE",
+                                   "confirmed": checked, "qualified": qualified})
             log(f"[PASS1][ERROR] {type(exc).__name__}: {exc}")
             raise
-        log(f"[PASS1][COMPLETE] {checked}/{seeds} seeds; "
-            f"{qualified} independent strict PASS rows; output={csv_path}")
-    return {"checked": checked, "qualified": qualified,
-            "seeds": seeds, "moves": moves, "csv": str(csv_path),
-            "log": str(log_path), "sha256": fingerprint}
+
+        completed = (checked == seeds and errors == 0)
+        _save_state(manifest, {**identity,
+                               "state": "COMPLETED" if completed else "INCOMPLETE",
+                               "confirmed": checked, "qualified": qualified})
+        log(f"[PASS1][{'COMPLETE' if completed else 'INCOMPLETE'}] "
+            f"{checked}/{seeds} confirmed; {qualified} strict PASS, "
+            f"{failures} FAIL, {errors} ERROR; output={csv_path}")
+
+    result = {
+        "checked": checked, "qualified": qualified, "failed": failures,
+        "errors": errors, "completed": completed,
+        "seeds": seeds, "moves": moves, "csv": str(csv_path),
+        "log": str(log_path), "sha256": fingerprint,
+        "winner_json": None, "winner_error": None,
+    }
+    if completed and qualified:
+        records = load_campaign_records(csv_path)
+        winners = (row for row in records.values() if row["status"] == "PASS")
+        winner = sorted(winners,
+                        key=lambda r: (-float(r["q"]), int(r["w"]),
+                                       int(r["cut"]), int(r["seed"])))[0]
+        seed = int(winner["seed"])
+        winner_folder = winner_budget_dir(folder.parent.parent, moves, create=True)
+        target = winner_folder / f"winner_seed_{seed:04d}.json"
+        try:
+            replay = _run_seed(
+                prepared, moves, seed, drilled_only, stacking_allowed,
+                cancelled, retained_candidate=target
+            )
+            if (replay["valid"] is not True
+                or replay["w"] != int(winner["w"])
+                or replay["cut"] != int(winner["cut"])
+                or replay["q"] != float(winner["q"])):
+                raise ValueError("Replay differs from the audited Pass One CSV winner")
+            result["winner_json"] = str(target)
+            result["winner_seed"] = seed
+            on_log(f"[PASS1][WINNER] seed={seed:04d} {replay['w']}W/"
+                   f"{replay['cut']}C Q={replay['q']:.2f} strict replay saved: {target}")
+        except Exception as exc:
+            target.unlink(missing_ok=True)
+            result["winner_error"] = f"{type(exc).__name__}: {exc}"
+            on_log(f"[PASS1][WINNER][ERROR] {result['winner_error']}; no winner SVG authorised")
+    return result
