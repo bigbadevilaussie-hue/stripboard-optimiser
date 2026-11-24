@@ -1,5 +1,11 @@
 # Changelog
 
+### GUI 2.11 — Make cut and stacking choices unmistakable (25 November 2026)
+- The existing dedicated routing-rules popup now shows two large, labelled radio-button groups: knife/drilled cut policy and allowed/forbidden jumper stacking. Defaults remain knife allowed and stacking allowed.
+- Explicit "I have checked both routing settings" confirmation is required before the popup can continue to CPU and 100-decode calibration. Cancel still starts no probes and never clears Work.
+- Pass One's launch confirmation repeats the selected policies so the operator can review them before GO. The GUI retains the selected values and passes them to the unchanged native solver.
+- No change to Pass Two CSV import, pass-directory cleanup, source JSON, or native optimiser.
+
 ### GUI 2.10 — Persistent Work, explicit Pass One/Two buttons, CSV-only Pass One (25 November 2026)
 - Stable \`Work/pass 1\`, \`Work/pass 2\`, \`Work/jsons\`, \`Work/logs\` under the checkout; creating/opening GUI never deletes results.
 - Each pass folder is cleared ONLY after its own explicit GO confirmation. Pass Two never clears Pass One or the shared JSONs directory.

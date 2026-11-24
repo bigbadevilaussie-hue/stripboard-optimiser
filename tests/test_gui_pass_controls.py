@@ -8,9 +8,10 @@ from unittest.mock import patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 try:
-    from PySide6.QtWidgets import QApplication, QDialog, QDialogButtonBox
+    from PySide6.QtWidgets import QApplication, QDialog, QDialogButtonBox, QLabel
     from gui.main import (
         RouteMateWindow, PassOneDialog, PassTwoDialog, PassOneWorker,
+        RoutingRulesDialog,
     )
 except ImportError:
     QApplication = None
@@ -21,6 +22,38 @@ class PassControlTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.app = QApplication.instance() or QApplication([])
+
+    def test_routing_rules_popup_needs_explicit_confirmation(self):
+        dialog = RoutingRulesDialog()
+        try:
+            go = dialog.findChild(QDialogButtonBox).button(
+                QDialogButtonBox.StandardButton.Ok)
+            self.assertFalse(go.isEnabled())
+            self.assertEqual(dialog.values(), {
+                "drilled_only": False, "stacking_allowed": True})
+            dialog.cut_drilled.setChecked(True)
+            dialog.stack_no.setChecked(True)
+            self.assertEqual(dialog.values(), {
+                "drilled_only": True, "stacking_allowed": False})
+            self.assertFalse(go.isEnabled())
+            dialog.confirm.setChecked(True)
+            self.assertTrue(go.isEnabled())
+            dialog.confirm.setChecked(False)
+            self.assertFalse(go.isEnabled())
+        finally:
+            dialog.close()
+
+    def test_pass_one_launch_displays_confirmed_routing_policy(self):
+        dialog = PassOneDialog(
+            {"ms_per_decode": 3.0},
+            drilled_only=True, stacking_allowed=False)
+        try:
+            text = "\n".join(label.text()
+                             for label in dialog.findChildren(QLabel))
+            self.assertIn("Cuts: Drilled only", text)
+            self.assertIn("Wire stacking: Off", text)
+        finally:
+            dialog.close()
 
     def test_pass_one_radio_checkbox_and_go(self):
         dialog = PassOneDialog({"ms_per_decode": 3.0})

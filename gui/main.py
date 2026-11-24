@@ -141,63 +141,75 @@ class BoardSizeDialog(QDialog):
 
 
 class RoutingRulesDialog(QDialog):
-    """One routing policy dialog after lock review, before both speed probes."""
+    """Require a visible, explicit choice of both physical routing policies."""
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Routing rules — cuts and wire stacking")
+        self.setWindowTitle("Routing rules — confirm cuts and wire stacking")
         self.setModal(True)
-        self.setMinimumWidth(490)
+        self.setMinimumWidth(530)
         layout = QVBoxLayout(self)
-        title = QLabel("Cuts and wire stacking")
-        title.setStyleSheet("font-size: 15px; font-weight: 700;")
+        title = QLabel("ROUTING RULES — REVIEW BOTH SETTINGS")
+        title.setStyleSheet("font-size: 16px; font-weight: 800;")
         layout.addWidget(title)
-        intro = QLabel("Set the physical routing rules before calibration.")
+        intro = QLabel(
+            "These settings control the native solver. Choose one option "
+            "for cuts and one for jumper stacking before calibration."
+        )
         intro.setWordWrap(True)
         layout.addWidget(intro)
-        self.drilled_only = QCheckBox("Drilled only — no knife cuts")
-        self.drilled_only.setChecked(False)
-        layout.addWidget(self.drilled_only)
-        cut_hint = QLabel(
-            "OFF (default): knife cuts and drilled cuts are permitted. "
-            "ON: drilled cuts only; some placements are harder or impossible "
-            "to isolate using drilled holes alone."
+
+        cuts_group = QGroupBox("1. CUTS")
+        cuts_layout = QVBoxLayout(cuts_group)
+        self.cut_knife = QRadioButton(
+            "Knife cuts allowed (default) — drilled cuts also allowed"
         )
-        cut_hint.setWordWrap(True)
-        layout.addWidget(cut_hint)
-        self.allow_stacking = QCheckBox("Allow stacked jumper wires")
-        self.allow_stacking.setChecked(True)
-        layout.addWidget(self.allow_stacking)
-        stack_hint = QLabel(
-            "ON (default): legal overlapping/stacked jumper paths may be used. "
-            "OFF: the router must avoid stacking jumper wires."
-        )
-        stack_hint.setWordWrap(True)
-        layout.addWidget(stack_hint)
+        self.cut_drilled = QRadioButton("Drilled holes only — no knife cuts")
+        self.cut_knife.setChecked(True)
+        cuts_layout.addWidget(self.cut_knife)
+        cuts_layout.addWidget(self.cut_drilled)
+        layout.addWidget(cuts_group)
+
+        stack_group = QGroupBox("2. WIRE STACKING")
+        stack_layout = QVBoxLayout(stack_group)
+        self.stack_yes = QRadioButton("Allow stacked jumper wires (default)")
+        self.stack_no = QRadioButton("Do not allow stacked jumper wires")
+        self.stack_yes.setChecked(True)
+        stack_layout.addWidget(self.stack_yes)
+        stack_layout.addWidget(self.stack_no)
+        layout.addWidget(stack_group)
+
         note = QLabel(
-            "Drilled-only changes decoder constraints. Stacking changes the "
-            "router/finisher, not the decoder-only 100-point speed measurement. "
-            "No optimisation passes will start."
+            "Drilled-only affects decoder constraints. Stacking affects "
+            "routing/finishing, not the 100-decode timing measurement. "
+            "This confirmation does not start Pass One."
         )
         note.setWordWrap(True)
-        note.setStyleSheet("color: #53647a; font-size: 11px;")
         layout.addWidget(note)
+
+        self.confirm = QCheckBox("I have checked both routing settings")
+        layout.addWidget(self.confirm)
         buttons = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Ok |
             QDialogButtonBox.StandardButton.Cancel
         )
+        go = buttons.button(QDialogButtonBox.StandardButton.Ok)
+        go.setText("CONFIRM RULES / CONTINUE")
+        go.setEnabled(False)
+        self.confirm.toggled.connect(go.setEnabled)
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
 
     def values(self):
-        return {"drilled_only": self.drilled_only.isChecked(),
-                "stacking_allowed": self.allow_stacking.isChecked()}
+        return {"drilled_only": self.cut_drilled.isChecked(),
+                "stacking_allowed": self.stack_yes.isChecked()}
+
 
 class PassOneDialog(QDialog):
     """Explicit move-budget selection and confirmation; no auto-start."""
 
-    def __init__(self, probe_result=None, parent=None):
+    def __init__(self, probe_result=None, parent=None, *, drilled_only=None, stacking_allowed=None):
         super().__init__(parent)
         self.setWindowTitle("Pass One — Move Budget")
         self.setModal(True)
@@ -213,6 +225,15 @@ class PassOneDialog(QDialog):
         )
         explanation.setWordWrap(True)
         layout.addWidget(explanation)
+        if isinstance(drilled_only, bool) and isinstance(stacking_allowed, bool):
+            policies = QLabel(
+                "Confirmed routing rules for Pass One:\n"
+                f"Cuts: {'Drilled only' if drilled_only else 'Knife allowed'}\n"
+                f"Wire stacking: {'Allowed' if stacking_allowed else 'Off'}"
+            )
+            policies.setWordWrap(True)
+            policies.setStyleSheet("font-weight: 700;")
+            layout.addWidget(policies)
         self.ten_k = QRadioButton("10,000 moves per seed")
         self.twenty_k = QRadioButton("20,000 moves per seed")
         ms = (probe_result or {}).get("ms_per_decode")
@@ -1707,7 +1728,11 @@ class RouteMateWindow(QMainWindow):
                 "worker probe and the 100-point move check before Pass One."
             )
             return
-        dialog = PassOneDialog(self._move_probe_result, self)
+        dialog = PassOneDialog(
+            self._move_probe_result, self,
+            drilled_only=self._probe_cut_drilled_only,
+            stacking_allowed=self._probe_stacking_allowed,
+        )
         if dialog.exec() != QDialog.DialogCode.Accepted:
             self.log_line("[PASS1][CANCELLED] GO not pressed; Work/pass 1 untouched.")
             return

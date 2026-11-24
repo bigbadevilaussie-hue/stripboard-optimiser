@@ -231,3 +231,19 @@ and all rows are copied into \`candidates.csv\`, with a separate Activity
 log. No Pass Two optimiser algorithm, budget or filtering is implied or
 executed: the GUI labels this as imported candidate data, not an
 optimisation success. The original Pass One CSV and all other folders remain.
+
+
+## GUI 2.11 — routing rules must be reviewed in their own popup
+
+After component placement-lock review, a dedicated modal clearly presents
+**Cuts** (knife/drilled allowed or drilled-only) and **Wire stacking**
+(allowed or forbidden) as separate radio-button groups. Defaults remain
+knife allowed and stacking allowed. The **CONFIRM RULES / CONTINUE** button
+stays disabled until the operator checks **I have checked both routing
+settings**. Cancelling starts no probes and preserves all work folders.
+
+The Overview stages continue to display the selected policies. Pass One
+also repeats those choices in its launch popup before its separate
+**Are you sure? / GO** confirmation. The selected policies are used by
+the existing native solver and are not changed by the Pass One dialog.
+Pass Two remains CSV import only.
