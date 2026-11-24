@@ -55,6 +55,28 @@ warning, not an automatic rejection.
 - Each budget starts a fresh solve; this is **not** a warm-start continuation
   of a previously solved layout.
 
+## Root cause and opt-in decoder repair — 24 Nov 2026
+
+The first AUDIOEX campaign completed **270/270** but returned
+`UNSOLVED_NO_FEASIBLE_PLACEMENT` for every seed, 0 qualified layouts.
+The source BMS has a **negative fixed anchor** (row -2), which triggered an
+impossible graph in native `decode.c`: the ordinary source-edge constraint
+`y >= 0` and the BMS's locked equality `y == -2` cannot both hold.
+The X graph had the same issue for left-edge mounts.
+
+The native fix skips the zero-origin lower bound **only** for an explicitly
+locked, rigid, opt-in Edge-mount part when its locked axis value is negative.
+It is compiled **only** into `npm run build:native:edge`; standard native
+and WASM code paths retain their original zero-bound semantics.
+Locked placement, physical board dimensions, on-board pins/cuts/wires,
+collision checks, and the independent saved-board auditor are unchanged.
+
+**Do not resume the 270 archived failures after changing the binary.**
+The runner prevents this by comparing native SHA-256 fingerprints. Preserve
+`~/Desktop/audioex_bms_fixed_native_ladder/` as evidence. First run a
+targeted native regression and a single-seed smoke into a **new output
+directory**. A successful decode is **not** yet a strictly routed pass.
+
 ## Mac commands
 
 From repository root, after `git pull --ff-only`:
@@ -64,25 +86,32 @@ cd ~/Documents/stripboard-optimiser/src/frontend
 npm run build:solver
 npm run build:native
 npm run build:native:edge
+node tests/solver/testNativeNegativeEdgeAnchor.js
 cd ../..
 
 PYTHONPATH=scripts python3 -m unittest scripts.tests.test_audioex_native_ladder -v
 
-python3 scripts/run_audioex_native_ladder.py --jobs 4
+# New isolated archive (do NOT overwrite the original 270 rejected runs):
+python3 scripts/run_audioex_native_ladder.py --jobs 4 \
+  --out ~/Desktop/audioex_bms_fixed_native_ladder_edgefix
 ```
 
-Default archive: `~/Desktop/audioex_bms_fixed_native_ladder/`. If an
+Default archive remains `~/Desktop/audioex_bms_fixed_native_ladder/`,
+but that contains the **old 270 rejected attempts**; use
+`~/Desktop/audioex_bms_fixed_native_ladder_edgefix/` for the repaired native
+build. If an
 existing run is interrupted, **do not delete the folder**:
 
 ```sh
-python3 scripts/run_audioex_native_ladder.py --jobs 4 --resume
+python3 scripts/run_audioex_native_ladder.py --jobs 4 --resume \
+  --out ~/Desktop/audioex_bms_fixed_native_ladder_edgefix
 ```
 
 Optional small verification without entering the full campaign:
 
 ```sh
 python3 scripts/run_audioex_native_ladder.py --jobs 1 --seeds 1 --moves 5000 \
-  --out ~/Desktop/audioex_bms_fixed_smoke
+  --out ~/Desktop/audioex_bms_edgefix_smoke
 ```
 
 **Do not** run a different `--moves`/`--seeds` set in the same archive;

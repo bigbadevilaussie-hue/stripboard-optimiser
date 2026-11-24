@@ -153,3 +153,17 @@ documentation together. A Git release tag is separate from the branch version.
   `docs/audioex-fixed-bms-native-ladder-2026-11-24.md`.
 - **No GUI, native C, TS solver, renderer, or source fixture changes.**
   Version remains repo 2.00 / GUI 2.02.
+
+### Native Edge build — negative locked BMS anchor feasibility fix (24 November 2026)
+
+- Diagnosed AUDIOEX 270/270 `NO_FEASIBLE_PLACEMENT`: C graph imposed
+  y >= 0 on a locked panel-body origin at row -2, contradictory to its
+  locked equality. Mirrored x constraint for negative left-edge origin.
+- In `V5_EXPERIMENT_EDGE_MOUNT` only, exempt the zero-origin floor solely
+  for a locked rigid `pSides=-2` Edge mount with negative locked coordinate.
+- Added `testNativeNegativeEdgeAnchor.js` native regression; preserve
+  existing ordinary/edge rejects, physical board, pin, collision constraints.
+- Update AUDIOEX documentation to preserve first-run 270 rejects and require
+  **new output folder** plus a single-seed smoke before rerunning a ladder.
+- No GUI change (2.02), no donor/Python solver and no source fixture edits.
+  Run targeted Mac native test to confirm; results not yet independently observed.

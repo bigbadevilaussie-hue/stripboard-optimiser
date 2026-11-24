@@ -701,7 +701,19 @@ static i32 decode(void) {
   // y: constraint edges
   i32 nE = 0;
 #define ADDE(u, v, w) do { eU[nE] = (u); eV[nE] = (v); eW[nE] = (w); nE++; } while (0)
-  for (i32 i = 0; i < nNode - 1; i++) ADDE(SRC, i, 0);
+  for (i32 i = 0; i < nNode - 1; i++) {
+#ifdef V5_EXPERIMENT_EDGE_MOUNT
+    // A locked panel-edge body may have a NEGATIVE anchor while every
+    // electrical pin is on the purchased PCB. Do not impose y >= 0 on
+    // that exact rigid body: the later locked equality y == lockY0 would
+    // form an impossible positive cycle when lockY0 < 0.
+    // Keep the floor for ordinary parts, flex endpoints and any nonnegative
+    // edge anchor. The pin/physical-cap/occupancy checks remain mandatory.
+    if (i < nP && pKind[i] == 0 && pLocked[i] && pSides[i] == -2 &&
+        pLockY0[i] < 0) continue;
+#endif
+    ADDE(SRC, i, 0);
+  }
   for (i32 k = 0; k < nFlex; k++) {
     i32 pi = flexList[k];
     if (geoMode[pi] != 2) continue;
@@ -907,7 +919,15 @@ static i32 decode(void) {
   // cross). Edges come in first-sequence order, so the sweep settles fast.
   i32 XS = nP, nX = 0;
 #define ADDX(u, v, w) do { xU[nX] = (u); xV[nX] = (v); xW[nX] = (w); nX++; } while (0)
-  for (i32 i = 0; i < nP; i++) ADDX(XS, i, 0);
+  for (i32 i = 0; i < nP; i++) {
+#ifdef V5_EXPERIMENT_EDGE_MOUNT
+    // Mirror the row exception for a left-edge locked rigid mount with
+    // a negative body anchor. All other parts retain x >= 0.
+    if (pKind[i] == 0 && pLocked[i] && pSides[i] == -2 &&
+        pLockX[i] < 0) continue;
+#endif
+    ADDX(XS, i, 0);
+  }
   for (i32 r = 0; r < nP; r++) {
     i32 i = gGp[r];
     if (pLocked[i]) continue;
