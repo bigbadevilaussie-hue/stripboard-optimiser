@@ -2,7 +2,9 @@
 import * as fs from "fs";
 import * as path from "path";
 import { renderSchematic } from "./render";
+import { printRendererSplash } from "../toolSplash";
 
+printRendererSplash("SCHEMATIC");
 const args = process.argv.slice(2);
 if (args.length === 0) { console.error("Usage: node cli.js <project.json> --output <dir>"); process.exit(1); }
 
