@@ -1,8 +1,9 @@
-"""Pass One: real native V5 strict seeds; persistent CSV/log ONLY.
+"""Pass One: native V5 strict seeds, complete CSV tracking and winner replay.
 
-2000 seeds, 10k or 20k moves each, 3/4 CPU workers from original probe.
-Every CSV row passes BOTH strict CLI validation and independent saved-board
-audit. Candidate JSON is temporary and removed; none is written to Work.
+2000 seeds, 10k or 20k moves, with 3/4 workers from the CPU probe.
+Every seed writes PASS, FAIL or ERROR with its seed ID; only PASS is promoted.
+Regular seed JSONs are temporary. Once the campaign completes, the highest-Q
+PASS is independently replayed and its verified JSON is saved for SVG output.
 """
 from __future__ import annotations
 
