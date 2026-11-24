@@ -135,6 +135,60 @@ class BoardSizeDialog(QDialog):
         }
 
 
+class RoutingRulesDialog(QDialog):
+    """One routing policy dialog after lock review, before both speed probes."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Routing rules — cuts and wire stacking")
+        self.setModal(True)
+        self.setMinimumWidth(490)
+        layout = QVBoxLayout(self)
+        title = QLabel("Cuts and wire stacking")
+        title.setStyleSheet("font-size: 15px; font-weight: 700;")
+        layout.addWidget(title)
+        intro = QLabel("Set the physical routing rules before calibration.")
+        intro.setWordWrap(True)
+        layout.addWidget(intro)
+        self.drilled_only = QCheckBox("Drilled only — no knife cuts")
+        self.drilled_only.setChecked(False)
+        layout.addWidget(self.drilled_only)
+        cut_hint = QLabel(
+            "OFF (default): knife cuts and drilled cuts are permitted. "
+            "ON: drilled cuts only; some placements are harder or impossible "
+            "to isolate using drilled holes alone."
+        )
+        cut_hint.setWordWrap(True)
+        layout.addWidget(cut_hint)
+        self.allow_stacking = QCheckBox("Allow stacked jumper wires")
+        self.allow_stacking.setChecked(True)
+        layout.addWidget(self.allow_stacking)
+        stack_hint = QLabel(
+            "ON (default): legal overlapping/stacked jumper paths may be used. "
+            "OFF: the router must avoid stacking jumper wires."
+        )
+        stack_hint.setWordWrap(True)
+        layout.addWidget(stack_hint)
+        note = QLabel(
+            "Drilled-only changes decoder constraints. Stacking changes the "
+            "router/finisher, not the decoder-only 100-point speed measurement. "
+            "No optimisation passes will start."
+        )
+        note.setWordWrap(True)
+        note.setStyleSheet("color: #53647a; font-size: 11px;")
+        layout.addWidget(note)
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok |
+            QDialogButtonBox.StandardButton.Cancel
+        )
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+        layout.addWidget(buttons)
+
+    def values(self):
+        return {"drilled_only": self.drilled_only.isChecked(),
+                "stacking_allowed": self.allow_stacking.isChecked()}
+
 
 class LockDialog(QDialog):
     """Collect PRE-SOLVE constraints for one already-placed component."""
@@ -150,9 +204,12 @@ class LockDialog(QDialog):
         layout = QVBoxLayout(self)
         layout.addWidget(QLabel(f"Component: {label}"))
         self.locked = QRadioButton("Fixed — keep exact position")
-        self.unlocked = QRadioButton("Movable — return to Quick Solve")
+        self.unlocked = QRadioButton("Movable — release for future placement")
         self.edge = QCheckBox("Board-edge constraint")
-        self.slide = QCheckBox("May slide along this edge (keep rotation)")
+        self.slide = QCheckBox("May slide along this edge — EXPERIMENTAL")
+        self.slide.setStyleSheet(
+            "QCheckBox { color: #ff1744; font-weight: 800; font-size: 13px; }"
+        )
         # Unlocked parts lose their old placement and return to Quick Fit.
         is_locked = bool(component.get("locked", False))
         self.locked.setChecked(is_locked)
@@ -167,16 +224,22 @@ class LockDialog(QDialog):
         layout.addWidget(self.unlocked)
         layout.addWidget(self.edge)
         layout.addWidget(self.slide)
-        hint = QLabel("Fixed = exact position. Edge + Slide = may move only along the same edge.\nMovable = auto-place while keeping all electrical connections.")
+        hint = QLabel(
+            "Fixed = keep current position (unless experimental Slide is selected). "
+            "Movable = return the part to placement. "
+            "Edge anchors must already touch or overhang a physical board edge."
+        )
         hint.setWordWrap(True)
         layout.addWidget(hint)
         self.search_notice = QLabel(
-            "Edge+Slide can take much longer: up to 24 Quick Solve "
-            "attempts at each legal position, stopping at the first verified route."
+            "EXPERIMENTAL — Edge+Slide is not a guaranteed routing mode. "
+            "The part must already touch or overhang the board edge; "
+            "the native decoder rejects invalid edge anchors. "
+            "The 100-point check does not search slide positions."
         )
         self.search_notice.setWordWrap(True)
         self.search_notice.setStyleSheet(
-            "color: #92400e; font-size: 12px; font-weight: 600;"
+            "color: #ff1744; font-size: 12px; font-weight: 800;"
         )
         layout.addWidget(self.search_notice)
         self._update_constraint_controls()
@@ -372,21 +435,17 @@ class WorkflowChecklist(QWidget):
             row.addWidget(mark)
             row.addWidget(label, 1)
             if key == "CUTS":
-                self.cuts_choice = QComboBox()
-                self.cuts_choice.addItem("Drilled only", True)
-                self.cuts_choice.addItem("Knife allowed", False)
-                self.cuts_choice.setFixedWidth(112)
-                self.cuts_choice.setToolTip(
-                    "Drilled only prohibits knife cuts; Knife allowed permits both.")
-                row.addWidget(self.cuts_choice)
+                self.cuts_value = QLabel("Not selected")
+                self.cuts_value.setStyleSheet(
+                    "color: #526581; font-size: 11px; font-weight: 600;"
+                )
+                row.addWidget(self.cuts_value)
             elif key == "STACK":
-                self.stacking_choice = QComboBox()
-                self.stacking_choice.addItem("Allowed", True)
-                self.stacking_choice.addItem("Off", False)
-                self.stacking_choice.setFixedWidth(83)
-                self.stacking_choice.setToolTip(
-                    "Permit or forbid overlapping/stacked jumper wires.")
-                row.addWidget(self.stacking_choice)
+                self.stacking_value = QLabel("Not selected")
+                self.stacking_value.setStyleSheet(
+                    "color: #526581; font-size: 11px; font-weight: 600;"
+                )
+                row.addWidget(self.stacking_value)
             layout.addLayout(row)
             self.rows[key] = mark
         self.lock_summary = QLabel("Fixed locked: 0   |   Edge locked: 0   |   Edge+Slide: 0")
@@ -411,6 +470,17 @@ class WorkflowChecklist(QWidget):
     def reset(self):
         self.update_states({})
         self.set_lock_summary(0, 0, 0)
+        self.set_rules(None, None)
+
+    def set_rules(self, drilled_only: bool | None, stacking_allowed: bool | None):
+        self.cuts_value.setText(
+            "Not selected" if drilled_only is None
+            else ("Drilled only" if drilled_only else "Knife allowed")
+        )
+        self.stacking_value.setText(
+            "Not selected" if stacking_allowed is None
+            else ("Allowed" if stacking_allowed else "Off")
+        )
 
     def set_lock_summary(self, fixed: int, edge: int, slide: int,
                          positions: int | None = None, attempts: int = 24):
@@ -418,21 +488,20 @@ class WorkflowChecklist(QWidget):
             f"Fixed locked: {fixed}   |   Edge locked: {edge}   |   Edge+Slide: {slide}"
         )
         if slide:
-            detail = (
-                f"{positions} positions × {attempts} attempts = "
-                f"up to {positions * attempts:,} solves"
-                if positions is not None else
-                f"up to {attempts} solves per legal edge position"
-            )
             self.lock_warning.setText(
-                f"Edge+Slide selected; future routing may take longer. "
-                f"{detail}. Move calibration performs no routing."
+                "EXPERIMENTAL Edge+Slide — invalid edge anchors are rejected "
+                "by the native decoder."
+            )
+            self.lock_warning.setStyleSheet(
+                "font-size: 11px; font-weight: 800; color: #ff1744;"
             )
             self.lock_warning.show()
         elif edge:
             self.lock_warning.setText(
-                "Edge lock selected; future routing will be edge constrained. "
-                "Move calibration performs no routing."
+                "Edge lock requires a part to touch or overhang a physical board edge."
+            )
+            self.lock_warning.setStyleSheet(
+                "font-size: 11px; font-weight: 700; color: #92400e;"
             )
             self.lock_warning.show()
         else:
@@ -625,8 +694,6 @@ class RouteMateWindow(QMainWindow):
 
         # Left: meaningful overview without a wall of test output.
         self.checklist = WorkflowChecklist()
-        self.checklist.cuts_choice.currentIndexChanged.connect(self._on_policy_changed)
-        self.checklist.stacking_choice.currentIndexChanged.connect(self._on_policy_changed)
         self.project_summary = QLabel("Open a circuit to begin")
         self.project_summary.setWordWrap(True)
         self.project_summary.setObjectName("projectSummary")
@@ -1143,17 +1210,8 @@ class RouteMateWindow(QMainWindow):
                    for p in parts)
         slide = sum(p.get("locked") is True and p.get("edge") is True
                     and p.get("slide") is True for p in parts)
-        positions = None
-        if slide:
-            try:
-                from math import prod
-                from solve.slide_fit import edge_slide_positions
-                positions = prod(len(item["positions"])
-                                 for item in edge_slide_positions(source))
-            except (ValueError, KeyError, TypeError, ImportError) as exc:
-                self.log_line(f"[EDGE+SLIDE][WARNING] Cannot count positions: {exc}")
-        self.checklist.set_lock_summary(fixed, edge, slide, positions=positions)
-        return fixed, edge, slide, positions
+        self.checklist.set_lock_summary(fixed, edge, slide)
+        return fixed, edge, slide, None
 
     def _ask_lock_settings(self, placed: list[dict[str, Any]]):
         """Review positioned components one at a time with board highlighting."""
@@ -1195,7 +1253,7 @@ class RouteMateWindow(QMainWindow):
                     component["locked"] = False
                     component["edge"] = False
                     component["slide"] = False
-                    self.log_line(f"[PLACEMENT] {label} returned to Quick Solve placement pool.")
+                    self.log_line(f"[PLACEMENT] {label} released for future placement.")
                 else:
                     component["locked"] = True
                     component["edge"] = bool(values["edge"])
@@ -1210,13 +1268,10 @@ class RouteMateWindow(QMainWindow):
         fixed, edge, slide, positions = self._update_lock_summary(self.project)
         if slide:
             self.log_line(
-                f"[EDGE+SLIDE][WARNING] Quick Solve will take much longer: "
-                f"{positions} positions × 24 attempts = "
-                f"up to {positions * 24:,} solves. "
-                "Stops at first independently verified route."
-                if positions is not None else
-                "[EDGE+SLIDE][WARNING] Quick Solve will take much longer: "
-                "up to 24 attempts per legal position."
+                "[EDGE+SLIDE][EXPERIMENTAL] Slide selected. The native decoder "
+                "requires the anchor already to touch/overhang an edge. "
+                "An invalid edge is deliberately rejected; "
+                "no slide-search optimisation pass is running."
             )
         self.log_line(
             f"[LOCKS] {sum(v['locked'] for v in self.presolve_constraints.values())} fixed/edge anchors; "
@@ -1230,7 +1285,29 @@ class RouteMateWindow(QMainWindow):
         preview, _ = self._render_component_side(self.project)
         self._show_board(preview)
 
-        self.statusBar().showMessage("STOPPED BEFORE PASS 1 — CPU probe then 100-point move check.")
+        self.statusBar().showMessage(
+            "STOPPED BEFORE PASS 1 — choose cuts and stacking."
+        )
+        self._choose_routing_rules()
+
+    def _choose_routing_rules(self):
+        """Show cut/stack options after locks; only accepted choices start probes."""
+        dialog = RoutingRulesDialog(self)
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            self.log_line("[RULES][CANCELLED] CPU and native probes were not started.")
+            self.statusBar().showMessage("Routing rules cancelled; no probe started.")
+            return
+        rules = dialog.values()
+        self._probe_cut_drilled_only = bool(rules["drilled_only"])
+        self._probe_stacking_allowed = bool(rules["stacking_allowed"])
+        self.checklist.set_rules(
+            self._probe_cut_drilled_only, self._probe_stacking_allowed
+        )
+        self.log_line(
+            f"[RULES][CONFIRMED] Drilled only={self._probe_cut_drilled_only}; "
+            f"knife allowed={not self._probe_cut_drilled_only}; "
+            f"stacked wires allowed={self._probe_stacking_allowed}."
+        )
         self._start_speed_probe()
 
     def review_locks(self):
@@ -1302,31 +1379,14 @@ class RouteMateWindow(QMainWindow):
             )
 
 
-    def _on_policy_changed(self, *_):
-        """An earlier measurement must not remain green after rules change."""
-        if self._calibration_worker is not None or self._speed_probe_worker is not None:
-            return
-        if self._calibration_stages.get("CALIBRATION") not in ("done", "failed"):
-            return
-        for stage in ("CALIBRATION", "CUTS", "STACK"):
-            self._calibration_stages.pop(stage, None)
-        self._refresh_checklist()
-        self.solve_progress.setRange(0, 100)
-        self.solve_progress.setValue(0)
-        self.solve_activity.setText("Cuts or stacking changed · reload JSON to recalibrate")
-        self.solve_worker_status.setText("Previous decoder measurement invalid for new policy")
-        self.log_line("[MOVE100][INVALIDATED] Cuts/stacking changed after measurement; "
-                      "reload JSON for a fresh 100-point check.")
-        self.statusBar().showMessage("Calibration invalidated by policy change. Reload JSON.")
-
     def _start_speed_probe(self):
         """Run original donor CPU probe before the 100-point move check."""
         if self.project is None or self._speed_probe_worker is not None:
             return
-        self._probe_cut_drilled_only = bool(self.checklist.cuts_choice.currentData())
-        self._probe_stacking_allowed = bool(self.checklist.stacking_choice.currentData())
-        self.checklist.cuts_choice.setEnabled(False)
-        self.checklist.stacking_choice.setEnabled(False)
+        if (type(self._probe_cut_drilled_only) is not bool
+                or type(self._probe_stacking_allowed) is not bool):
+            self.log_line("[RULES][ERROR] No confirmed cut/stack policy. No probe started.")
+            return
         self._calibration_stages = {"CUTS": "done", "STACK": "done", "SPEED": "running"}
         self._refresh_checklist()
         self.log_line(f"[RULES] Cuts={'DRILLED ONLY' if self._probe_cut_drilled_only else 'KNIFE ALLOWED'}; "
@@ -1370,8 +1430,6 @@ class RouteMateWindow(QMainWindow):
         self.solve_activity.setText("Speed probe failed; see Activity")
         self.solve_worker_status.setText(str(error))
         self.log_line("[SPEED][FAILED] "+str(error))
-        self.checklist.cuts_choice.setEnabled(True)
-        self.checklist.stacking_choice.setEnabled(True)
 
     def _speed_probe_finished(self):
         self._speed_probe_worker = None
@@ -1465,8 +1523,6 @@ class RouteMateWindow(QMainWindow):
         self._calibration_worker = None
         self.load_action.setEnabled(True)
         self.stop_action.setEnabled(False)
-        self.checklist.cuts_choice.setEnabled(True)
-        self.checklist.stacking_choice.setEnabled(True)
         if self._close_when_idle:
             self.close()
 
@@ -1483,7 +1539,7 @@ class RouteMateWindow(QMainWindow):
         if self._calibration_worker is not None and self._calibration_worker.isRunning():
             self._calibration_worker.requestInterruption()
             self.stop_action.setEnabled(False)
-            self.log_line("[AUDIT][STOP] Cancellation requested.")
+            self.log_line("[MOVE100][STOP] Cancellation requested.")
             return
         worker = self._solver_worker
         if worker is None or not worker.isRunning() or self._stop_requested:

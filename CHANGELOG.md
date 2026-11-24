@@ -1,5 +1,14 @@
 # Changelog
 
+### GUI 2.09 — Cut/stack popup, experimental Slide visibility, actionable native diagnostics (24 November 2026)
+- Replace sidebar cut/stack dropdowns with one routing-rules popup after component lock review and before worker/move probes.
+- Default Drilled only OFF (knife cuts allowed) and Allow stacked wires ON; explain how each choice affects the native solver.
+- Keep Cuts and Wire stacking as read-only checklist milestones showing the confirmed settings.
+- Label Edge+Slide EXPERIMENTAL in bright red, remove obsolete Quick Solve attempt counts and unavailable slide_fit diagnostics.
+- Surface native input rejection reasons in Activity and the failed-stage message without loosening constraints.
+- No changes to the native solver, physical-board rules, 100 decoder samples, original CPU probe or optimisation passes.
+
+
 ### GUI 2.08 — Native decoder 100-point move check and policy controls (24 November 2026)
 - Replace mistaken 100 full solver attempts with one native \`--speedprobe 100\` decoder-only measurement; zero optimisation passes.
 - Cut policy (drilled-only vs knife-allowed) and wire-stacking selection occur before CPU probe and move check.

@@ -61,3 +61,19 @@ class NativeMoveProbeTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             probe.calibrate({}, 2, False, True, lambda _: None,
                             lambda _: None, lambda: False)
+
+
+    def test_native_error_reason_is_exposed(self):
+        messages = []
+        with patch.object(probe, "prerequisites"), patch.object(
+                probe, "run_process", return_value=(
+                    1, '{"id":1,"error":"Edge mount does not touch board edge"}',
+                    "timing {\"error\":\"Edge mount\"}\n")):
+            with self.assertRaisesRegex(RuntimeError, "Edge mount does not touch"):
+                probe.calibrate(
+                    {"board":{"rows":24,"cols":56}, "components":[],
+                     "nets":[],"netAssignments":[]},
+                    3, False, True, lambda x: None, messages.append,
+                    lambda: False
+                )
+        self.assertTrue(any("[MOVE100][REJECTED INPUT]" in x for x in messages))

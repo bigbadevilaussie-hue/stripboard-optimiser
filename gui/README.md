@@ -183,3 +183,21 @@ chosen from Overview before either probe. The unnecessary legacy Quick Solve
 component-spacing popup is gone. The original board-size and per-component
 lock dialogs remain. Activity receives full diagnostic stdout/stderr and
 explicit flags/physical-board settings. Stops before Pass 1.
+
+
+## GUI 2.09 — routing rules popup and Slide experimental warning
+
+After the per-component lock prompts, one modal Routing rules dialog
+appears. **Drilled only** defaults OFF (knife and drilled cuts allowed).
+**Allow stacked jumper wires** defaults ON. The popup explains each flag,
+including that the native 100-decoder check exercises drilled-domain
+constraints but does NOT measure stacking/router performance. Cancelling
+stops before either speed probe. The Overview's Cuts and Wire stacking rows
+show the accepted choices instead of editable dropdowns.
+
+The Slide checkbox is labelled **EXPERIMENTAL** in bright red. Its warning
+explains that native edge anchors must already touch or overhang the actual
+physical board, and the decoder rejects inconsistent input. Old
+Quick Solve position-count predictions were removed; no solve passes run.
+The native probe's exact rejection reason appears in Activity and in the
+Overview error text. The native engine and source JSON remain unchanged.

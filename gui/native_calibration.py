@@ -127,7 +127,25 @@ def calibrate(project, workers, drilled_only, stacking_allowed, progress, diagno
         for line in stdout.splitlines():
             diagnostic("[MOVE100][stdout] " + line)
         if code != 0:
-            raise RuntimeError(f"Native decoder probe exited {code}. See Activity diagnostics.")
+            cause = None
+            for line in reversed(stdout.splitlines()):
+                if line.lstrip().startswith("{"):
+                    try:
+                        parsed = json.loads(line)
+                    except json.JSONDecodeError:
+                        continue
+                    if isinstance(parsed, dict) and parsed.get("error"):
+                        cause = str(parsed["error"])
+                        break
+            if cause:
+                diagnostic(f"[MOVE100][REJECTED INPUT] {cause}")
+                raise RuntimeError(
+                    f"Native decoder rejected constraints: {cause} "
+                    f"(exit {code}; see Activity)"
+                )
+            raise RuntimeError(
+                f"Native decoder probe exited {code}. See Activity diagnostics."
+            )
         matches = re.findall(r"(?m)^probeMs\s+([0-9]+(?:\.[0-9]+)?)\s*$", stderr)
         if len(matches) != 1:
             raise RuntimeError("No unique probeMs timing was emitted. See Activity.")

@@ -14,7 +14,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 try:
     from PySide6.QtWidgets import QApplication, QDialog, QMessageBox
     from gui.main import (
-        BoardSizeDialog, LockDialog, RouteMateWindow,
+        BoardSizeDialog, LockDialog, RoutingRulesDialog, RouteMateWindow,
     )
 except ImportError:
     QApplication = None
@@ -22,6 +22,7 @@ except ImportError:
     QMessageBox = None
     BoardSizeDialog = None
     LockDialog = None
+    RoutingRulesDialog = None
     RouteMateWindow = None
 
 
@@ -59,6 +60,11 @@ class GuiShellSmoke(unittest.TestCase):
                     patch.object(LockDialog, "exec",
                                  return_value=QDialog.DialogCode.Accepted) as lock_exec,
                     patch.object(LockDialog, "values", return_value=lock),
+                    patch.object(RoutingRulesDialog, "exec",
+                                 return_value=QDialog.DialogCode.Accepted) as rules_exec,
+                    patch.object(RoutingRulesDialog, "values",
+                                 return_value={"drilled_only": False,
+                                               "stacking_allowed": True}),
                     patch.object(RouteMateWindow, "_render_component_side",
                                  return_value=(svg, "")) as render,
                     patch.object(RouteMateWindow, "_start_speed_probe") as probe,
@@ -96,9 +102,12 @@ class GuiShellSmoke(unittest.TestCase):
                 raster_render.assert_called_once_with(svg)
                 # The import hard stop is the current status UNTIL a view is selected.
                 self.assertIn("STOPPED BEFORE PASS 1", window.statusBar().currentMessage())
+                rules_exec.assert_called_once()
                 probe.assert_called_once()
-                self.assertIs(window.checklist.cuts_choice.currentData(), True)
-                self.assertIs(window.checklist.stacking_choice.currentData(), True)
+                self.assertIs(window._probe_cut_drilled_only, False)
+                self.assertIs(window._probe_stacking_allowed, True)
+                self.assertEqual(window.checklist.cuts_value.text(), "Knife allowed")
+                self.assertEqual(window.checklist.stacking_value.text(), "Allowed")
                 self.assertEqual(window.checklist.STAGES[-1], ("VERIFY", "Electrical PASS"))
                 # Keep the PNG mock active while clicking the Qt action. The
                 # fixture bytes intentionally are not a valid PNG payload.
