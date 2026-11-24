@@ -5,7 +5,7 @@ dialogs, message boxes and non-native file pickers. No routing logic is touched.
 """
 from __future__ import annotations
 
-from PySide6.QtCore import QEvent, QObject, QPoint, QRectF, Qt
+from PySide6.QtCore import QEvent, QObject, QRectF, Qt, QTimer
 from PySide6.QtGui import QPainterPath, QRegion
 from PySide6.QtWidgets import (
     QApplication, QDialog, QHBoxLayout, QLabel, QMainWindow,
@@ -128,8 +128,14 @@ class CurvedWindowManager(QObject):
             # its child layout exists; retry when the Show event arrives.
             return
 
-        if not window.isVisible():
+        # Our own dialogs set this flag at construction. Standard QMessageBox
+        # and non-native QFileDialog instances may reach Show before styling.
+        # Re-show those once after changing flags so Qt cannot leave them hidden.
+        if not (window.windowFlags() & Qt.WindowType.FramelessWindowHint):
+            showing = window.isVisible()
             window.setWindowFlag(Qt.WindowType.FramelessWindowHint, True)
+            if showing:
+                QTimer.singleShot(0, window.show)
 
         bar = ArcticTitleBar(window)
         window._arctic_titlebar = bar
