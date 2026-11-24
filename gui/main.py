@@ -61,7 +61,7 @@ from PySide6.QtWidgets import (
     QApplication, QCheckBox, QDialog, QDialogButtonBox, QFileDialog,
     QFormLayout, QGraphicsScene, QGraphicsView, QGroupBox, QHBoxLayout,
     QLabel, QMainWindow, QMessageBox, QPlainTextEdit, QPushButton, QRadioButton, QComboBox, QInputDialog,
-    QLineEdit, QSplitter, QToolBar, QVBoxLayout, QWidget, QProgressBar, QTabWidget, QFrame, QSplashScreen,
+    QLineEdit, QSplitter, QToolBar, QVBoxLayout, QWidget, QProgressBar, QTabWidget, QFrame, QSplashScreen, QScrollArea,
 )
 
 
@@ -691,6 +691,9 @@ class WorkflowChecklist(QWidget):
         ("VERIFY", "Electrical PASS"),
     )
 
+    PREPARATION_STAGES = ("COLLECT", "SANITY", "PRE-SOLVE", "BOARD", "CONSTRAINTS",
+                          "CUTS", "STACK", "SPEED", "CALIBRATION")
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setObjectName("workflowChecklist")
@@ -705,7 +708,7 @@ class WorkflowChecklist(QWidget):
         layout.setContentsMargins(15, 15, 15, 12)
         layout.setSpacing(8)
         heading = QHBoxLayout()
-        title = QLabel("JSON import/preflight")
+        title = QLabel("PROJECT PREPARATION")
         title.setObjectName("workflowTitle")
         self.percent = QLabel("0%")
         self.percent.setObjectName("workflowPercent")
@@ -715,10 +718,24 @@ class WorkflowChecklist(QWidget):
         layout.addLayout(heading)
         self.bar = QProgressBar()
         self.bar.setTextVisible(False)
-        self.bar.setRange(0, len(self.STAGES))
+        self.bar.setRange(0, len(self.PREPARATION_STAGES))
         layout.addWidget(self.bar)
         self.rows = {}
         for key, caption in self.STAGES:
+            if key == "PASS1":
+                separator = QLabel("OPTIMISATION PASSES")
+                separator.setStyleSheet(
+                    "font-size: 11px; font-weight: 800; color: #244d70; "
+                    "padding-top: 9px; border-top: 1px solid #cbddec;"
+                )
+                layout.addWidget(separator)
+            elif key == "VERIFY":
+                separator = QLabel("FINAL VERIFICATION")
+                separator.setStyleSheet(
+                    "font-size: 11px; font-weight: 800; color: #244d70; "
+                    "padding-top: 9px; border-top: 1px solid #cbddec;"
+                )
+                layout.addWidget(separator)
             row = QHBoxLayout()
             mark = QLabel("○")
             mark.setFixedWidth(22)
@@ -733,16 +750,20 @@ class WorkflowChecklist(QWidget):
                 self.cuts_value.setStyleSheet(
                     "color: #526581; font-size: 11px; font-weight: 600;"
                 )
-                row.addWidget(self.cuts_value)
+                self.cuts_value.setWordWrap(True)
             elif key == "STACK":
                 self.stacking_value = QLabel("Not selected")
                 self.stacking_value.setStyleSheet(
                     "color: #526581; font-size: 11px; font-weight: 600;"
                 )
-                row.addWidget(self.stacking_value)
+                self.stacking_value.setWordWrap(True)
             layout.addLayout(row)
+            if key == "CUTS":
+                layout.addWidget(self.cuts_value)
+            elif key == "STACK":
+                layout.addWidget(self.stacking_value)
             self.rows[key] = mark
-        self.lock_summary = QLabel("Fixed locked: 0   |   Edge locked: 0   |   Edge+Slide: 0")
+        self.lock_summary = QLabel("Fixed: 0  ·  Edge: 0\nEdge+Slide: 0")
         self.lock_summary.setWordWrap(True)
         self.lock_summary.setStyleSheet(
             "font-size: 11px; font-weight: 600; color: #24476b;"
@@ -779,7 +800,8 @@ class WorkflowChecklist(QWidget):
     def set_lock_summary(self, fixed: int, edge: int, slide: int,
                          positions: int | None = None, attempts: int = 24):
         self.lock_summary.setText(
-            f"Fixed locked: {fixed}   |   Edge locked: {edge}   |   Edge+Slide: {slide}"
+            f"Fixed locked: {fixed}  ·  Edge locked: {edge}\n"
+            f"Edge+Slide: {slide}"
         )
         if slide:
             self.lock_warning.setText(
@@ -819,8 +841,11 @@ class WorkflowChecklist(QWidget):
             else:
                 mark.setText("○")
                 mark.setStyleSheet("font-size: 23px; color: #b8bec7;")
-        self.bar.setValue(complete)
-        self.percent.setText(f"{round(100 * complete / len(self.STAGES))}%")
+        prepared = sum(
+            states.get(key, "pending") == "done" for key in self.PREPARATION_STAGES
+        )
+        self.bar.setValue(prepared)
+        self.percent.setText(f"{round(100 * prepared / len(self.PREPARATION_STAGES))}%")
 
 
 class StartupSpeedProbe(QThread):
@@ -1075,7 +1100,11 @@ class RouteMateWindow(QMainWindow):
         overview_layout.addStretch()
         self.sidebar_tabs = QTabWidget()
         self.sidebar_tabs.setObjectName("sidebarTabs")
-        self.sidebar_tabs.addTab(overview, "Overview")
+        overview_scroll = QScrollArea()
+        overview_scroll.setWidgetResizable(True)
+        overview_scroll.setFrameShape(QFrame.Shape.NoFrame)
+        overview_scroll.setWidget(overview)
+        self.sidebar_tabs.addTab(overview_scroll, "Overview")
         self.sidebar_tabs.addTab(self.log, "Activity")
         left_panel = QWidget()
         left_layout = QVBoxLayout(left_panel)
@@ -1144,6 +1173,7 @@ class RouteMateWindow(QMainWindow):
             QPushButton#boardZoomButton:hover { background: #e8f7ff; border-color: #50b5dc; }
             QStatusBar { background: #e4f0fa; color: #365c7a; font-size: 11px; }
         """)
+        self.statusBar().setMinimumHeight(26)
         self.statusBar().showMessage("Ready. Load a project JSON to begin.")
         self.log_line(f"Route-Mate {GUI_VERSION} — 100-point native move calibration only")
         self.log_line(f"[GUI][REVISION] git={GUI_GIT_REVISION}")
@@ -3040,8 +3070,9 @@ class RouteMateWindow(QMainWindow):
             self._cache_schematic_preview(project)
 
             self.project_summary.setText(
-                f"{path.name}\n{len(project['components'])} components · "
-                f"{len(project['nets'])} nets\nWork: {workspace.name}"
+                f"PROJECT  ·  {path.name}\n"
+                f"{len(project['components'])} components · {len(project['nets'])} nets\n"
+                f"WORKSPACE  ·  {workspace.name}"
             )
             self._set_board_summary("Imported · reviewing placement constraints", project=project)
             top_svg, renderer_log = self._render_component_side(project)
