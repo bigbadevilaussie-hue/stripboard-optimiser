@@ -206,6 +206,20 @@ const blankComps = data.components.map((c) => (
     : { ...c, boardPos: null, flexibleEndPos: undefined, rotation: 0, locked: undefined }
 ));
 const blankBoard = { ...data.board, cuts: [], wires: [] };
+if (drilled) {
+  const { lockedAdjacentDrillConflicts } = require("./drilledFeasibility.js");
+  const problems = lockedAdjacentDrillConflicts(blankComps, defs, asg,
+    boardLayout.getComponentPinPositions, resolveComponentDef);
+  if (problems.length) {
+    console.log(JSON.stringify({ id, seed, strictPass:false,
+      unsolvedReason:"IMPOSSIBLE_DRILLED_ONLY_LOCKED_PADS",
+      error:"Drill-only cannot isolate adjacent locked pads without removing a pad; knife cut required.",
+      drilledOnlyImpossible:true, drillFeasibilityFailures:problems,
+      strictFailures:["IMPOSSIBLE_DRILLED_ONLY_LOCKED_PADS"],
+      solveMs:0 }));
+    process.exit(2);
+  }
+}
 const edgeMountDiagnostic = strict && blankComps.some((c) => c.locked && c.edge === true);
 let edgeFeasibility = null;
 const timingInputEnd = performance.now();
