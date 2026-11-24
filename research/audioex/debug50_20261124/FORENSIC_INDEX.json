@@ -1,0 +1,8101 @@
+{
+  "trials": 50,
+  "passes": 3,
+  "seeds": {
+    "3": {
+      "wires": "21",
+      "cuts": "55",
+      "cut_delta": "34",
+      "pass": "False",
+      "first_fit": "149",
+      "selected_finish": "router",
+      "strict_failures": [
+        "NONVERTICAL_1",
+        "CROSSINGS_3",
+        "SOLVER_ISSUES"
+      ],
+      "incomplete_nets": [],
+      "wire_violations": [
+        {
+          "wire": 5,
+          "netNames": [
+            "net7"
+          ],
+          "from": {
+            "row": 15,
+            "col": 52
+          },
+          "to": {
+            "row": 15,
+            "col": 7
+          },
+          "violations": [
+            "NONVERTICAL",
+            "HORIZONTAL",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32",
+            "R1",
+            "DISP1 SCL"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 14,
+          "netNames": [
+            "net28"
+          ],
+          "from": {
+            "row": 2,
+            "col": 1
+          },
+          "to": {
+            "row": 17,
+            "col": 1
+          },
+          "violations": [
+            "STACKED"
+          ],
+          "crossingComponents": [],
+          "stackedWith": [
+            8
+          ]
+        }
+      ]
+    },
+    "8": {
+      "wires": "18",
+      "cuts": "52",
+      "cut_delta": "34",
+      "pass": "False",
+      "first_fit": "2408",
+      "selected_finish": "router",
+      "strict_failures": [
+        "NONVERTICAL_6",
+        "SLANTED_5",
+        "CROSSINGS_7",
+        "SOLVER_ISSUES"
+      ],
+      "incomplete_nets": [],
+      "wire_violations": [
+        {
+          "wire": 4,
+          "netNames": [
+            "net6"
+          ],
+          "from": {
+            "row": 7,
+            "col": 11
+          },
+          "to": {
+            "row": 12,
+            "col": 25
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 5,
+          "netNames": [
+            "net23"
+          ],
+          "from": {
+            "row": 9,
+            "col": 11
+          },
+          "to": {
+            "row": 13,
+            "col": 25
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 7,
+          "netNames": [
+            "net28"
+          ],
+          "from": {
+            "row": 9,
+            "col": 10
+          },
+          "to": {
+            "row": 17,
+            "col": 24
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 8,
+          "netNames": [
+            "net9"
+          ],
+          "from": {
+            "row": 19,
+            "col": 11
+          },
+          "to": {
+            "row": 15,
+            "col": 38
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32",
+            "AmpRight"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 11,
+          "netNames": [
+            "5V"
+          ],
+          "from": {
+            "row": 20,
+            "col": 11
+          },
+          "to": {
+            "row": 20,
+            "col": 23
+          },
+          "violations": [
+            "NONVERTICAL",
+            "HORIZONTAL",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 13,
+          "netNames": [
+            "GND"
+          ],
+          "from": {
+            "row": 2,
+            "col": 1
+          },
+          "to": {
+            "row": 8,
+            "col": 1
+          },
+          "violations": [
+            "STACKED"
+          ],
+          "crossingComponents": [],
+          "stackedWith": [
+            1
+          ]
+        },
+        {
+          "wire": 14,
+          "netNames": [
+            "GND"
+          ],
+          "from": {
+            "row": 8,
+            "col": 1
+          },
+          "to": {
+            "row": 9,
+            "col": 1
+          },
+          "violations": [
+            "STACKED"
+          ],
+          "crossingComponents": [],
+          "stackedWith": [
+            1
+          ]
+        },
+        {
+          "wire": 17,
+          "netNames": [
+            "GND"
+          ],
+          "from": {
+            "row": 21,
+            "col": 10
+          },
+          "to": {
+            "row": 16,
+            "col": 26
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        }
+      ]
+    },
+    "56": {
+      "wires": "15",
+      "cuts": "49",
+      "cut_delta": "34",
+      "pass": "False",
+      "first_fit": "648",
+      "selected_finish": "router",
+      "strict_failures": [
+        "NONVERTICAL_1",
+        "SLANTED_1",
+        "CROSSINGS_2",
+        "SOLVER_ISSUES"
+      ],
+      "incomplete_nets": [],
+      "wire_violations": [
+        {
+          "wire": 3,
+          "netNames": [
+            "net8"
+          ],
+          "from": {
+            "row": 7,
+            "col": 53
+          },
+          "to": {
+            "row": 20,
+            "col": 23
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32",
+            "AmpLeft"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 8,
+          "netNames": [
+            "net23"
+          ],
+          "from": {
+            "row": 1,
+            "col": 33
+          },
+          "to": {
+            "row": 18,
+            "col": 33
+          },
+          "violations": [
+            "STACKED"
+          ],
+          "crossingComponents": [],
+          "stackedWith": [
+            2
+          ]
+        }
+      ]
+    },
+    "92": {
+      "wires": "18",
+      "cuts": "52",
+      "cut_delta": "34",
+      "pass": "False",
+      "first_fit": "102",
+      "selected_finish": "router",
+      "strict_failures": [
+        "NONVERTICAL_1",
+        "SLANTED_1",
+        "CROSSINGS_2",
+        "SOLVER_ISSUES"
+      ],
+      "incomplete_nets": [],
+      "wire_violations": [
+        {
+          "wire": 5,
+          "netNames": [
+            "net8"
+          ],
+          "from": {
+            "row": 7,
+            "col": 54
+          },
+          "to": {
+            "row": 19,
+            "col": 22
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32",
+            "AmpLeft"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 17,
+          "netNames": [
+            "GND"
+          ],
+          "from": {
+            "row": 18,
+            "col": 37
+          },
+          "to": {
+            "row": 21,
+            "col": 37
+          },
+          "violations": [
+            "STACKED"
+          ],
+          "crossingComponents": [],
+          "stackedWith": [
+            1
+          ]
+        }
+      ]
+    },
+    "119": {
+      "wires": "20",
+      "cuts": "58",
+      "cut_delta": "38",
+      "pass": "False",
+      "first_fit": "168",
+      "selected_finish": "router",
+      "strict_failures": [
+        "QUALITY_4",
+        "INCOMPLETE_4",
+        "NONVERTICAL_5",
+        "SLANTED_5",
+        "CROSSINGS_7",
+        "SOLVER_ISSUES"
+      ],
+      "incomplete_nets": [
+        {
+          "id": "e4940df0-7a1b-465a-ae94-3261f4ba1b63",
+          "name": "GND",
+          "groups": [
+            [
+              {
+                "componentLabel": "SH4OT GND",
+                "pinName": "1"
+              },
+              {
+                "componentLabel": "MIC1 L/R",
+                "pinName": "1"
+              },
+              {
+                "componentLabel": "MIC1 GND",
+                "pinName": "1"
+              },
+              {
+                "componentLabel": "DISP1 GND",
+                "pinName": "1"
+              },
+              {
+                "componentLabel": "5v Buck",
+                "pinName": "GND"
+              },
+              {
+                "componentLabel": "5v Buck",
+                "pinName": "GND"
+              },
+              {
+                "componentLabel": "ESP32",
+                "pinName": "GND"
+              },
+              {
+                "componentLabel": "C1",
+                "pinName": "2"
+              },
+              {
+                "componentLabel": "C2",
+                "pinName": "\u2212"
+              },
+              {
+                "componentLabel": "C3",
+                "pinName": "2"
+              },
+              {
+                "componentLabel": "C4",
+                "pinName": "\u2212"
+              },
+              {
+                "componentLabel": "C6",
+                "pinName": "2"
+              },
+              {
+                "componentLabel": "C7",
+                "pinName": "\u2212"
+              },
+              {
+                "componentLabel": "BMS",
+                "pinName": "B-"
+              },
+              {
+                "componentLabel": "AmpLeft",
+                "pinName": "GND"
+              }
+            ],
+            [
+              {
+                "componentLabel": "AmpRight",
+                "pinName": "GND"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "e75ff5b0-849b-408d-80b2-c340c4532f5f",
+          "name": "net6",
+          "groups": [
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "15"
+              },
+              {
+                "componentLabel": "AmpLeft",
+                "pinName": "BCLK"
+              }
+            ],
+            [
+              {
+                "componentLabel": "AmpRight",
+                "pinName": "BCLK"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "bb85fea9-61df-4fd8-b510-e74c250a0b8f",
+          "name": "net8",
+          "groups": [
+            [
+              {
+                "componentLabel": "R1",
+                "pinName": "1"
+              }
+            ],
+            [
+              {
+                "componentLabel": "AmpRight",
+                "pinName": "SD"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "2fd601fd-22b2-467f-9ab8-d07368cb8744",
+          "name": "net23",
+          "groups": [
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "17"
+              },
+              {
+                "componentLabel": "AmpLeft",
+                "pinName": "DIN"
+              }
+            ],
+            [
+              {
+                "componentLabel": "AmpRight",
+                "pinName": "DIN"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        }
+      ],
+      "wire_violations": [
+        {
+          "wire": 1,
+          "netNames": [
+            "net22"
+          ],
+          "from": {
+            "row": 2,
+            "col": 3
+          },
+          "to": {
+            "row": 18,
+            "col": 17
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32",
+            "R1"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 2,
+          "netNames": [
+            "net6"
+          ],
+          "from": {
+            "row": 9,
+            "col": 3
+          },
+          "to": {
+            "row": 11,
+            "col": 30
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32",
+            "AmpRight"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 3,
+          "netNames": [
+            "net2"
+          ],
+          "from": {
+            "row": 10,
+            "col": 3
+          },
+          "to": {
+            "row": 11,
+            "col": 15
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 8,
+          "netNames": [
+            "net1"
+          ],
+          "from": {
+            "row": 6,
+            "col": 16
+          },
+          "to": {
+            "row": 9,
+            "col": 16
+          },
+          "violations": [
+            "STACKED"
+          ],
+          "crossingComponents": [],
+          "stackedWith": [
+            4
+          ]
+        },
+        {
+          "wire": 9,
+          "netNames": [
+            "net9"
+          ],
+          "from": {
+            "row": 21,
+            "col": 3
+          },
+          "to": {
+            "row": 14,
+            "col": 22
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 10,
+          "netNames": [
+            "net23"
+          ],
+          "from": {
+            "row": 11,
+            "col": 3
+          },
+          "to": {
+            "row": 12,
+            "col": 22
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        }
+      ]
+    },
+    "149": {
+      "wires": "15",
+      "cuts": "49",
+      "cut_delta": "34",
+      "pass": "False",
+      "first_fit": "110",
+      "selected_finish": "router",
+      "strict_failures": [
+        "NONVERTICAL_7",
+        "SLANTED_5",
+        "CROSSINGS_9",
+        "SOLVER_ISSUES"
+      ],
+      "incomplete_nets": [],
+      "wire_violations": [
+        {
+          "wire": 1,
+          "netNames": [
+            "net22"
+          ],
+          "from": {
+            "row": 0,
+            "col": 3
+          },
+          "to": {
+            "row": 4,
+            "col": 17
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 4,
+          "netNames": [
+            "net9"
+          ],
+          "from": {
+            "row": 19,
+            "col": 3
+          },
+          "to": {
+            "row": 15,
+            "col": 34
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32",
+            "AmpRight"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 5,
+          "netNames": [
+            "net2"
+          ],
+          "from": {
+            "row": 8,
+            "col": 3
+          },
+          "to": {
+            "row": 11,
+            "col": 18
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 6,
+          "netNames": [
+            "net6"
+          ],
+          "from": {
+            "row": 7,
+            "col": 3
+          },
+          "to": {
+            "row": 12,
+            "col": 18
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 7,
+          "netNames": [
+            "net23"
+          ],
+          "from": {
+            "row": 9,
+            "col": 3
+          },
+          "to": {
+            "row": 13,
+            "col": 18
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 8,
+          "netNames": [
+            "5V"
+          ],
+          "from": {
+            "row": 20,
+            "col": 3
+          },
+          "to": {
+            "row": 20,
+            "col": 28
+          },
+          "violations": [
+            "NONVERTICAL",
+            "HORIZONTAL",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "5v Buck",
+            "ESP32"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 15,
+          "netNames": [
+            "GND"
+          ],
+          "from": {
+            "row": 21,
+            "col": 14
+          },
+          "to": {
+            "row": 21,
+            "col": 3
+          },
+          "violations": [
+            "NONVERTICAL",
+            "HORIZONTAL",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        }
+      ]
+    },
+    "155": {
+      "wires": "15",
+      "cuts": "49",
+      "cut_delta": "34",
+      "pass": "False",
+      "first_fit": "140",
+      "selected_finish": "router",
+      "strict_failures": [
+        "NONVERTICAL_6",
+        "SLANTED_5",
+        "CROSSINGS_14",
+        "SOLVER_ISSUES"
+      ],
+      "incomplete_nets": [],
+      "wire_violations": [
+        {
+          "wire": 1,
+          "netNames": [
+            "net9"
+          ],
+          "from": {
+            "row": 19,
+            "col": 3
+          },
+          "to": {
+            "row": 20,
+            "col": 31
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32",
+            "R1",
+            "AmpRight"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 3,
+          "netNames": [
+            "5V"
+          ],
+          "from": {
+            "row": 20,
+            "col": 3
+          },
+          "to": {
+            "row": 20,
+            "col": 40
+          },
+          "violations": [
+            "NONVERTICAL",
+            "HORIZONTAL",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32",
+            "R1",
+            "AmpRight",
+            "AmpLeft"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 4,
+          "netNames": [
+            "net22"
+          ],
+          "from": {
+            "row": 0,
+            "col": 3
+          },
+          "to": {
+            "row": 1,
+            "col": 40
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "5v Buck",
+            "ESP32",
+            "BMS"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 5,
+          "netNames": [
+            "net2"
+          ],
+          "from": {
+            "row": 8,
+            "col": 3
+          },
+          "to": {
+            "row": 16,
+            "col": 31
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 6,
+          "netNames": [
+            "net6"
+          ],
+          "from": {
+            "row": 7,
+            "col": 3
+          },
+          "to": {
+            "row": 17,
+            "col": 21
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32",
+            "R1"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 7,
+          "netNames": [
+            "net23"
+          ],
+          "from": {
+            "row": 9,
+            "col": 3
+          },
+          "to": {
+            "row": 18,
+            "col": 18
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        }
+      ]
+    },
+    "156": {
+      "wires": "23",
+      "cuts": "57",
+      "cut_delta": "34",
+      "pass": "False",
+      "first_fit": "475",
+      "selected_finish": "router",
+      "strict_failures": [
+        "NONVERTICAL_5",
+        "SLANTED_4",
+        "CROSSINGS_5",
+        "SOLVER_ISSUES"
+      ],
+      "incomplete_nets": [],
+      "wire_violations": [
+        {
+          "wire": 3,
+          "netNames": [
+            "net12"
+          ],
+          "from": {
+            "row": 3,
+            "col": 32
+          },
+          "to": {
+            "row": 22,
+            "col": 32
+          },
+          "violations": [
+            "STACKED"
+          ],
+          "crossingComponents": [],
+          "stackedWith": [
+            1
+          ]
+        },
+        {
+          "wire": 5,
+          "netNames": [
+            "net23"
+          ],
+          "from": {
+            "row": 9,
+            "col": 32
+          },
+          "to": {
+            "row": 23,
+            "col": 32
+          },
+          "violations": [
+            "STACKED"
+          ],
+          "crossingComponents": [],
+          "stackedWith": [
+            1,
+            3
+          ]
+        },
+        {
+          "wire": 8,
+          "netNames": [
+            "net23"
+          ],
+          "from": {
+            "row": 3,
+            "col": 1
+          },
+          "to": {
+            "row": 21,
+            "col": 1
+          },
+          "violations": [
+            "STACKED"
+          ],
+          "crossingComponents": [],
+          "stackedWith": [
+            2
+          ]
+        },
+        {
+          "wire": 10,
+          "netNames": [
+            "net13"
+          ],
+          "from": {
+            "row": 16,
+            "col": 52
+          },
+          "to": {
+            "row": 6,
+            "col": 52
+          },
+          "violations": [
+            "STACKED"
+          ],
+          "crossingComponents": [],
+          "stackedWith": [
+            4
+          ]
+        },
+        {
+          "wire": 11,
+          "netNames": [
+            "net7"
+          ],
+          "from": {
+            "row": 15,
+            "col": 54
+          },
+          "to": {
+            "row": 2,
+            "col": 54
+          },
+          "violations": [
+            "STACKED"
+          ],
+          "crossingComponents": [],
+          "stackedWith": [
+            9
+          ]
+        },
+        {
+          "wire": 15,
+          "netNames": [
+            "net28"
+          ],
+          "from": {
+            "row": 17,
+            "col": 29
+          },
+          "to": {
+            "row": 14,
+            "col": 43
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 18,
+          "netNames": [
+            "GND"
+          ],
+          "from": {
+            "row": 18,
+            "col": 27
+          },
+          "to": {
+            "row": 9,
+            "col": 31
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED"
+          ],
+          "crossingComponents": [],
+          "stackedWith": []
+        },
+        {
+          "wire": 19,
+          "netNames": [
+            "GND"
+          ],
+          "from": {
+            "row": 9,
+            "col": 31
+          },
+          "to": {
+            "row": 13,
+            "col": 43
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 20,
+          "netNames": [
+            "net2"
+          ],
+          "from": {
+            "row": 8,
+            "col": 1
+          },
+          "to": {
+            "row": 23,
+            "col": 1
+          },
+          "violations": [
+            "STACKED"
+          ],
+          "crossingComponents": [],
+          "stackedWith": [
+            2,
+            8
+          ]
+        },
+        {
+          "wire": 21,
+          "netNames": [
+            "net2"
+          ],
+          "from": {
+            "row": 8,
+            "col": 32
+          },
+          "to": {
+            "row": 8,
+            "col": 43
+          },
+          "violations": [
+            "NONVERTICAL",
+            "HORIZONTAL",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 22,
+          "netNames": [
+            "net6"
+          ],
+          "from": {
+            "row": 7,
+            "col": 2
+          },
+          "to": {
+            "row": 22,
+            "col": 2
+          },
+          "violations": [
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "F1"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 23,
+          "netNames": [
+            "net6"
+          ],
+          "from": {
+            "row": 7,
+            "col": 32
+          },
+          "to": {
+            "row": 9,
+            "col": 43
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        }
+      ]
+    },
+    "283": {
+      "wires": "12",
+      "cuts": "46",
+      "cut_delta": "34",
+      "pass": "False",
+      "first_fit": "601",
+      "selected_finish": "router",
+      "strict_failures": [
+        "NONVERTICAL_5",
+        "SLANTED_4",
+        "CROSSINGS_5",
+        "SOLVER_ISSUES"
+      ],
+      "incomplete_nets": [],
+      "wire_violations": [
+        {
+          "wire": 1,
+          "netNames": [
+            "net22"
+          ],
+          "from": {
+            "row": 0,
+            "col": 3
+          },
+          "to": {
+            "row": 0,
+            "col": 15
+          },
+          "violations": [
+            "NONVERTICAL",
+            "HORIZONTAL",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 2,
+          "netNames": [
+            "net9"
+          ],
+          "from": {
+            "row": 19,
+            "col": 3
+          },
+          "to": {
+            "row": 21,
+            "col": 17
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 3,
+          "netNames": [
+            "net2"
+          ],
+          "from": {
+            "row": 8,
+            "col": 3
+          },
+          "to": {
+            "row": 17,
+            "col": 18
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 4,
+          "netNames": [
+            "net6"
+          ],
+          "from": {
+            "row": 7,
+            "col": 3
+          },
+          "to": {
+            "row": 18,
+            "col": 17
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 5,
+          "netNames": [
+            "net23"
+          ],
+          "from": {
+            "row": 9,
+            "col": 3
+          },
+          "to": {
+            "row": 19,
+            "col": 17
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        }
+      ]
+    },
+    "291": {
+      "wires": "12",
+      "cuts": "46",
+      "cut_delta": "34",
+      "pass": "False",
+      "first_fit": "174",
+      "selected_finish": "router",
+      "strict_failures": [
+        "NONVERTICAL_5",
+        "SLANTED_4",
+        "CROSSINGS_13",
+        "SOLVER_ISSUES"
+      ],
+      "incomplete_nets": [],
+      "wire_violations": [
+        {
+          "wire": 1,
+          "netNames": [
+            "net9"
+          ],
+          "from": {
+            "row": 19,
+            "col": 5
+          },
+          "to": {
+            "row": 8,
+            "col": 44
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32",
+            "R1",
+            "D1",
+            "AmpRight"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 2,
+          "netNames": [
+            "net2"
+          ],
+          "from": {
+            "row": 8,
+            "col": 5
+          },
+          "to": {
+            "row": 4,
+            "col": 33
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32",
+            "F1",
+            "BMS"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 3,
+          "netNames": [
+            "net6"
+          ],
+          "from": {
+            "row": 7,
+            "col": 5
+          },
+          "to": {
+            "row": 5,
+            "col": 31
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32",
+            "F1",
+            "BMS"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 5,
+          "netNames": [
+            "net23"
+          ],
+          "from": {
+            "row": 9,
+            "col": 5
+          },
+          "to": {
+            "row": 6,
+            "col": 23
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32",
+            "F1"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 6,
+          "netNames": [
+            "5V"
+          ],
+          "from": {
+            "row": 20,
+            "col": 5
+          },
+          "to": {
+            "row": 20,
+            "col": 18
+          },
+          "violations": [
+            "NONVERTICAL",
+            "HORIZONTAL",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        }
+      ]
+    },
+    "334": {
+      "wires": "21",
+      "cuts": "55",
+      "cut_delta": "34",
+      "pass": "False",
+      "first_fit": "277",
+      "selected_finish": "router",
+      "strict_failures": [
+        "NONVERTICAL_1",
+        "CROSSINGS_3",
+        "SOLVER_ISSUES"
+      ],
+      "incomplete_nets": [],
+      "wire_violations": [
+        {
+          "wire": 5,
+          "netNames": [
+            "net8"
+          ],
+          "from": {
+            "row": 19,
+            "col": 48
+          },
+          "to": {
+            "row": 19,
+            "col": 13
+          },
+          "violations": [
+            "NONVERTICAL",
+            "HORIZONTAL",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32",
+            "C1",
+            "AmpLeft"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 19,
+          "netNames": [
+            "net6"
+          ],
+          "from": {
+            "row": 3,
+            "col": 13
+          },
+          "to": {
+            "row": 22,
+            "col": 13
+          },
+          "violations": [
+            "STACKED"
+          ],
+          "crossingComponents": [],
+          "stackedWith": [
+            8
+          ]
+        },
+        {
+          "wire": 20,
+          "netNames": [
+            "net2"
+          ],
+          "from": {
+            "row": 8,
+            "col": 23
+          },
+          "to": {
+            "row": 2,
+            "col": 23
+          },
+          "violations": [
+            "STACKED"
+          ],
+          "crossingComponents": [],
+          "stackedWith": [
+            18
+          ]
+        },
+        {
+          "wire": 21,
+          "netNames": [
+            "net2"
+          ],
+          "from": {
+            "row": 2,
+            "col": 1
+          },
+          "to": {
+            "row": 23,
+            "col": 1
+          },
+          "violations": [
+            "STACKED"
+          ],
+          "crossingComponents": [],
+          "stackedWith": [
+            4,
+            6
+          ]
+        }
+      ]
+    },
+    "355": {
+      "wires": "16",
+      "cuts": "50",
+      "cut_delta": "34",
+      "pass": "False",
+      "first_fit": "71",
+      "selected_finish": "router",
+      "strict_failures": [
+        "GEOMETRY_2",
+        "NONVERTICAL_6",
+        "SLANTED_5",
+        "CROSSINGS_7",
+        "SOLVER_ISSUES"
+      ],
+      "incomplete_nets": [],
+      "wire_violations": [
+        {
+          "wire": 1,
+          "netNames": [
+            "net22"
+          ],
+          "from": {
+            "row": 1,
+            "col": 3
+          },
+          "to": {
+            "row": 1,
+            "col": 15
+          },
+          "violations": [
+            "NONVERTICAL",
+            "HORIZONTAL",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 2,
+          "netNames": [
+            "5V"
+          ],
+          "from": {
+            "row": 21,
+            "col": 3
+          },
+          "to": {
+            "row": 4,
+            "col": 18
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 3,
+          "netNames": [
+            "net9"
+          ],
+          "from": {
+            "row": 20,
+            "col": 3
+          },
+          "to": {
+            "row": 19,
+            "col": 30
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32",
+            "AmpRight"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 4,
+          "netNames": [
+            "net6"
+          ],
+          "from": {
+            "row": 8,
+            "col": 0
+          },
+          "to": {
+            "row": 16,
+            "col": 21
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 5,
+          "netNames": [
+            "net23"
+          ],
+          "from": {
+            "row": 10,
+            "col": 3
+          },
+          "to": {
+            "row": 17,
+            "col": 19
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 6,
+          "netNames": [
+            "net2"
+          ],
+          "from": {
+            "row": 9,
+            "col": 3
+          },
+          "to": {
+            "row": 15,
+            "col": 18
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        }
+      ]
+    },
+    "505": {
+      "wires": "13",
+      "cuts": "47",
+      "cut_delta": "34",
+      "pass": "False",
+      "first_fit": "414",
+      "selected_finish": "router",
+      "strict_failures": [
+        "NONVERTICAL_5",
+        "SLANTED_4",
+        "CROSSINGS_8",
+        "SOLVER_ISSUES"
+      ],
+      "incomplete_nets": [],
+      "wire_violations": [
+        {
+          "wire": 2,
+          "netNames": [
+            "net9"
+          ],
+          "from": {
+            "row": 21,
+            "col": 3
+          },
+          "to": {
+            "row": 17,
+            "col": 38
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32",
+            "AmpRight"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 3,
+          "netNames": [
+            "net23"
+          ],
+          "from": {
+            "row": 11,
+            "col": 3
+          },
+          "to": {
+            "row": 19,
+            "col": 24
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32",
+            "C1"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 4,
+          "netNames": [
+            "net2"
+          ],
+          "from": {
+            "row": 10,
+            "col": 2
+          },
+          "to": {
+            "row": 21,
+            "col": 22
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 5,
+          "netNames": [
+            "net6"
+          ],
+          "from": {
+            "row": 9,
+            "col": 3
+          },
+          "to": {
+            "row": 20,
+            "col": 24
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32",
+            "C1"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 7,
+          "netNames": [
+            "5V"
+          ],
+          "from": {
+            "row": 22,
+            "col": 3
+          },
+          "to": {
+            "row": 22,
+            "col": 31
+          },
+          "violations": [
+            "NONVERTICAL",
+            "HORIZONTAL",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        }
+      ]
+    },
+    "514": {
+      "wires": "18",
+      "cuts": "52",
+      "cut_delta": "34",
+      "pass": "False",
+      "first_fit": "37",
+      "selected_finish": "router",
+      "strict_failures": [
+        "NONVERTICAL_4",
+        "SLANTED_2",
+        "CROSSINGS_8",
+        "SOLVER_ISSUES"
+      ],
+      "incomplete_nets": [],
+      "wire_violations": [
+        {
+          "wire": 1,
+          "netNames": [
+            "net22"
+          ],
+          "from": {
+            "row": 2,
+            "col": 35
+          },
+          "to": {
+            "row": 2,
+            "col": 47
+          },
+          "violations": [
+            "NONVERTICAL",
+            "HORIZONTAL",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 4,
+          "netNames": [
+            "net8"
+          ],
+          "from": {
+            "row": 20,
+            "col": 48
+          },
+          "to": {
+            "row": 14,
+            "col": 21
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32",
+            "D1",
+            "AmpLeft"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 7,
+          "netNames": [
+            "3V3"
+          ],
+          "from": {
+            "row": 2,
+            "col": 54
+          },
+          "to": {
+            "row": 2,
+            "col": 13
+          },
+          "violations": [
+            "NONVERTICAL",
+            "HORIZONTAL",
+            "CROSSINGS",
+            "STACKED"
+          ],
+          "crossingComponents": [
+            "ESP32",
+            "L1",
+            "BMS"
+          ],
+          "stackedWith": [
+            1
+          ]
+        },
+        {
+          "wire": 15,
+          "netNames": [
+            "GND"
+          ],
+          "from": {
+            "row": 23,
+            "col": 35
+          },
+          "to": {
+            "row": 15,
+            "col": 47
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        }
+      ]
+    },
+    "597": {
+      "wires": "20",
+      "cuts": "54",
+      "cut_delta": "34",
+      "pass": "False",
+      "first_fit": "500",
+      "selected_finish": "router",
+      "strict_failures": [
+        "NONVERTICAL_1",
+        "SLANTED_1",
+        "CROSSINGS_2",
+        "SOLVER_ISSUES"
+      ],
+      "incomplete_nets": [],
+      "wire_violations": [
+        {
+          "wire": 3,
+          "netNames": [
+            "net8"
+          ],
+          "from": {
+            "row": 18,
+            "col": 50
+          },
+          "to": {
+            "row": 4,
+            "col": 19
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32",
+            "BMS"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 11,
+          "netNames": [
+            "net6"
+          ],
+          "from": {
+            "row": 7,
+            "col": 1
+          },
+          "to": {
+            "row": 16,
+            "col": 1
+          },
+          "violations": [
+            "STACKED"
+          ],
+          "crossingComponents": [],
+          "stackedWith": [
+            9
+          ]
+        }
+      ]
+    },
+    "722": {
+      "wires": "9",
+      "cuts": "67",
+      "cut_delta": "58",
+      "pass": "False",
+      "first_fit": "74",
+      "selected_finish": "router",
+      "strict_failures": [
+        "QUALITY_21",
+        "INCOMPLETE_21"
+      ],
+      "incomplete_nets": [
+        {
+          "id": "0f6f64bd-01e3-4c65-b440-0fbded758cab",
+          "name": "5V",
+          "groups": [
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "5Vin"
+              }
+            ],
+            [
+              {
+                "componentLabel": "D1",
+                "pinName": "K"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "d3e8ab12-c570-4872-8841-1b2d3f35ecd9",
+          "name": "net2",
+          "groups": [
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "16"
+              }
+            ],
+            [
+              {
+                "componentLabel": "AmpRight",
+                "pinName": "LRC"
+              }
+            ],
+            [
+              {
+                "componentLabel": "AmpLeft",
+                "pinName": "LRC"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "e75ff5b0-849b-408d-80b2-c340c4532f5f",
+          "name": "net6",
+          "groups": [
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "15"
+              }
+            ],
+            [
+              {
+                "componentLabel": "AmpRight",
+                "pinName": "BCLK"
+              }
+            ],
+            [
+              {
+                "componentLabel": "AmpLeft",
+                "pinName": "BCLK"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "7b3d9062-8d24-4f5c-ba4c-7a9b4dbdaa4f",
+          "name": "net7",
+          "groups": [
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "41"
+              }
+            ],
+            [
+              {
+                "componentLabel": "R1",
+                "pinName": "2"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "dc46a63c-1544-414f-9d39-5c0be8f5a4e9",
+          "name": "net9",
+          "groups": [
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "14"
+              }
+            ],
+            [
+              {
+                "componentLabel": "AmpLeft",
+                "pinName": "SD"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "ca02b27c-813d-4e6f-9898-542be34d4b4e",
+          "name": "net11",
+          "groups": [
+            [
+              {
+                "componentLabel": "SH4OT SCL",
+                "pinName": "1"
+              }
+            ],
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "2"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "b5646aae-d480-482a-8394-4cfc18de628d",
+          "name": "net12",
+          "groups": [
+            [
+              {
+                "componentLabel": "SH4OT SDA",
+                "pinName": "1"
+              }
+            ],
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "4"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "0ec91646-8df8-424f-a817-a6a62e315f7f",
+          "name": "net13",
+          "groups": [
+            [
+              {
+                "componentLabel": "MIC1 WS",
+                "pinName": "1"
+              }
+            ],
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "42"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "ab91759d-b8e2-4630-8fc0-a7d59d9a07bb",
+          "name": "net14",
+          "groups": [
+            [
+              {
+                "componentLabel": "MIC1 SCK",
+                "pinName": "1"
+              }
+            ],
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "18"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "5531975f-9943-4147-9e9a-3b6be3548032",
+          "name": "net16",
+          "groups": [
+            [
+              {
+                "componentLabel": "DISP1 BLK",
+                "pinName": "1"
+              }
+            ],
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "7"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "cc780588-c4db-410a-8af6-333ef8f4aa1b",
+          "name": "net17",
+          "groups": [
+            [
+              {
+                "componentLabel": "DISP1 CS",
+                "pinName": "1"
+              }
+            ],
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "3"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "29e4eb67-c0c3-47d1-8159-d195c27b0892",
+          "name": "net18",
+          "groups": [
+            [
+              {
+                "componentLabel": "DISP1 DC",
+                "pinName": "1"
+              }
+            ],
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "46"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "9b62a97e-4b78-47b5-907d-0eec2af1edad",
+          "name": "net19",
+          "groups": [
+            [
+              {
+                "componentLabel": "DISP1 RES",
+                "pinName": "1"
+              }
+            ],
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "8"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "ff1c59ec-1c0b-4c24-b287-1ce82eda9167",
+          "name": "net20",
+          "groups": [
+            [
+              {
+                "componentLabel": "DISP1 SDA",
+                "pinName": "1"
+              }
+            ],
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "9"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "b0db5a4e-7cfa-4041-9364-6410a3a2b850",
+          "name": "net21",
+          "groups": [
+            [
+              {
+                "componentLabel": "DISP1 SCL",
+                "pinName": "1"
+              }
+            ],
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "10"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "2fd601fd-22b2-467f-9ab8-d07368cb8744",
+          "name": "net23",
+          "groups": [
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "17"
+              }
+            ],
+            [
+              {
+                "componentLabel": "AmpRight",
+                "pinName": "DIN"
+              }
+            ],
+            [
+              {
+                "componentLabel": "AmpLeft",
+                "pinName": "DIN"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "78577773-c181-44de-9bb2-56f7762bcb1f",
+          "name": "net5",
+          "groups": [
+            [
+              {
+                "componentLabel": "DISP1 TRA",
+                "pinName": "1"
+              }
+            ],
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "11"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "f4a74f76-0511-4f61-ad80-cd69f6b870f2",
+          "name": "net24",
+          "groups": [
+            [
+              {
+                "componentLabel": "DISP1 TRB",
+                "pinName": "1"
+              }
+            ],
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "12"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "f7d8447d-3b93-403a-95e2-0baa2e5ddf04",
+          "name": "net26",
+          "groups": [
+            [
+              {
+                "componentLabel": "DISP1 PSH",
+                "pinName": "1"
+              }
+            ],
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "13"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "49203cd8-a4e1-4622-b582-4fb31f09f833",
+          "name": "net27",
+          "groups": [
+            [
+              {
+                "componentLabel": "DISP1 K0",
+                "pinName": "1"
+              }
+            ],
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "21"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "656c4ad6-9cc0-4082-9686-b3e1dccd2f1f",
+          "name": "net15",
+          "groups": [
+            [
+              {
+                "componentLabel": "MIC1 SD",
+                "pinName": "1"
+              }
+            ],
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "47"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        }
+      ],
+      "wire_violations": []
+    },
+    "870": {
+      "wires": "13",
+      "cuts": "47",
+      "cut_delta": "34",
+      "pass": "False",
+      "first_fit": "97",
+      "selected_finish": "router",
+      "strict_failures": [
+        "NONVERTICAL_5",
+        "SLANTED_5",
+        "CROSSINGS_11",
+        "SOLVER_ISSUES"
+      ],
+      "incomplete_nets": [],
+      "wire_violations": [
+        {
+          "wire": 3,
+          "netNames": [
+            "net9"
+          ],
+          "from": {
+            "row": 20,
+            "col": 3
+          },
+          "to": {
+            "row": 19,
+            "col": 37
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32",
+            "D1",
+            "AmpRight"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 4,
+          "netNames": [
+            "net23"
+          ],
+          "from": {
+            "row": 10,
+            "col": 1
+          },
+          "to": {
+            "row": 21,
+            "col": 46
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32",
+            "AmpRight",
+            "AmpLeft"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 5,
+          "netNames": [
+            "net6"
+          ],
+          "from": {
+            "row": 8,
+            "col": 3
+          },
+          "to": {
+            "row": 22,
+            "col": 21
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 6,
+          "netNames": [
+            "3V3"
+          ],
+          "from": {
+            "row": 6,
+            "col": 1
+          },
+          "to": {
+            "row": 11,
+            "col": 14
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 7,
+          "netNames": [
+            "net2"
+          ],
+          "from": {
+            "row": 9,
+            "col": 3
+          },
+          "to": {
+            "row": 23,
+            "col": 46
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32",
+            "AmpRight",
+            "AmpLeft"
+          ],
+          "stackedWith": []
+        }
+      ]
+    },
+    "898": {
+      "wires": "29",
+      "cuts": "63",
+      "cut_delta": "34",
+      "pass": "False",
+      "first_fit": "467",
+      "selected_finish": "router",
+      "strict_failures": [
+        "NONVERTICAL_6",
+        "SLANTED_5",
+        "CROSSINGS_7",
+        "SOLVER_ISSUES"
+      ],
+      "incomplete_nets": [],
+      "wire_violations": [
+        {
+          "wire": 5,
+          "netNames": [
+            "net22"
+          ],
+          "from": {
+            "row": 0,
+            "col": 2
+          },
+          "to": {
+            "row": 19,
+            "col": 37
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32",
+            "AmpLeft"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 6,
+          "netNames": [
+            "net6"
+          ],
+          "from": {
+            "row": 7,
+            "col": 2
+          },
+          "to": {
+            "row": 9,
+            "col": 14
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 9,
+          "netNames": [
+            "net9"
+          ],
+          "from": {
+            "row": 19,
+            "col": 2
+          },
+          "to": {
+            "row": 12,
+            "col": 14
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 11,
+          "netNames": [
+            "net23"
+          ],
+          "from": {
+            "row": 9,
+            "col": 2
+          },
+          "to": {
+            "row": 10,
+            "col": 14
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 12,
+          "netNames": [
+            "net23"
+          ],
+          "from": {
+            "row": 10,
+            "col": 14
+          },
+          "to": {
+            "row": 1,
+            "col": 14
+          },
+          "violations": [
+            "STACKED"
+          ],
+          "crossingComponents": [],
+          "stackedWith": [
+            7
+          ]
+        },
+        {
+          "wire": 22,
+          "netNames": [
+            "net2"
+          ],
+          "from": {
+            "row": 8,
+            "col": 2
+          },
+          "to": {
+            "row": 8,
+            "col": 14
+          },
+          "violations": [
+            "NONVERTICAL",
+            "HORIZONTAL",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 29,
+          "netNames": [
+            "GND"
+          ],
+          "from": {
+            "row": 13,
+            "col": 14
+          },
+          "to": {
+            "row": 21,
+            "col": 2
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        }
+      ]
+    },
+    "928": {
+      "wires": "18",
+      "cuts": "52",
+      "cut_delta": "34",
+      "pass": "False",
+      "first_fit": "53",
+      "selected_finish": "router",
+      "strict_failures": [
+        "GEOMETRY_1",
+        "NONVERTICAL_5",
+        "SLANTED_3",
+        "CROSSINGS_13",
+        "SOLVER_ISSUES"
+      ],
+      "incomplete_nets": [],
+      "wire_violations": [
+        {
+          "wire": 1,
+          "netNames": [
+            "net9"
+          ],
+          "from": {
+            "row": 19,
+            "col": 2
+          },
+          "to": {
+            "row": 19,
+            "col": 30
+          },
+          "violations": [
+            "NONVERTICAL",
+            "HORIZONTAL",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32",
+            "R1",
+            "AmpRight"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 2,
+          "netNames": [
+            "5V"
+          ],
+          "from": {
+            "row": 20,
+            "col": 2
+          },
+          "to": {
+            "row": 20,
+            "col": 42
+          },
+          "violations": [
+            "NONVERTICAL",
+            "HORIZONTAL",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32",
+            "AmpRight",
+            "AmpLeft"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 7,
+          "netNames": [
+            "net22"
+          ],
+          "from": {
+            "row": 0,
+            "col": 2
+          },
+          "to": {
+            "row": 4,
+            "col": 37
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "5v Buck",
+            "ESP32",
+            "BMS"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 8,
+          "netNames": [
+            "net6"
+          ],
+          "from": {
+            "row": 7,
+            "col": 0
+          },
+          "to": {
+            "row": 22,
+            "col": 29
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32",
+            "R1",
+            "AmpRight"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 18,
+          "netNames": [
+            "GND"
+          ],
+          "from": {
+            "row": 18,
+            "col": 17
+          },
+          "to": {
+            "row": 21,
+            "col": 2
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        }
+      ]
+    },
+    "953": {
+      "wires": "18",
+      "cuts": "52",
+      "cut_delta": "34",
+      "pass": "False",
+      "first_fit": "113",
+      "selected_finish": "router",
+      "strict_failures": [
+        "NONVERTICAL_5",
+        "SLANTED_4",
+        "CROSSINGS_7",
+        "SOLVER_ISSUES"
+      ],
+      "incomplete_nets": [],
+      "wire_violations": [
+        {
+          "wire": 5,
+          "netNames": [
+            "net2"
+          ],
+          "from": {
+            "row": 8,
+            "col": 3
+          },
+          "to": {
+            "row": 16,
+            "col": 19
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32",
+            "R1"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 6,
+          "netNames": [
+            "net23"
+          ],
+          "from": {
+            "row": 9,
+            "col": 3
+          },
+          "to": {
+            "row": 14,
+            "col": 19
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32",
+            "R1"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 9,
+          "netNames": [
+            "5V"
+          ],
+          "from": {
+            "row": 20,
+            "col": 3
+          },
+          "to": {
+            "row": 20,
+            "col": 17
+          },
+          "violations": [
+            "NONVERTICAL",
+            "HORIZONTAL",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 13,
+          "netNames": [
+            "3V3"
+          ],
+          "from": {
+            "row": 7,
+            "col": 14
+          },
+          "to": {
+            "row": 4,
+            "col": 1
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 17,
+          "netNames": [
+            "GND"
+          ],
+          "from": {
+            "row": 11,
+            "col": 14
+          },
+          "to": {
+            "row": 21,
+            "col": 3
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 18,
+          "netNames": [
+            "GND"
+          ],
+          "from": {
+            "row": 21,
+            "col": 1
+          },
+          "to": {
+            "row": 23,
+            "col": 1
+          },
+          "violations": [
+            "STACKED"
+          ],
+          "crossingComponents": [],
+          "stackedWith": [
+            1
+          ]
+        }
+      ]
+    },
+    "1003": {
+      "wires": "12",
+      "cuts": "46",
+      "cut_delta": "34",
+      "pass": "False",
+      "first_fit": "106",
+      "selected_finish": "router",
+      "strict_failures": [
+        "NONVERTICAL_5",
+        "SLANTED_3",
+        "CROSSINGS_10",
+        "SOLVER_ISSUES"
+      ],
+      "incomplete_nets": [],
+      "wire_violations": [
+        {
+          "wire": 1,
+          "netNames": [
+            "net9"
+          ],
+          "from": {
+            "row": 20,
+            "col": 4
+          },
+          "to": {
+            "row": 13,
+            "col": 55
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32",
+            "D1",
+            "AmpLeft"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 2,
+          "netNames": [
+            "net2"
+          ],
+          "from": {
+            "row": 9,
+            "col": 4
+          },
+          "to": {
+            "row": 9,
+            "col": 32
+          },
+          "violations": [
+            "NONVERTICAL",
+            "HORIZONTAL",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32",
+            "F1",
+            "BMS"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 4,
+          "netNames": [
+            "net6"
+          ],
+          "from": {
+            "row": 8,
+            "col": 4
+          },
+          "to": {
+            "row": 10,
+            "col": 29
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 5,
+          "netNames": [
+            "net23"
+          ],
+          "from": {
+            "row": 10,
+            "col": 4
+          },
+          "to": {
+            "row": 11,
+            "col": 24
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32",
+            "F1"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 6,
+          "netNames": [
+            "5V"
+          ],
+          "from": {
+            "row": 21,
+            "col": 4
+          },
+          "to": {
+            "row": 21,
+            "col": 17
+          },
+          "violations": [
+            "NONVERTICAL",
+            "HORIZONTAL",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        }
+      ]
+    },
+    "1083": {
+      "wires": "19",
+      "cuts": "53",
+      "cut_delta": "34",
+      "pass": "False",
+      "first_fit": "53",
+      "selected_finish": "router",
+      "strict_failures": [
+        "NONVERTICAL_1",
+        "SLANTED_1",
+        "CROSSINGS_3",
+        "SOLVER_ISSUES"
+      ],
+      "incomplete_nets": [],
+      "wire_violations": [
+        {
+          "wire": 6,
+          "netNames": [
+            "net8"
+          ],
+          "from": {
+            "row": 18,
+            "col": 52
+          },
+          "to": {
+            "row": 15,
+            "col": 23
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32",
+            "C3",
+            "AmpLeft"
+          ],
+          "stackedWith": []
+        }
+      ]
+    },
+    "1112": {
+      "wires": "20",
+      "cuts": "54",
+      "cut_delta": "34",
+      "pass": "False",
+      "first_fit": "162",
+      "selected_finish": "router",
+      "strict_failures": [
+        "NONVERTICAL_7",
+        "SLANTED_5",
+        "CROSSINGS_6",
+        "SOLVER_ISSUES"
+      ],
+      "incomplete_nets": [],
+      "wire_violations": [
+        {
+          "wire": 1,
+          "netNames": [
+            "net9"
+          ],
+          "from": {
+            "row": 21,
+            "col": 5
+          },
+          "to": {
+            "row": 14,
+            "col": 18
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 2,
+          "netNames": [
+            "3V3"
+          ],
+          "from": {
+            "row": 0,
+            "col": 6
+          },
+          "to": {
+            "row": 6,
+            "col": 4
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED"
+          ],
+          "crossingComponents": [],
+          "stackedWith": []
+        },
+        {
+          "wire": 4,
+          "netNames": [
+            "net2"
+          ],
+          "from": {
+            "row": 10,
+            "col": 5
+          },
+          "to": {
+            "row": 10,
+            "col": 18
+          },
+          "violations": [
+            "NONVERTICAL",
+            "HORIZONTAL",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 7,
+          "netNames": [
+            "net6"
+          ],
+          "from": {
+            "row": 9,
+            "col": 5
+          },
+          "to": {
+            "row": 11,
+            "col": 18
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 9,
+          "netNames": [
+            "net23"
+          ],
+          "from": {
+            "row": 11,
+            "col": 5
+          },
+          "to": {
+            "row": 12,
+            "col": 18
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 11,
+          "netNames": [
+            "5V"
+          ],
+          "from": {
+            "row": 22,
+            "col": 5
+          },
+          "to": {
+            "row": 22,
+            "col": 17
+          },
+          "violations": [
+            "NONVERTICAL",
+            "HORIZONTAL",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 18,
+          "netNames": [
+            "GND"
+          ],
+          "from": {
+            "row": 5,
+            "col": 17
+          },
+          "to": {
+            "row": 1,
+            "col": 9
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        }
+      ]
+    },
+    "1151": {
+      "wires": "13",
+      "cuts": "47",
+      "cut_delta": "34",
+      "pass": "False",
+      "first_fit": "126",
+      "selected_finish": "router",
+      "strict_failures": [
+        "NONVERTICAL_5",
+        "SLANTED_4",
+        "CROSSINGS_8",
+        "SOLVER_ISSUES"
+      ],
+      "incomplete_nets": [],
+      "wire_violations": [
+        {
+          "wire": 1,
+          "netNames": [
+            "net23"
+          ],
+          "from": {
+            "row": 9,
+            "col": 6
+          },
+          "to": {
+            "row": 17,
+            "col": 22
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 2,
+          "netNames": [
+            "net9"
+          ],
+          "from": {
+            "row": 19,
+            "col": 6
+          },
+          "to": {
+            "row": 19,
+            "col": 34
+          },
+          "violations": [
+            "NONVERTICAL",
+            "HORIZONTAL",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32",
+            "R1",
+            "AmpRight"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 3,
+          "netNames": [
+            "net2"
+          ],
+          "from": {
+            "row": 8,
+            "col": 6
+          },
+          "to": {
+            "row": 15,
+            "col": 33
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 4,
+          "netNames": [
+            "net6"
+          ],
+          "from": {
+            "row": 7,
+            "col": 6
+          },
+          "to": {
+            "row": 16,
+            "col": 22
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32",
+            "C7"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 6,
+          "netNames": [
+            "3V3"
+          ],
+          "from": {
+            "row": 14,
+            "col": 18
+          },
+          "to": {
+            "row": 5,
+            "col": 4
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        }
+      ]
+    },
+    "1165": {
+      "wires": "20",
+      "cuts": "54",
+      "cut_delta": "34",
+      "pass": "False",
+      "first_fit": "84",
+      "selected_finish": "router",
+      "strict_failures": [
+        "NONVERTICAL_1",
+        "CROSSINGS_1",
+        "SOLVER_ISSUES"
+      ],
+      "incomplete_nets": [],
+      "wire_violations": [
+        {
+          "wire": 5,
+          "netNames": [
+            "net12"
+          ],
+          "from": {
+            "row": 3,
+            "col": 41
+          },
+          "to": {
+            "row": 3,
+            "col": 53
+          },
+          "violations": [
+            "NONVERTICAL",
+            "HORIZONTAL",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 12,
+          "netNames": [
+            "net28"
+          ],
+          "from": {
+            "row": 5,
+            "col": 12
+          },
+          "to": {
+            "row": 14,
+            "col": 12
+          },
+          "violations": [
+            "STACKED"
+          ],
+          "crossingComponents": [],
+          "stackedWith": [
+            9
+          ]
+        },
+        {
+          "wire": 20,
+          "netNames": [
+            "GND"
+          ],
+          "from": {
+            "row": 1,
+            "col": 13
+          },
+          "to": {
+            "row": 13,
+            "col": 13
+          },
+          "violations": [
+            "STACKED"
+          ],
+          "crossingComponents": [],
+          "stackedWith": [
+            4
+          ]
+        }
+      ]
+    },
+    "1196": {
+      "wires": "17",
+      "cuts": "51",
+      "cut_delta": "34",
+      "pass": "True",
+      "first_fit": "106",
+      "selected_finish": "router",
+      "strict_failures": [],
+      "incomplete_nets": [],
+      "wire_violations": []
+    },
+    "1208": {
+      "wires": "11",
+      "cuts": "68",
+      "cut_delta": "57",
+      "pass": "False",
+      "first_fit": "40",
+      "selected_finish": "router",
+      "strict_failures": [
+        "QUALITY_21",
+        "INCOMPLETE_21"
+      ],
+      "incomplete_nets": [
+        {
+          "id": "0f6f64bd-01e3-4c65-b440-0fbded758cab",
+          "name": "5V",
+          "groups": [
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "5Vin"
+              }
+            ],
+            [
+              {
+                "componentLabel": "D1",
+                "pinName": "K"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "d3e8ab12-c570-4872-8841-1b2d3f35ecd9",
+          "name": "net2",
+          "groups": [
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "16"
+              }
+            ],
+            [
+              {
+                "componentLabel": "AmpRight",
+                "pinName": "LRC"
+              },
+              {
+                "componentLabel": "AmpLeft",
+                "pinName": "LRC"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "e75ff5b0-849b-408d-80b2-c340c4532f5f",
+          "name": "net6",
+          "groups": [
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "15"
+              }
+            ],
+            [
+              {
+                "componentLabel": "AmpRight",
+                "pinName": "BCLK"
+              },
+              {
+                "componentLabel": "AmpLeft",
+                "pinName": "BCLK"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "7b3d9062-8d24-4f5c-ba4c-7a9b4dbdaa4f",
+          "name": "net7",
+          "groups": [
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "41"
+              }
+            ],
+            [
+              {
+                "componentLabel": "R1",
+                "pinName": "2"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "dc46a63c-1544-414f-9d39-5c0be8f5a4e9",
+          "name": "net9",
+          "groups": [
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "14"
+              }
+            ],
+            [
+              {
+                "componentLabel": "AmpLeft",
+                "pinName": "SD"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "ca02b27c-813d-4e6f-9898-542be34d4b4e",
+          "name": "net11",
+          "groups": [
+            [
+              {
+                "componentLabel": "SH4OT SCL",
+                "pinName": "1"
+              }
+            ],
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "2"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "b5646aae-d480-482a-8394-4cfc18de628d",
+          "name": "net12",
+          "groups": [
+            [
+              {
+                "componentLabel": "SH4OT SDA",
+                "pinName": "1"
+              }
+            ],
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "4"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "0ec91646-8df8-424f-a817-a6a62e315f7f",
+          "name": "net13",
+          "groups": [
+            [
+              {
+                "componentLabel": "MIC1 WS",
+                "pinName": "1"
+              }
+            ],
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "42"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "ab91759d-b8e2-4630-8fc0-a7d59d9a07bb",
+          "name": "net14",
+          "groups": [
+            [
+              {
+                "componentLabel": "MIC1 SCK",
+                "pinName": "1"
+              }
+            ],
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "18"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "5531975f-9943-4147-9e9a-3b6be3548032",
+          "name": "net16",
+          "groups": [
+            [
+              {
+                "componentLabel": "DISP1 BLK",
+                "pinName": "1"
+              }
+            ],
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "7"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "cc780588-c4db-410a-8af6-333ef8f4aa1b",
+          "name": "net17",
+          "groups": [
+            [
+              {
+                "componentLabel": "DISP1 CS",
+                "pinName": "1"
+              }
+            ],
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "3"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "29e4eb67-c0c3-47d1-8159-d195c27b0892",
+          "name": "net18",
+          "groups": [
+            [
+              {
+                "componentLabel": "DISP1 DC",
+                "pinName": "1"
+              }
+            ],
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "46"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "9b62a97e-4b78-47b5-907d-0eec2af1edad",
+          "name": "net19",
+          "groups": [
+            [
+              {
+                "componentLabel": "DISP1 RES",
+                "pinName": "1"
+              }
+            ],
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "8"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "ff1c59ec-1c0b-4c24-b287-1ce82eda9167",
+          "name": "net20",
+          "groups": [
+            [
+              {
+                "componentLabel": "DISP1 SDA",
+                "pinName": "1"
+              }
+            ],
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "9"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "b0db5a4e-7cfa-4041-9364-6410a3a2b850",
+          "name": "net21",
+          "groups": [
+            [
+              {
+                "componentLabel": "DISP1 SCL",
+                "pinName": "1"
+              }
+            ],
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "10"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "2fd601fd-22b2-467f-9ab8-d07368cb8744",
+          "name": "net23",
+          "groups": [
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "17"
+              }
+            ],
+            [
+              {
+                "componentLabel": "AmpRight",
+                "pinName": "DIN"
+              },
+              {
+                "componentLabel": "AmpLeft",
+                "pinName": "DIN"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "78577773-c181-44de-9bb2-56f7762bcb1f",
+          "name": "net5",
+          "groups": [
+            [
+              {
+                "componentLabel": "DISP1 TRA",
+                "pinName": "1"
+              }
+            ],
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "11"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "f4a74f76-0511-4f61-ad80-cd69f6b870f2",
+          "name": "net24",
+          "groups": [
+            [
+              {
+                "componentLabel": "DISP1 TRB",
+                "pinName": "1"
+              }
+            ],
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "12"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "f7d8447d-3b93-403a-95e2-0baa2e5ddf04",
+          "name": "net26",
+          "groups": [
+            [
+              {
+                "componentLabel": "DISP1 PSH",
+                "pinName": "1"
+              }
+            ],
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "13"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "49203cd8-a4e1-4622-b582-4fb31f09f833",
+          "name": "net27",
+          "groups": [
+            [
+              {
+                "componentLabel": "DISP1 K0",
+                "pinName": "1"
+              }
+            ],
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "21"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "656c4ad6-9cc0-4082-9686-b3e1dccd2f1f",
+          "name": "net15",
+          "groups": [
+            [
+              {
+                "componentLabel": "MIC1 SD",
+                "pinName": "1"
+              }
+            ],
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "47"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        }
+      ],
+      "wire_violations": []
+    },
+    "1242": {
+      "wires": "24",
+      "cuts": "58",
+      "cut_delta": "34",
+      "pass": "False",
+      "first_fit": "129",
+      "selected_finish": "router",
+      "strict_failures": [
+        "NONVERTICAL_1",
+        "CROSSINGS_3",
+        "SOLVER_ISSUES"
+      ],
+      "incomplete_nets": [],
+      "wire_violations": [
+        {
+          "wire": 10,
+          "netNames": [
+            "net7"
+          ],
+          "from": {
+            "row": 15,
+            "col": 52
+          },
+          "to": {
+            "row": 15,
+            "col": 16
+          },
+          "violations": [
+            "NONVERTICAL",
+            "HORIZONTAL",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32",
+            "F1",
+            "DISP1 SCL"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 16,
+          "netNames": [
+            "net28"
+          ],
+          "from": {
+            "row": 8,
+            "col": 20
+          },
+          "to": {
+            "row": 14,
+            "col": 20
+          },
+          "violations": [
+            "STACKED"
+          ],
+          "crossingComponents": [],
+          "stackedWith": [
+            9
+          ]
+        },
+        {
+          "wire": 17,
+          "netNames": [
+            "net28"
+          ],
+          "from": {
+            "row": 14,
+            "col": 8
+          },
+          "to": {
+            "row": 15,
+            "col": 8
+          },
+          "violations": [
+            "STACKED"
+          ],
+          "crossingComponents": [],
+          "stackedWith": [
+            4
+          ]
+        }
+      ]
+    },
+    "1308": {
+      "wires": "12",
+      "cuts": "46",
+      "cut_delta": "34",
+      "pass": "False",
+      "first_fit": "583",
+      "selected_finish": "router",
+      "strict_failures": [
+        "NONVERTICAL_5",
+        "SLANTED_3",
+        "CROSSINGS_10",
+        "SOLVER_ISSUES"
+      ],
+      "incomplete_nets": [],
+      "wire_violations": [
+        {
+          "wire": 1,
+          "netNames": [
+            "net9"
+          ],
+          "from": {
+            "row": 21,
+            "col": 3
+          },
+          "to": {
+            "row": 14,
+            "col": 20
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32",
+            "C3",
+            "C4"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 5,
+          "netNames": [
+            "5V"
+          ],
+          "from": {
+            "row": 22,
+            "col": 3
+          },
+          "to": {
+            "row": 22,
+            "col": 33
+          },
+          "violations": [
+            "NONVERTICAL",
+            "HORIZONTAL",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 6,
+          "netNames": [
+            "net2"
+          ],
+          "from": {
+            "row": 10,
+            "col": 3
+          },
+          "to": {
+            "row": 10,
+            "col": 18
+          },
+          "violations": [
+            "NONVERTICAL",
+            "HORIZONTAL",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32",
+            "F1"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 7,
+          "netNames": [
+            "net6"
+          ],
+          "from": {
+            "row": 9,
+            "col": 3
+          },
+          "to": {
+            "row": 11,
+            "col": 18
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32",
+            "F1"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 8,
+          "netNames": [
+            "net23"
+          ],
+          "from": {
+            "row": 11,
+            "col": 3
+          },
+          "to": {
+            "row": 12,
+            "col": 18
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32",
+            "F1"
+          ],
+          "stackedWith": []
+        }
+      ]
+    },
+    "1377": {
+      "wires": "10",
+      "cuts": "69",
+      "cut_delta": "59",
+      "pass": "False",
+      "first_fit": "76",
+      "selected_finish": "router",
+      "strict_failures": [
+        "QUALITY_21",
+        "INCOMPLETE_21"
+      ],
+      "incomplete_nets": [
+        {
+          "id": "0f6f64bd-01e3-4c65-b440-0fbded758cab",
+          "name": "5V",
+          "groups": [
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "5Vin"
+              }
+            ],
+            [
+              {
+                "componentLabel": "D1",
+                "pinName": "K"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "d3e8ab12-c570-4872-8841-1b2d3f35ecd9",
+          "name": "net2",
+          "groups": [
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "16"
+              }
+            ],
+            [
+              {
+                "componentLabel": "AmpRight",
+                "pinName": "LRC"
+              }
+            ],
+            [
+              {
+                "componentLabel": "AmpLeft",
+                "pinName": "LRC"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "e75ff5b0-849b-408d-80b2-c340c4532f5f",
+          "name": "net6",
+          "groups": [
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "15"
+              }
+            ],
+            [
+              {
+                "componentLabel": "AmpRight",
+                "pinName": "BCLK"
+              }
+            ],
+            [
+              {
+                "componentLabel": "AmpLeft",
+                "pinName": "BCLK"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "7b3d9062-8d24-4f5c-ba4c-7a9b4dbdaa4f",
+          "name": "net7",
+          "groups": [
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "41"
+              }
+            ],
+            [
+              {
+                "componentLabel": "R1",
+                "pinName": "2"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "dc46a63c-1544-414f-9d39-5c0be8f5a4e9",
+          "name": "net9",
+          "groups": [
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "14"
+              }
+            ],
+            [
+              {
+                "componentLabel": "AmpLeft",
+                "pinName": "SD"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "ca02b27c-813d-4e6f-9898-542be34d4b4e",
+          "name": "net11",
+          "groups": [
+            [
+              {
+                "componentLabel": "SH4OT SCL",
+                "pinName": "1"
+              }
+            ],
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "2"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "b5646aae-d480-482a-8394-4cfc18de628d",
+          "name": "net12",
+          "groups": [
+            [
+              {
+                "componentLabel": "SH4OT SDA",
+                "pinName": "1"
+              }
+            ],
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "4"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "0ec91646-8df8-424f-a817-a6a62e315f7f",
+          "name": "net13",
+          "groups": [
+            [
+              {
+                "componentLabel": "MIC1 WS",
+                "pinName": "1"
+              }
+            ],
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "42"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "ab91759d-b8e2-4630-8fc0-a7d59d9a07bb",
+          "name": "net14",
+          "groups": [
+            [
+              {
+                "componentLabel": "MIC1 SCK",
+                "pinName": "1"
+              }
+            ],
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "18"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "5531975f-9943-4147-9e9a-3b6be3548032",
+          "name": "net16",
+          "groups": [
+            [
+              {
+                "componentLabel": "DISP1 BLK",
+                "pinName": "1"
+              }
+            ],
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "7"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "cc780588-c4db-410a-8af6-333ef8f4aa1b",
+          "name": "net17",
+          "groups": [
+            [
+              {
+                "componentLabel": "DISP1 CS",
+                "pinName": "1"
+              }
+            ],
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "3"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "29e4eb67-c0c3-47d1-8159-d195c27b0892",
+          "name": "net18",
+          "groups": [
+            [
+              {
+                "componentLabel": "DISP1 DC",
+                "pinName": "1"
+              }
+            ],
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "46"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "9b62a97e-4b78-47b5-907d-0eec2af1edad",
+          "name": "net19",
+          "groups": [
+            [
+              {
+                "componentLabel": "DISP1 RES",
+                "pinName": "1"
+              }
+            ],
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "8"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "ff1c59ec-1c0b-4c24-b287-1ce82eda9167",
+          "name": "net20",
+          "groups": [
+            [
+              {
+                "componentLabel": "DISP1 SDA",
+                "pinName": "1"
+              }
+            ],
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "9"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "b0db5a4e-7cfa-4041-9364-6410a3a2b850",
+          "name": "net21",
+          "groups": [
+            [
+              {
+                "componentLabel": "DISP1 SCL",
+                "pinName": "1"
+              }
+            ],
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "10"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "2fd601fd-22b2-467f-9ab8-d07368cb8744",
+          "name": "net23",
+          "groups": [
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "17"
+              }
+            ],
+            [
+              {
+                "componentLabel": "AmpRight",
+                "pinName": "DIN"
+              }
+            ],
+            [
+              {
+                "componentLabel": "AmpLeft",
+                "pinName": "DIN"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "78577773-c181-44de-9bb2-56f7762bcb1f",
+          "name": "net5",
+          "groups": [
+            [
+              {
+                "componentLabel": "DISP1 TRA",
+                "pinName": "1"
+              }
+            ],
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "11"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "f4a74f76-0511-4f61-ad80-cd69f6b870f2",
+          "name": "net24",
+          "groups": [
+            [
+              {
+                "componentLabel": "DISP1 TRB",
+                "pinName": "1"
+              }
+            ],
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "12"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "f7d8447d-3b93-403a-95e2-0baa2e5ddf04",
+          "name": "net26",
+          "groups": [
+            [
+              {
+                "componentLabel": "DISP1 PSH",
+                "pinName": "1"
+              }
+            ],
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "13"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "49203cd8-a4e1-4622-b582-4fb31f09f833",
+          "name": "net27",
+          "groups": [
+            [
+              {
+                "componentLabel": "DISP1 K0",
+                "pinName": "1"
+              }
+            ],
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "21"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "656c4ad6-9cc0-4082-9686-b3e1dccd2f1f",
+          "name": "net15",
+          "groups": [
+            [
+              {
+                "componentLabel": "MIC1 SD",
+                "pinName": "1"
+              }
+            ],
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "47"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        }
+      ],
+      "wire_violations": []
+    },
+    "1384": {
+      "wires": "12",
+      "cuts": "70",
+      "cut_delta": "58",
+      "pass": "False",
+      "first_fit": "6",
+      "selected_finish": "router",
+      "strict_failures": [
+        "QUALITY_21",
+        "INCOMPLETE_21"
+      ],
+      "incomplete_nets": [
+        {
+          "id": "0f6f64bd-01e3-4c65-b440-0fbded758cab",
+          "name": "5V",
+          "groups": [
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "5Vin"
+              }
+            ],
+            [
+              {
+                "componentLabel": "D1",
+                "pinName": "K"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "d3e8ab12-c570-4872-8841-1b2d3f35ecd9",
+          "name": "net2",
+          "groups": [
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "16"
+              }
+            ],
+            [
+              {
+                "componentLabel": "AmpRight",
+                "pinName": "LRC"
+              }
+            ],
+            [
+              {
+                "componentLabel": "AmpLeft",
+                "pinName": "LRC"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "e75ff5b0-849b-408d-80b2-c340c4532f5f",
+          "name": "net6",
+          "groups": [
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "15"
+              }
+            ],
+            [
+              {
+                "componentLabel": "AmpRight",
+                "pinName": "BCLK"
+              }
+            ],
+            [
+              {
+                "componentLabel": "AmpLeft",
+                "pinName": "BCLK"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "7b3d9062-8d24-4f5c-ba4c-7a9b4dbdaa4f",
+          "name": "net7",
+          "groups": [
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "41"
+              }
+            ],
+            [
+              {
+                "componentLabel": "R1",
+                "pinName": "2"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "dc46a63c-1544-414f-9d39-5c0be8f5a4e9",
+          "name": "net9",
+          "groups": [
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "14"
+              }
+            ],
+            [
+              {
+                "componentLabel": "AmpLeft",
+                "pinName": "SD"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "ca02b27c-813d-4e6f-9898-542be34d4b4e",
+          "name": "net11",
+          "groups": [
+            [
+              {
+                "componentLabel": "SH4OT SCL",
+                "pinName": "1"
+              }
+            ],
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "2"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "b5646aae-d480-482a-8394-4cfc18de628d",
+          "name": "net12",
+          "groups": [
+            [
+              {
+                "componentLabel": "SH4OT SDA",
+                "pinName": "1"
+              }
+            ],
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "4"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "0ec91646-8df8-424f-a817-a6a62e315f7f",
+          "name": "net13",
+          "groups": [
+            [
+              {
+                "componentLabel": "MIC1 WS",
+                "pinName": "1"
+              }
+            ],
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "42"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "ab91759d-b8e2-4630-8fc0-a7d59d9a07bb",
+          "name": "net14",
+          "groups": [
+            [
+              {
+                "componentLabel": "MIC1 SCK",
+                "pinName": "1"
+              }
+            ],
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "18"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "5531975f-9943-4147-9e9a-3b6be3548032",
+          "name": "net16",
+          "groups": [
+            [
+              {
+                "componentLabel": "DISP1 BLK",
+                "pinName": "1"
+              }
+            ],
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "7"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "cc780588-c4db-410a-8af6-333ef8f4aa1b",
+          "name": "net17",
+          "groups": [
+            [
+              {
+                "componentLabel": "DISP1 CS",
+                "pinName": "1"
+              }
+            ],
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "3"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "29e4eb67-c0c3-47d1-8159-d195c27b0892",
+          "name": "net18",
+          "groups": [
+            [
+              {
+                "componentLabel": "DISP1 DC",
+                "pinName": "1"
+              }
+            ],
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "46"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "9b62a97e-4b78-47b5-907d-0eec2af1edad",
+          "name": "net19",
+          "groups": [
+            [
+              {
+                "componentLabel": "DISP1 RES",
+                "pinName": "1"
+              }
+            ],
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "8"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "ff1c59ec-1c0b-4c24-b287-1ce82eda9167",
+          "name": "net20",
+          "groups": [
+            [
+              {
+                "componentLabel": "DISP1 SDA",
+                "pinName": "1"
+              }
+            ],
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "9"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "b0db5a4e-7cfa-4041-9364-6410a3a2b850",
+          "name": "net21",
+          "groups": [
+            [
+              {
+                "componentLabel": "DISP1 SCL",
+                "pinName": "1"
+              }
+            ],
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "10"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "2fd601fd-22b2-467f-9ab8-d07368cb8744",
+          "name": "net23",
+          "groups": [
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "17"
+              }
+            ],
+            [
+              {
+                "componentLabel": "AmpRight",
+                "pinName": "DIN"
+              }
+            ],
+            [
+              {
+                "componentLabel": "AmpLeft",
+                "pinName": "DIN"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "78577773-c181-44de-9bb2-56f7762bcb1f",
+          "name": "net5",
+          "groups": [
+            [
+              {
+                "componentLabel": "DISP1 TRA",
+                "pinName": "1"
+              }
+            ],
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "11"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "f4a74f76-0511-4f61-ad80-cd69f6b870f2",
+          "name": "net24",
+          "groups": [
+            [
+              {
+                "componentLabel": "DISP1 TRB",
+                "pinName": "1"
+              }
+            ],
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "12"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "f7d8447d-3b93-403a-95e2-0baa2e5ddf04",
+          "name": "net26",
+          "groups": [
+            [
+              {
+                "componentLabel": "DISP1 PSH",
+                "pinName": "1"
+              }
+            ],
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "13"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "49203cd8-a4e1-4622-b582-4fb31f09f833",
+          "name": "net27",
+          "groups": [
+            [
+              {
+                "componentLabel": "DISP1 K0",
+                "pinName": "1"
+              }
+            ],
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "21"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "656c4ad6-9cc0-4082-9686-b3e1dccd2f1f",
+          "name": "net15",
+          "groups": [
+            [
+              {
+                "componentLabel": "MIC1 SD",
+                "pinName": "1"
+              }
+            ],
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "47"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        }
+      ],
+      "wire_violations": []
+    },
+    "1417": {
+      "wires": "22",
+      "cuts": "56",
+      "cut_delta": "34",
+      "pass": "False",
+      "first_fit": "168",
+      "selected_finish": "router",
+      "strict_failures": [
+        "NONVERTICAL_6",
+        "SLANTED_4",
+        "CROSSINGS_9",
+        "SOLVER_ISSUES"
+      ],
+      "incomplete_nets": [],
+      "wire_violations": [
+        {
+          "wire": 2,
+          "netNames": [
+            "5V"
+          ],
+          "from": {
+            "row": 20,
+            "col": 6
+          },
+          "to": {
+            "row": 20,
+            "col": 39
+          },
+          "violations": [
+            "NONVERTICAL",
+            "HORIZONTAL",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32",
+            "D1",
+            "AmpLeft"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 3,
+          "netNames": [
+            "net2"
+          ],
+          "from": {
+            "row": 8,
+            "col": 6
+          },
+          "to": {
+            "row": 15,
+            "col": 23
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 9,
+          "netNames": [
+            "net28"
+          ],
+          "from": {
+            "row": 21,
+            "col": 20
+          },
+          "to": {
+            "row": 0,
+            "col": 1
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32",
+            "L1"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 10,
+          "netNames": [
+            "net9"
+          ],
+          "from": {
+            "row": 19,
+            "col": 6
+          },
+          "to": {
+            "row": 19,
+            "col": 20
+          },
+          "violations": [
+            "NONVERTICAL",
+            "HORIZONTAL",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 11,
+          "netNames": [
+            "net6"
+          ],
+          "from": {
+            "row": 7,
+            "col": 6
+          },
+          "to": {
+            "row": 16,
+            "col": 21
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 13,
+          "netNames": [
+            "net23"
+          ],
+          "from": {
+            "row": 9,
+            "col": 6
+          },
+          "to": {
+            "row": 17,
+            "col": 21
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        }
+      ]
+    },
+    "1443": {
+      "wires": "18",
+      "cuts": "52",
+      "cut_delta": "34",
+      "pass": "False",
+      "first_fit": "76",
+      "selected_finish": "router",
+      "strict_failures": [
+        "NONVERTICAL_5",
+        "SLANTED_5",
+        "CROSSINGS_5",
+        "SOLVER_ISSUES"
+      ],
+      "incomplete_nets": [],
+      "wire_violations": [
+        {
+          "wire": 1,
+          "netNames": [
+            "net23"
+          ],
+          "from": {
+            "row": 9,
+            "col": 3
+          },
+          "to": {
+            "row": 17,
+            "col": 21
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 4,
+          "netNames": [
+            "net2"
+          ],
+          "from": {
+            "row": 8,
+            "col": 5
+          },
+          "to": {
+            "row": 19,
+            "col": 20
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 6,
+          "netNames": [
+            "net2"
+          ],
+          "from": {
+            "row": 20,
+            "col": 32
+          },
+          "to": {
+            "row": 17,
+            "col": 32
+          },
+          "violations": [
+            "STACKED"
+          ],
+          "crossingComponents": [],
+          "stackedWith": [
+            3
+          ]
+        },
+        {
+          "wire": 7,
+          "netNames": [
+            "net6"
+          ],
+          "from": {
+            "row": 7,
+            "col": 5
+          },
+          "to": {
+            "row": 18,
+            "col": 20
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 8,
+          "netNames": [
+            "net9"
+          ],
+          "from": {
+            "row": 19,
+            "col": 5
+          },
+          "to": {
+            "row": 21,
+            "col": 24
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 12,
+          "netNames": [
+            "3V3"
+          ],
+          "from": {
+            "row": 0,
+            "col": 16
+          },
+          "to": {
+            "row": 5,
+            "col": 4
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        }
+      ]
+    },
+    "1485": {
+      "wires": "19",
+      "cuts": "53",
+      "cut_delta": "34",
+      "pass": "False",
+      "first_fit": "370",
+      "selected_finish": "router",
+      "strict_failures": [
+        "NONVERTICAL_5",
+        "SLANTED_4",
+        "CROSSINGS_6",
+        "SOLVER_ISSUES"
+      ],
+      "incomplete_nets": [],
+      "wire_violations": [
+        {
+          "wire": 4,
+          "netNames": [
+            "net9"
+          ],
+          "from": {
+            "row": 0,
+            "col": 18
+          },
+          "to": {
+            "row": 14,
+            "col": 18
+          },
+          "violations": [
+            "STACKED"
+          ],
+          "crossingComponents": [],
+          "stackedWith": [
+            2
+          ]
+        },
+        {
+          "wire": 5,
+          "netNames": [
+            "net2"
+          ],
+          "from": {
+            "row": 10,
+            "col": 6
+          },
+          "to": {
+            "row": 10,
+            "col": 18
+          },
+          "violations": [
+            "NONVERTICAL",
+            "HORIZONTAL",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 6,
+          "netNames": [
+            "net6"
+          ],
+          "from": {
+            "row": 9,
+            "col": 6
+          },
+          "to": {
+            "row": 11,
+            "col": 18
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 9,
+          "netNames": [
+            "net23"
+          ],
+          "from": {
+            "row": 11,
+            "col": 6
+          },
+          "to": {
+            "row": 12,
+            "col": 18
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 10,
+          "netNames": [
+            "3V3"
+          ],
+          "from": {
+            "row": 0,
+            "col": 1
+          },
+          "to": {
+            "row": 7,
+            "col": 1
+          },
+          "violations": [
+            "STACKED"
+          ],
+          "crossingComponents": [],
+          "stackedWith": [
+            1
+          ]
+        },
+        {
+          "wire": 11,
+          "netNames": [
+            "3V3"
+          ],
+          "from": {
+            "row": 7,
+            "col": 5
+          },
+          "to": {
+            "row": 11,
+            "col": 40
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32",
+            "AmpRight"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 15,
+          "netNames": [
+            "GND"
+          ],
+          "from": {
+            "row": 15,
+            "col": 18
+          },
+          "to": {
+            "row": 23,
+            "col": 6
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        }
+      ]
+    },
+    "1550": {
+      "wires": "20",
+      "cuts": "58",
+      "cut_delta": "38",
+      "pass": "False",
+      "first_fit": "38",
+      "selected_finish": "router",
+      "strict_failures": [
+        "QUALITY_4",
+        "INCOMPLETE_4"
+      ],
+      "incomplete_nets": [
+        {
+          "id": "e4940df0-7a1b-465a-ae94-3261f4ba1b63",
+          "name": "GND",
+          "groups": [
+            [
+              {
+                "componentLabel": "SH4OT GND",
+                "pinName": "1"
+              },
+              {
+                "componentLabel": "MIC1 L/R",
+                "pinName": "1"
+              },
+              {
+                "componentLabel": "MIC1 GND",
+                "pinName": "1"
+              },
+              {
+                "componentLabel": "DISP1 GND",
+                "pinName": "1"
+              },
+              {
+                "componentLabel": "5v Buck",
+                "pinName": "GND"
+              },
+              {
+                "componentLabel": "5v Buck",
+                "pinName": "GND"
+              },
+              {
+                "componentLabel": "ESP32",
+                "pinName": "GND"
+              },
+              {
+                "componentLabel": "C1",
+                "pinName": "2"
+              },
+              {
+                "componentLabel": "C2",
+                "pinName": "\u2212"
+              },
+              {
+                "componentLabel": "C3",
+                "pinName": "2"
+              },
+              {
+                "componentLabel": "C4",
+                "pinName": "\u2212"
+              },
+              {
+                "componentLabel": "C6",
+                "pinName": "2"
+              },
+              {
+                "componentLabel": "C7",
+                "pinName": "\u2212"
+              },
+              {
+                "componentLabel": "BMS",
+                "pinName": "B-"
+              },
+              {
+                "componentLabel": "AmpLeft",
+                "pinName": "GND"
+              }
+            ],
+            [
+              {
+                "componentLabel": "AmpRight",
+                "pinName": "GND"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "e75ff5b0-849b-408d-80b2-c340c4532f5f",
+          "name": "net6",
+          "groups": [
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "15"
+              },
+              {
+                "componentLabel": "AmpLeft",
+                "pinName": "BCLK"
+              }
+            ],
+            [
+              {
+                "componentLabel": "AmpRight",
+                "pinName": "BCLK"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "bb85fea9-61df-4fd8-b510-e74c250a0b8f",
+          "name": "net8",
+          "groups": [
+            [
+              {
+                "componentLabel": "R1",
+                "pinName": "1"
+              }
+            ],
+            [
+              {
+                "componentLabel": "AmpRight",
+                "pinName": "SD"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "2fd601fd-22b2-467f-9ab8-d07368cb8744",
+          "name": "net23",
+          "groups": [
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "17"
+              },
+              {
+                "componentLabel": "AmpLeft",
+                "pinName": "DIN"
+              }
+            ],
+            [
+              {
+                "componentLabel": "AmpRight",
+                "pinName": "DIN"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        }
+      ],
+      "wire_violations": [
+        {
+          "wire": 12,
+          "netNames": [
+            "GND"
+          ],
+          "from": {
+            "row": 7,
+            "col": 31
+          },
+          "to": {
+            "row": 9,
+            "col": 31
+          },
+          "violations": [
+            "STACKED"
+          ],
+          "crossingComponents": [],
+          "stackedWith": [
+            9
+          ]
+        },
+        {
+          "wire": 15,
+          "netNames": [
+            "GND"
+          ],
+          "from": {
+            "row": 9,
+            "col": 32
+          },
+          "to": {
+            "row": 21,
+            "col": 32
+          },
+          "violations": [
+            "STACKED"
+          ],
+          "crossingComponents": [],
+          "stackedWith": [
+            3
+          ]
+        },
+        {
+          "wire": 17,
+          "netNames": [
+            "net12"
+          ],
+          "from": {
+            "row": 1,
+            "col": 8
+          },
+          "to": {
+            "row": 23,
+            "col": 8
+          },
+          "violations": [
+            "STACKED"
+          ],
+          "crossingComponents": [],
+          "stackedWith": [
+            10
+          ]
+        },
+        {
+          "wire": 20,
+          "netNames": [
+            "3V3"
+          ],
+          "from": {
+            "row": 22,
+            "col": 1
+          },
+          "to": {
+            "row": 4,
+            "col": 1
+          },
+          "violations": [
+            "STACKED"
+          ],
+          "crossingComponents": [],
+          "stackedWith": [
+            7,
+            14
+          ]
+        }
+      ]
+    },
+    "1557": {
+      "wires": "15",
+      "cuts": "49",
+      "cut_delta": "34",
+      "pass": "False",
+      "first_fit": "385",
+      "selected_finish": "router",
+      "strict_failures": [
+        "NONVERTICAL_5",
+        "SLANTED_4",
+        "CROSSINGS_7",
+        "SOLVER_ISSUES"
+      ],
+      "incomplete_nets": [],
+      "wire_violations": [
+        {
+          "wire": 1,
+          "netNames": [
+            "5V"
+          ],
+          "from": {
+            "row": 20,
+            "col": 3
+          },
+          "to": {
+            "row": 20,
+            "col": 15
+          },
+          "violations": [
+            "NONVERTICAL",
+            "HORIZONTAL",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 2,
+          "netNames": [
+            "net2"
+          ],
+          "from": {
+            "row": 8,
+            "col": 3
+          },
+          "to": {
+            "row": 14,
+            "col": 24
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32",
+            "R1"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 3,
+          "netNames": [
+            "net9"
+          ],
+          "from": {
+            "row": 19,
+            "col": 3
+          },
+          "to": {
+            "row": 18,
+            "col": 20
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 5,
+          "netNames": [
+            "net6"
+          ],
+          "from": {
+            "row": 7,
+            "col": 3
+          },
+          "to": {
+            "row": 13,
+            "col": 32
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 7,
+          "netNames": [
+            "net23"
+          ],
+          "from": {
+            "row": 9,
+            "col": 3
+          },
+          "to": {
+            "row": 16,
+            "col": 25
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32",
+            "R1"
+          ],
+          "stackedWith": []
+        }
+      ]
+    },
+    "1591": {
+      "wires": "19",
+      "cuts": "53",
+      "cut_delta": "34",
+      "pass": "True",
+      "first_fit": "105",
+      "selected_finish": "router",
+      "strict_failures": [],
+      "incomplete_nets": [],
+      "wire_violations": [
+        {
+          "wire": 4,
+          "netNames": [
+            "net23"
+          ],
+          "from": {
+            "row": 9,
+            "col": 32
+          },
+          "to": {
+            "row": 5,
+            "col": 32
+          },
+          "violations": [
+            "STACKED"
+          ],
+          "crossingComponents": [],
+          "stackedWith": [
+            1
+          ]
+        }
+      ]
+    },
+    "1621": {
+      "wires": "16",
+      "cuts": "50",
+      "cut_delta": "34",
+      "pass": "False",
+      "first_fit": "308",
+      "selected_finish": "router",
+      "strict_failures": [
+        "NONVERTICAL_5",
+        "SLANTED_4",
+        "CROSSINGS_10",
+        "SOLVER_ISSUES"
+      ],
+      "incomplete_nets": [],
+      "wire_violations": [
+        {
+          "wire": 3,
+          "netNames": [
+            "net2"
+          ],
+          "from": {
+            "row": 8,
+            "col": 3
+          },
+          "to": {
+            "row": 14,
+            "col": 29
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 4,
+          "netNames": [
+            "5V"
+          ],
+          "from": {
+            "row": 20,
+            "col": 3
+          },
+          "to": {
+            "row": 20,
+            "col": 44
+          },
+          "violations": [
+            "NONVERTICAL",
+            "HORIZONTAL",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32",
+            "C2",
+            "C3",
+            "C4",
+            "D1",
+            "AmpRight"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 5,
+          "netNames": [
+            "net9"
+          ],
+          "from": {
+            "row": 19,
+            "col": 3
+          },
+          "to": {
+            "row": 10,
+            "col": 27
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 6,
+          "netNames": [
+            "net6"
+          ],
+          "from": {
+            "row": 7,
+            "col": 3
+          },
+          "to": {
+            "row": 13,
+            "col": 27
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 8,
+          "netNames": [
+            "net23"
+          ],
+          "from": {
+            "row": 9,
+            "col": 3
+          },
+          "to": {
+            "row": 12,
+            "col": 27
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        }
+      ]
+    },
+    "1632": {
+      "wires": "17",
+      "cuts": "51",
+      "cut_delta": "34",
+      "pass": "False",
+      "first_fit": "56",
+      "selected_finish": "router",
+      "strict_failures": [
+        "NONVERTICAL_6",
+        "SLANTED_4",
+        "CROSSINGS_6",
+        "SOLVER_ISSUES"
+      ],
+      "incomplete_nets": [],
+      "wire_violations": [
+        {
+          "wire": 1,
+          "netNames": [
+            "5V"
+          ],
+          "from": {
+            "row": 22,
+            "col": 6
+          },
+          "to": {
+            "row": 22,
+            "col": 18
+          },
+          "violations": [
+            "NONVERTICAL",
+            "HORIZONTAL",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 2,
+          "netNames": [
+            "net9"
+          ],
+          "from": {
+            "row": 21,
+            "col": 5
+          },
+          "to": {
+            "row": 14,
+            "col": 20
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 5,
+          "netNames": [
+            "net2"
+          ],
+          "from": {
+            "row": 10,
+            "col": 6
+          },
+          "to": {
+            "row": 10,
+            "col": 20
+          },
+          "violations": [
+            "NONVERTICAL",
+            "HORIZONTAL",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 6,
+          "netNames": [
+            "net6"
+          ],
+          "from": {
+            "row": 9,
+            "col": 6
+          },
+          "to": {
+            "row": 11,
+            "col": 20
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 7,
+          "netNames": [
+            "net23"
+          ],
+          "from": {
+            "row": 11,
+            "col": 6
+          },
+          "to": {
+            "row": 12,
+            "col": 20
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 12,
+          "netNames": [
+            "net28"
+          ],
+          "from": {
+            "row": 16,
+            "col": 18
+          },
+          "to": {
+            "row": 0,
+            "col": 3
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        }
+      ]
+    },
+    "1637": {
+      "wires": "25",
+      "cuts": "59",
+      "cut_delta": "34",
+      "pass": "False",
+      "first_fit": "430",
+      "selected_finish": "router",
+      "strict_failures": [
+        "NONVERTICAL_5",
+        "SLANTED_4",
+        "CROSSINGS_7",
+        "SOLVER_ISSUES"
+      ],
+      "incomplete_nets": [],
+      "wire_violations": [
+        {
+          "wire": 6,
+          "netNames": [
+            "net9"
+          ],
+          "from": {
+            "row": 21,
+            "col": 7
+          },
+          "to": {
+            "row": 6,
+            "col": 32
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32",
+            "BMS",
+            "AmpRight"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 13,
+          "netNames": [
+            "net6"
+          ],
+          "from": {
+            "row": 9,
+            "col": 7
+          },
+          "to": {
+            "row": 11,
+            "col": 20
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 15,
+          "netNames": [
+            "net23"
+          ],
+          "from": {
+            "row": 11,
+            "col": 7
+          },
+          "to": {
+            "row": 12,
+            "col": 20
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 18,
+          "netNames": [
+            "3V3"
+          ],
+          "from": {
+            "row": 6,
+            "col": 2
+          },
+          "to": {
+            "row": 10,
+            "col": 31
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 24,
+          "netNames": [
+            "GND"
+          ],
+          "from": {
+            "row": 23,
+            "col": 22
+          },
+          "to": {
+            "row": 15,
+            "col": 22
+          },
+          "violations": [
+            "STACKED"
+          ],
+          "crossingComponents": [],
+          "stackedWith": [
+            12
+          ]
+        },
+        {
+          "wire": 25,
+          "netNames": [
+            "GND"
+          ],
+          "from": {
+            "row": 23,
+            "col": 18
+          },
+          "to": {
+            "row": 23,
+            "col": 7
+          },
+          "violations": [
+            "NONVERTICAL",
+            "HORIZONTAL",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        }
+      ]
+    },
+    "1688": {
+      "wires": "19",
+      "cuts": "57",
+      "cut_delta": "38",
+      "pass": "False",
+      "first_fit": "186",
+      "selected_finish": "router",
+      "strict_failures": [
+        "QUALITY_4",
+        "INCOMPLETE_4",
+        "NONVERTICAL_7",
+        "SLANTED_5",
+        "CROSSINGS_14",
+        "SOLVER_ISSUES"
+      ],
+      "incomplete_nets": [
+        {
+          "id": "e4940df0-7a1b-465a-ae94-3261f4ba1b63",
+          "name": "GND",
+          "groups": [
+            [
+              {
+                "componentLabel": "SH4OT GND",
+                "pinName": "1"
+              },
+              {
+                "componentLabel": "MIC1 L/R",
+                "pinName": "1"
+              },
+              {
+                "componentLabel": "MIC1 GND",
+                "pinName": "1"
+              },
+              {
+                "componentLabel": "DISP1 GND",
+                "pinName": "1"
+              },
+              {
+                "componentLabel": "5v Buck",
+                "pinName": "GND"
+              },
+              {
+                "componentLabel": "5v Buck",
+                "pinName": "GND"
+              },
+              {
+                "componentLabel": "ESP32",
+                "pinName": "GND"
+              },
+              {
+                "componentLabel": "C1",
+                "pinName": "2"
+              },
+              {
+                "componentLabel": "C2",
+                "pinName": "\u2212"
+              },
+              {
+                "componentLabel": "C3",
+                "pinName": "2"
+              },
+              {
+                "componentLabel": "C4",
+                "pinName": "\u2212"
+              },
+              {
+                "componentLabel": "C6",
+                "pinName": "2"
+              },
+              {
+                "componentLabel": "C7",
+                "pinName": "\u2212"
+              },
+              {
+                "componentLabel": "BMS",
+                "pinName": "B-"
+              },
+              {
+                "componentLabel": "AmpLeft",
+                "pinName": "GND"
+              }
+            ],
+            [
+              {
+                "componentLabel": "AmpRight",
+                "pinName": "GND"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "e75ff5b0-849b-408d-80b2-c340c4532f5f",
+          "name": "net6",
+          "groups": [
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "15"
+              },
+              {
+                "componentLabel": "AmpLeft",
+                "pinName": "BCLK"
+              }
+            ],
+            [
+              {
+                "componentLabel": "AmpRight",
+                "pinName": "BCLK"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "bb85fea9-61df-4fd8-b510-e74c250a0b8f",
+          "name": "net8",
+          "groups": [
+            [
+              {
+                "componentLabel": "R1",
+                "pinName": "1"
+              }
+            ],
+            [
+              {
+                "componentLabel": "AmpRight",
+                "pinName": "SD"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "2fd601fd-22b2-467f-9ab8-d07368cb8744",
+          "name": "net23",
+          "groups": [
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "17"
+              },
+              {
+                "componentLabel": "AmpLeft",
+                "pinName": "DIN"
+              }
+            ],
+            [
+              {
+                "componentLabel": "AmpRight",
+                "pinName": "DIN"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        }
+      ],
+      "wire_violations": [
+        {
+          "wire": 1,
+          "netNames": [
+            "net9"
+          ],
+          "from": {
+            "row": 21,
+            "col": 3
+          },
+          "to": {
+            "row": 8,
+            "col": 31
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "5v Buck",
+            "ESP32",
+            "D1",
+            "BMS"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 2,
+          "netNames": [
+            "net23"
+          ],
+          "from": {
+            "row": 11,
+            "col": 3
+          },
+          "to": {
+            "row": 6,
+            "col": 32
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32",
+            "BMS",
+            "AmpRight"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 3,
+          "netNames": [
+            "net2"
+          ],
+          "from": {
+            "row": 10,
+            "col": 3
+          },
+          "to": {
+            "row": 10,
+            "col": 15
+          },
+          "violations": [
+            "NONVERTICAL",
+            "HORIZONTAL",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 6,
+          "netNames": [
+            "net6"
+          ],
+          "from": {
+            "row": 9,
+            "col": 3
+          },
+          "to": {
+            "row": 5,
+            "col": 31
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32",
+            "BMS",
+            "AmpRight"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 8,
+          "netNames": [
+            "net1"
+          ],
+          "from": {
+            "row": 14,
+            "col": 16
+          },
+          "to": {
+            "row": 9,
+            "col": 16
+          },
+          "violations": [
+            "STACKED"
+          ],
+          "crossingComponents": [],
+          "stackedWith": [
+            4
+          ]
+        },
+        {
+          "wire": 10,
+          "netNames": [
+            "3V3"
+          ],
+          "from": {
+            "row": 0,
+            "col": 21
+          },
+          "to": {
+            "row": 6,
+            "col": 1
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32",
+            "L1"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 11,
+          "netNames": [
+            "5V"
+          ],
+          "from": {
+            "row": 22,
+            "col": 3
+          },
+          "to": {
+            "row": 22,
+            "col": 15
+          },
+          "violations": [
+            "NONVERTICAL",
+            "HORIZONTAL",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 18,
+          "netNames": [
+            "GND"
+          ],
+          "from": {
+            "row": 18,
+            "col": 18
+          },
+          "to": {
+            "row": 0,
+            "col": 15
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED"
+          ],
+          "crossingComponents": [],
+          "stackedWith": []
+        }
+      ]
+    },
+    "1716": {
+      "wires": "23",
+      "cuts": "57",
+      "cut_delta": "34",
+      "pass": "False",
+      "first_fit": "73",
+      "selected_finish": "router",
+      "strict_failures": [
+        "NONVERTICAL_3",
+        "SLANTED_3",
+        "CROSSINGS_4",
+        "SOLVER_ISSUES"
+      ],
+      "incomplete_nets": [],
+      "wire_violations": [
+        {
+          "wire": 1,
+          "netNames": [
+            "5V"
+          ],
+          "from": {
+            "row": 2,
+            "col": 18
+          },
+          "to": {
+            "row": 8,
+            "col": 51
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "C3",
+            "D1",
+            "BMS"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 2,
+          "netNames": [
+            "net4"
+          ],
+          "from": {
+            "row": 6,
+            "col": 34
+          },
+          "to": {
+            "row": 0,
+            "col": 12
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "BMS"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 23,
+          "netNames": [
+            "GND"
+          ],
+          "from": {
+            "row": 1,
+            "col": 14
+          },
+          "to": {
+            "row": 0,
+            "col": 11
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED"
+          ],
+          "crossingComponents": [],
+          "stackedWith": []
+        }
+      ]
+    },
+    "1798": {
+      "wires": "24",
+      "cuts": "58",
+      "cut_delta": "34",
+      "pass": "False",
+      "first_fit": "164",
+      "selected_finish": "router",
+      "strict_failures": [
+        "NONVERTICAL_1",
+        "SLANTED_1",
+        "CROSSINGS_3",
+        "SOLVER_ISSUES"
+      ],
+      "incomplete_nets": [],
+      "wire_violations": [
+        {
+          "wire": 5,
+          "netNames": [
+            "net8"
+          ],
+          "from": {
+            "row": 18,
+            "col": 49
+          },
+          "to": {
+            "row": 4,
+            "col": 18
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32",
+            "C1",
+            "BMS"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 20,
+          "netNames": [
+            "GND"
+          ],
+          "from": {
+            "row": 16,
+            "col": 1
+          },
+          "to": {
+            "row": 9,
+            "col": 1
+          },
+          "violations": [
+            "STACKED"
+          ],
+          "crossingComponents": [],
+          "stackedWith": [
+            9
+          ]
+        },
+        {
+          "wire": 21,
+          "netNames": [
+            "GND"
+          ],
+          "from": {
+            "row": 9,
+            "col": 2
+          },
+          "to": {
+            "row": 3,
+            "col": 2
+          },
+          "violations": [
+            "STACKED"
+          ],
+          "crossingComponents": [],
+          "stackedWith": [
+            10
+          ]
+        },
+        {
+          "wire": 22,
+          "netNames": [
+            "GND"
+          ],
+          "from": {
+            "row": 20,
+            "col": 26
+          },
+          "to": {
+            "row": 21,
+            "col": 26
+          },
+          "violations": [
+            "STACKED"
+          ],
+          "crossingComponents": [],
+          "stackedWith": [
+            8
+          ]
+        },
+        {
+          "wire": 24,
+          "netNames": [
+            "GND"
+          ],
+          "from": {
+            "row": 9,
+            "col": 33
+          },
+          "to": {
+            "row": 21,
+            "col": 33
+          },
+          "violations": [
+            "STACKED"
+          ],
+          "crossingComponents": [],
+          "stackedWith": [
+            13
+          ]
+        }
+      ]
+    },
+    "1801": {
+      "wires": "20",
+      "cuts": "54",
+      "cut_delta": "34",
+      "pass": "True",
+      "first_fit": "102",
+      "selected_finish": "router",
+      "strict_failures": [],
+      "incomplete_nets": [],
+      "wire_violations": []
+    },
+    "1816": {
+      "wires": "13",
+      "cuts": "47",
+      "cut_delta": "34",
+      "pass": "False",
+      "first_fit": "59",
+      "selected_finish": "router",
+      "strict_failures": [
+        "NONVERTICAL_5",
+        "SLANTED_3",
+        "CROSSINGS_11",
+        "SOLVER_ISSUES"
+      ],
+      "incomplete_nets": [],
+      "wire_violations": [
+        {
+          "wire": 2,
+          "netNames": [
+            "net9"
+          ],
+          "from": {
+            "row": 21,
+            "col": 2
+          },
+          "to": {
+            "row": 14,
+            "col": 29
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32",
+            "AmpRight"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 3,
+          "netNames": [
+            "5V"
+          ],
+          "from": {
+            "row": 22,
+            "col": 3
+          },
+          "to": {
+            "row": 22,
+            "col": 36
+          },
+          "violations": [
+            "NONVERTICAL",
+            "HORIZONTAL",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "5v Buck",
+            "ESP32",
+            "Switch 2",
+            "C1",
+            "C2",
+            "D1"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 5,
+          "netNames": [
+            "net2"
+          ],
+          "from": {
+            "row": 10,
+            "col": 3
+          },
+          "to": {
+            "row": 10,
+            "col": 15
+          },
+          "violations": [
+            "NONVERTICAL",
+            "HORIZONTAL",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 6,
+          "netNames": [
+            "net6"
+          ],
+          "from": {
+            "row": 9,
+            "col": 3
+          },
+          "to": {
+            "row": 11,
+            "col": 15
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 7,
+          "netNames": [
+            "net23"
+          ],
+          "from": {
+            "row": 11,
+            "col": 3
+          },
+          "to": {
+            "row": 12,
+            "col": 15
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        }
+      ]
+    },
+    "1857": {
+      "wires": "21",
+      "cuts": "55",
+      "cut_delta": "34",
+      "pass": "False",
+      "first_fit": "83",
+      "selected_finish": "router",
+      "strict_failures": [
+        "GEOMETRY_1",
+        "NONVERTICAL_6",
+        "SLANTED_6",
+        "CROSSINGS_8",
+        "SOLVER_ISSUES"
+      ],
+      "incomplete_nets": [],
+      "wire_violations": [
+        {
+          "wire": 1,
+          "netNames": [
+            "5V"
+          ],
+          "from": {
+            "row": 20,
+            "col": 7
+          },
+          "to": {
+            "row": 1,
+            "col": 19
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 5,
+          "netNames": [
+            "3V3"
+          ],
+          "from": {
+            "row": 5,
+            "col": 34
+          },
+          "to": {
+            "row": 4,
+            "col": 5
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32",
+            "BMS"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 6,
+          "netNames": [
+            "net9"
+          ],
+          "from": {
+            "row": 19,
+            "col": 7
+          },
+          "to": {
+            "row": 15,
+            "col": 36
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32",
+            "AmpRight"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 7,
+          "netNames": [
+            "net23"
+          ],
+          "from": {
+            "row": 9,
+            "col": 6
+          },
+          "to": {
+            "row": 17,
+            "col": 24
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 8,
+          "netNames": [
+            "net2"
+          ],
+          "from": {
+            "row": 8,
+            "col": 7
+          },
+          "to": {
+            "row": 19,
+            "col": 22
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 9,
+          "netNames": [
+            "net6"
+          ],
+          "from": {
+            "row": 7,
+            "col": 7
+          },
+          "to": {
+            "row": 18,
+            "col": 22
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        }
+      ]
+    },
+    "1930": {
+      "wires": "16",
+      "cuts": "50",
+      "cut_delta": "34",
+      "pass": "False",
+      "first_fit": "157",
+      "selected_finish": "router",
+      "strict_failures": [
+        "NONVERTICAL_5",
+        "SLANTED_4",
+        "CROSSINGS_6",
+        "SOLVER_ISSUES"
+      ],
+      "incomplete_nets": [],
+      "wire_violations": [
+        {
+          "wire": 1,
+          "netNames": [
+            "net2"
+          ],
+          "from": {
+            "row": 10,
+            "col": 4
+          },
+          "to": {
+            "row": 13,
+            "col": 19
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 2,
+          "netNames": [
+            "net9"
+          ],
+          "from": {
+            "row": 21,
+            "col": 4
+          },
+          "to": {
+            "row": 17,
+            "col": 32
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32",
+            "AmpRight"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 3,
+          "netNames": [
+            "net6"
+          ],
+          "from": {
+            "row": 9,
+            "col": 4
+          },
+          "to": {
+            "row": 14,
+            "col": 19
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 4,
+          "netNames": [
+            "net23"
+          ],
+          "from": {
+            "row": 11,
+            "col": 4
+          },
+          "to": {
+            "row": 15,
+            "col": 19
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 6,
+          "netNames": [
+            "5V"
+          ],
+          "from": {
+            "row": 22,
+            "col": 4
+          },
+          "to": {
+            "row": 22,
+            "col": 17
+          },
+          "violations": [
+            "NONVERTICAL",
+            "HORIZONTAL",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        }
+      ]
+    },
+    "1931": {
+      "wires": "15",
+      "cuts": "53",
+      "cut_delta": "38",
+      "pass": "False",
+      "first_fit": "335",
+      "selected_finish": "router",
+      "strict_failures": [
+        "QUALITY_4",
+        "INCOMPLETE_4",
+        "NONVERTICAL_4",
+        "SLANTED_3",
+        "CROSSINGS_6",
+        "SOLVER_ISSUES"
+      ],
+      "incomplete_nets": [
+        {
+          "id": "e4940df0-7a1b-465a-ae94-3261f4ba1b63",
+          "name": "GND",
+          "groups": [
+            [
+              {
+                "componentLabel": "SH4OT GND",
+                "pinName": "1"
+              },
+              {
+                "componentLabel": "MIC1 L/R",
+                "pinName": "1"
+              },
+              {
+                "componentLabel": "MIC1 GND",
+                "pinName": "1"
+              },
+              {
+                "componentLabel": "DISP1 GND",
+                "pinName": "1"
+              },
+              {
+                "componentLabel": "5v Buck",
+                "pinName": "GND"
+              },
+              {
+                "componentLabel": "5v Buck",
+                "pinName": "GND"
+              },
+              {
+                "componentLabel": "ESP32",
+                "pinName": "GND"
+              },
+              {
+                "componentLabel": "C1",
+                "pinName": "2"
+              },
+              {
+                "componentLabel": "C2",
+                "pinName": "\u2212"
+              },
+              {
+                "componentLabel": "C3",
+                "pinName": "2"
+              },
+              {
+                "componentLabel": "C4",
+                "pinName": "\u2212"
+              },
+              {
+                "componentLabel": "C6",
+                "pinName": "2"
+              },
+              {
+                "componentLabel": "C7",
+                "pinName": "\u2212"
+              },
+              {
+                "componentLabel": "BMS",
+                "pinName": "B-"
+              },
+              {
+                "componentLabel": "AmpRight",
+                "pinName": "GND"
+              }
+            ],
+            [
+              {
+                "componentLabel": "AmpLeft",
+                "pinName": "GND"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "e75ff5b0-849b-408d-80b2-c340c4532f5f",
+          "name": "net6",
+          "groups": [
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "15"
+              },
+              {
+                "componentLabel": "AmpRight",
+                "pinName": "BCLK"
+              }
+            ],
+            [
+              {
+                "componentLabel": "AmpLeft",
+                "pinName": "BCLK"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "dc46a63c-1544-414f-9d39-5c0be8f5a4e9",
+          "name": "net9",
+          "groups": [
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "14"
+              }
+            ],
+            [
+              {
+                "componentLabel": "AmpLeft",
+                "pinName": "SD"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        },
+        {
+          "id": "2fd601fd-22b2-467f-9ab8-d07368cb8744",
+          "name": "net23",
+          "groups": [
+            [
+              {
+                "componentLabel": "ESP32",
+                "pinName": "17"
+              },
+              {
+                "componentLabel": "AmpRight",
+                "pinName": "DIN"
+              }
+            ],
+            [
+              {
+                "componentLabel": "AmpLeft",
+                "pinName": "DIN"
+              }
+            ]
+          ],
+          "unplacedPins": []
+        }
+      ],
+      "wire_violations": [
+        {
+          "wire": 1,
+          "netNames": [
+            "5V"
+          ],
+          "from": {
+            "row": 20,
+            "col": 3
+          },
+          "to": {
+            "row": 20,
+            "col": 15
+          },
+          "violations": [
+            "NONVERTICAL",
+            "HORIZONTAL",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 2,
+          "netNames": [
+            "net6"
+          ],
+          "from": {
+            "row": 7,
+            "col": 3
+          },
+          "to": {
+            "row": 9,
+            "col": 33
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32",
+            "F1",
+            "BMS"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 3,
+          "netNames": [
+            "net2"
+          ],
+          "from": {
+            "row": 8,
+            "col": 3
+          },
+          "to": {
+            "row": 19,
+            "col": 19
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 5,
+          "netNames": [
+            "net23"
+          ],
+          "from": {
+            "row": 9,
+            "col": 3
+          },
+          "to": {
+            "row": 10,
+            "col": 24
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        }
+      ]
+    },
+    "1951": {
+      "wires": "19",
+      "cuts": "53",
+      "cut_delta": "34",
+      "pass": "False",
+      "first_fit": "675",
+      "selected_finish": "router",
+      "strict_failures": [
+        "NONVERTICAL_7",
+        "SLANTED_5",
+        "CROSSINGS_9",
+        "SOLVER_ISSUES"
+      ],
+      "incomplete_nets": [],
+      "wire_violations": [
+        {
+          "wire": 1,
+          "netNames": [
+            "net9"
+          ],
+          "from": {
+            "row": 21,
+            "col": 3
+          },
+          "to": {
+            "row": 14,
+            "col": 34
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32",
+            "R1",
+            "AmpRight"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 2,
+          "netNames": [
+            "net2"
+          ],
+          "from": {
+            "row": 10,
+            "col": 3
+          },
+          "to": {
+            "row": 10,
+            "col": 18
+          },
+          "violations": [
+            "NONVERTICAL",
+            "HORIZONTAL",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 3,
+          "netNames": [
+            "net6"
+          ],
+          "from": {
+            "row": 9,
+            "col": 3
+          },
+          "to": {
+            "row": 11,
+            "col": 18
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 4,
+          "netNames": [
+            "net23"
+          ],
+          "from": {
+            "row": 11,
+            "col": 3
+          },
+          "to": {
+            "row": 12,
+            "col": 18
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 5,
+          "netNames": [
+            "net22"
+          ],
+          "from": {
+            "row": 2,
+            "col": 3
+          },
+          "to": {
+            "row": 7,
+            "col": 19
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 9,
+          "netNames": [
+            "5V"
+          ],
+          "from": {
+            "row": 22,
+            "col": 3
+          },
+          "to": {
+            "row": 22,
+            "col": 21
+          },
+          "violations": [
+            "NONVERTICAL",
+            "HORIZONTAL",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "ESP32",
+            "D1"
+          ],
+          "stackedWith": []
+        },
+        {
+          "wire": 19,
+          "netNames": [
+            "net28"
+          ],
+          "from": {
+            "row": 16,
+            "col": 18
+          },
+          "to": {
+            "row": 1,
+            "col": 13
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED"
+          ],
+          "crossingComponents": [],
+          "stackedWith": []
+        }
+      ]
+    },
+    "1999": {
+      "wires": "18",
+      "cuts": "52",
+      "cut_delta": "34",
+      "pass": "False",
+      "first_fit": "54",
+      "selected_finish": "router",
+      "strict_failures": [
+        "NONVERTICAL_1",
+        "SLANTED_1",
+        "CROSSINGS_1",
+        "SOLVER_ISSUES"
+      ],
+      "incomplete_nets": [],
+      "wire_violations": [
+        {
+          "wire": 5,
+          "netNames": [
+            "net9"
+          ],
+          "from": {
+            "row": 19,
+            "col": 39
+          },
+          "to": {
+            "row": 18,
+            "col": 18
+          },
+          "violations": [
+            "NONVERTICAL",
+            "SLANTED",
+            "CROSSINGS"
+          ],
+          "crossingComponents": [
+            "AmpRight"
+          ],
+          "stackedWith": []
+        }
+      ]
+    }
+  }
+}

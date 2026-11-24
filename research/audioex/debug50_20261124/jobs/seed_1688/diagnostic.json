@@ -1,0 +1,1900 @@
+{
+  "row": {
+    "seed": 1688,
+    "moves": 50000,
+    "strictPass": false,
+    "exit": 2,
+    "wires": 19,
+    "cuts": 57,
+    "cutsMinusWires": 38,
+    "firstFeasibleMove": 186,
+    "firstFeasibleMs": 7.033999919891357,
+    "selectedFinish": "router",
+    "incompleteNets": [
+      {
+        "id": "e4940df0-7a1b-465a-ae94-3261f4ba1b63",
+        "name": "GND",
+        "groups": [
+          [
+            {
+              "componentLabel": "SH4OT GND",
+              "pinName": "1"
+            },
+            {
+              "componentLabel": "MIC1 L/R",
+              "pinName": "1"
+            },
+            {
+              "componentLabel": "MIC1 GND",
+              "pinName": "1"
+            },
+            {
+              "componentLabel": "DISP1 GND",
+              "pinName": "1"
+            },
+            {
+              "componentLabel": "5v Buck",
+              "pinName": "GND"
+            },
+            {
+              "componentLabel": "5v Buck",
+              "pinName": "GND"
+            },
+            {
+              "componentLabel": "ESP32",
+              "pinName": "GND"
+            },
+            {
+              "componentLabel": "C1",
+              "pinName": "2"
+            },
+            {
+              "componentLabel": "C2",
+              "pinName": "−"
+            },
+            {
+              "componentLabel": "C3",
+              "pinName": "2"
+            },
+            {
+              "componentLabel": "C4",
+              "pinName": "−"
+            },
+            {
+              "componentLabel": "C6",
+              "pinName": "2"
+            },
+            {
+              "componentLabel": "C7",
+              "pinName": "−"
+            },
+            {
+              "componentLabel": "BMS",
+              "pinName": "B-"
+            },
+            {
+              "componentLabel": "AmpLeft",
+              "pinName": "GND"
+            }
+          ],
+          [
+            {
+              "componentLabel": "AmpRight",
+              "pinName": "GND"
+            }
+          ]
+        ],
+        "unplacedPins": []
+      },
+      {
+        "id": "e75ff5b0-849b-408d-80b2-c340c4532f5f",
+        "name": "net6",
+        "groups": [
+          [
+            {
+              "componentLabel": "ESP32",
+              "pinName": "15"
+            },
+            {
+              "componentLabel": "AmpLeft",
+              "pinName": "BCLK"
+            }
+          ],
+          [
+            {
+              "componentLabel": "AmpRight",
+              "pinName": "BCLK"
+            }
+          ]
+        ],
+        "unplacedPins": []
+      },
+      {
+        "id": "bb85fea9-61df-4fd8-b510-e74c250a0b8f",
+        "name": "net8",
+        "groups": [
+          [
+            {
+              "componentLabel": "R1",
+              "pinName": "1"
+            }
+          ],
+          [
+            {
+              "componentLabel": "AmpRight",
+              "pinName": "SD"
+            }
+          ]
+        ],
+        "unplacedPins": []
+      },
+      {
+        "id": "2fd601fd-22b2-467f-9ab8-d07368cb8744",
+        "name": "net23",
+        "groups": [
+          [
+            {
+              "componentLabel": "ESP32",
+              "pinName": "17"
+            },
+            {
+              "componentLabel": "AmpLeft",
+              "pinName": "DIN"
+            }
+          ],
+          [
+            {
+              "componentLabel": "AmpRight",
+              "pinName": "DIN"
+            }
+          ]
+        ],
+        "unplacedPins": []
+      }
+    ],
+    "wireViolations": [
+      {
+        "wire": 1,
+        "netNames": [
+          "net9"
+        ],
+        "from": {
+          "row": 21,
+          "col": 3
+        },
+        "to": {
+          "row": 8,
+          "col": 31
+        },
+        "violations": [
+          "NONVERTICAL",
+          "SLANTED",
+          "CROSSINGS"
+        ],
+        "crossingComponents": [
+          "5v Buck",
+          "ESP32",
+          "D1",
+          "BMS"
+        ],
+        "stackedWith": []
+      },
+      {
+        "wire": 2,
+        "netNames": [
+          "net23"
+        ],
+        "from": {
+          "row": 11,
+          "col": 3
+        },
+        "to": {
+          "row": 6,
+          "col": 32
+        },
+        "violations": [
+          "NONVERTICAL",
+          "SLANTED",
+          "CROSSINGS"
+        ],
+        "crossingComponents": [
+          "ESP32",
+          "BMS",
+          "AmpRight"
+        ],
+        "stackedWith": []
+      },
+      {
+        "wire": 3,
+        "netNames": [
+          "net2"
+        ],
+        "from": {
+          "row": 10,
+          "col": 3
+        },
+        "to": {
+          "row": 10,
+          "col": 15
+        },
+        "violations": [
+          "NONVERTICAL",
+          "HORIZONTAL",
+          "CROSSINGS"
+        ],
+        "crossingComponents": [
+          "ESP32"
+        ],
+        "stackedWith": []
+      },
+      {
+        "wire": 6,
+        "netNames": [
+          "net6"
+        ],
+        "from": {
+          "row": 9,
+          "col": 3
+        },
+        "to": {
+          "row": 5,
+          "col": 31
+        },
+        "violations": [
+          "NONVERTICAL",
+          "SLANTED",
+          "CROSSINGS"
+        ],
+        "crossingComponents": [
+          "ESP32",
+          "BMS",
+          "AmpRight"
+        ],
+        "stackedWith": []
+      },
+      {
+        "wire": 8,
+        "netNames": [
+          "net1"
+        ],
+        "from": {
+          "row": 14,
+          "col": 16
+        },
+        "to": {
+          "row": 9,
+          "col": 16
+        },
+        "violations": [
+          "STACKED"
+        ],
+        "crossingComponents": [],
+        "stackedWith": [
+          4
+        ]
+      },
+      {
+        "wire": 10,
+        "netNames": [
+          "3V3"
+        ],
+        "from": {
+          "row": 0,
+          "col": 21
+        },
+        "to": {
+          "row": 6,
+          "col": 1
+        },
+        "violations": [
+          "NONVERTICAL",
+          "SLANTED",
+          "CROSSINGS"
+        ],
+        "crossingComponents": [
+          "ESP32",
+          "L1"
+        ],
+        "stackedWith": []
+      },
+      {
+        "wire": 11,
+        "netNames": [
+          "5V"
+        ],
+        "from": {
+          "row": 22,
+          "col": 3
+        },
+        "to": {
+          "row": 22,
+          "col": 15
+        },
+        "violations": [
+          "NONVERTICAL",
+          "HORIZONTAL",
+          "CROSSINGS"
+        ],
+        "crossingComponents": [
+          "ESP32"
+        ],
+        "stackedWith": []
+      },
+      {
+        "wire": 18,
+        "netNames": [
+          "GND"
+        ],
+        "from": {
+          "row": 18,
+          "col": 18
+        },
+        "to": {
+          "row": 0,
+          "col": 15
+        },
+        "violations": [
+          "NONVERTICAL",
+          "SLANTED"
+        ],
+        "crossingComponents": [],
+        "stackedWith": []
+      }
+    ],
+    "rotations": [
+      {
+        "componentId": "a480b4d9-f8a2-44a2-a9a1-8dce061423d4",
+        "label": "5v Buck",
+        "rotation": 90,
+        "allowed": "NOT_INDEPENDENTLY_CHECKED"
+      },
+      {
+        "componentId": "f0936ce0-b269-4458-aed1-597266e0cae8",
+        "label": "ESP32",
+        "rotation": 0,
+        "allowed": "NOT_INDEPENDENTLY_CHECKED"
+      },
+      {
+        "componentId": "c397073c-9513-4626-8510-739e2c752dbc",
+        "label": "F1",
+        "rotation": 0,
+        "allowed": "NOT_INDEPENDENTLY_CHECKED"
+      },
+      {
+        "componentId": "26bd9fd0-a4c5-4327-a1b6-816769a726b8",
+        "label": "C1",
+        "rotation": 0,
+        "allowed": "NOT_INDEPENDENTLY_CHECKED"
+      },
+      {
+        "componentId": "c705b4b5-b4ca-4718-8900-41451287e448",
+        "label": "C2",
+        "rotation": 0,
+        "allowed": "NOT_INDEPENDENTLY_CHECKED"
+      },
+      {
+        "componentId": "b9650efe-7ef5-4fe5-95d7-f7ca0fee3f45",
+        "label": "C3",
+        "rotation": 0,
+        "allowed": "NOT_INDEPENDENTLY_CHECKED"
+      },
+      {
+        "componentId": "3c5974da-aa30-4de1-91cb-238716cf5bca",
+        "label": "C4",
+        "rotation": 0,
+        "allowed": "NOT_INDEPENDENTLY_CHECKED"
+      },
+      {
+        "componentId": "38f59d44-9eec-4e00-8cba-1d55364c6450",
+        "label": "R1",
+        "rotation": 0,
+        "allowed": "NOT_INDEPENDENTLY_CHECKED"
+      },
+      {
+        "componentId": "73efdb42-04a5-46ea-ad99-85f0b98739c2",
+        "label": "D1",
+        "rotation": 0,
+        "allowed": "NOT_INDEPENDENTLY_CHECKED"
+      },
+      {
+        "componentId": "f019ce0a-fdfd-4643-bd88-5151d3e1951f",
+        "label": "L1",
+        "rotation": 0,
+        "allowed": "NOT_INDEPENDENTLY_CHECKED"
+      },
+      {
+        "componentId": "94c0e2f4-26ca-400a-b568-639513cca17d",
+        "label": "C6",
+        "rotation": 0,
+        "allowed": "NOT_INDEPENDENTLY_CHECKED"
+      },
+      {
+        "componentId": "7d24e4b4-cbad-402e-a248-955b654775f2",
+        "label": "C7",
+        "rotation": 0,
+        "allowed": "NOT_INDEPENDENTLY_CHECKED"
+      },
+      {
+        "componentId": "d5722239-8c24-4d27-8c7c-00be926315c7",
+        "label": "BMS",
+        "rotation": 0,
+        "allowed": "NOT_INDEPENDENTLY_CHECKED"
+      },
+      {
+        "componentId": "b091f593-224a-4658-83b6-481f13f8ecb1",
+        "label": "AmpRight",
+        "rotation": 0,
+        "allowed": "NOT_INDEPENDENTLY_CHECKED"
+      },
+      {
+        "componentId": "1c5af6cb-725d-4d18-b0a9-bc778e7f8f56",
+        "label": "AmpLeft",
+        "rotation": 90,
+        "allowed": "NOT_INDEPENDENTLY_CHECKED"
+      }
+    ],
+    "rotationDomainCheck": "NOT_INDEPENDENTLY_CHECKED",
+    "independentCopperOracle": "NOT_IMPLEMENTED",
+    "quality": 4,
+    "conflicts": 0,
+    "incomplete": 4,
+    "geometry": 0,
+    "nonvertical": 7,
+    "crossings": 14,
+    "strictFailures": [
+      "QUALITY_4",
+      "INCOMPLETE_4",
+      "NONVERTICAL_7",
+      "SLANTED_5",
+      "CROSSINGS_14",
+      "SOLVER_ISSUES"
+    ],
+    "auditFailures": [
+      "NONVERTICAL_7",
+      "INCOMPLETE_4",
+      "BODY_CROSSINGS_14"
+    ],
+    "auditWarnings": [],
+    "errors": [
+      "SAVED_AUDIT_FAILED_2"
+    ],
+    "layoutSig": "4ba7e91c89023bf8e7ab6a46a8c45bd5d4c8156bb9d552821381c87f99c58203",
+    "savedJson": "rejected/seed_1688_W19_C57.json",
+    "elapsedSeconds": 2.112,
+    "repairWires": 20,
+    "repairCuts": 54,
+    "repairCompliant": false,
+    "repairFailures": [
+      "COLUMN_SHIFT",
+      "CROSSINGS",
+      "ISSUES",
+      "LOCKED_BOARD"
+    ],
+    "routerWires": 19,
+    "routerCuts": 57,
+    "routerCompliant": false,
+    "routerFailures": [
+      "QUALITY",
+      "INCOMPLETE",
+      "COLUMN_SHIFT",
+      "CROSSINGS",
+      "ISSUES"
+    ],
+    "moveAttempted": 50000,
+    "moveRejected": 32658,
+    "moveAccepted": 17342,
+    "moveSameBoard": 15059,
+    "moveNewBest": 87,
+    "moveMutateFailed": 0,
+    "moveDecodeFailed": 0
+  },
+  "cli": {
+    "id": 1,
+    "seed": 1688,
+    "ms": 1937,
+    "rate": 1501.5352436285045,
+    "price": 947.7546991504673,
+    "sig": "6da44e9e5272",
+    "decoded": {
+      "E": 7267.8,
+      "rows": 24,
+      "cols": 47,
+      "wires": 20,
+      "wireLen": 120,
+      "relays": 0,
+      "cuts": 54,
+      "bCuts": 8,
+      "starved": 0,
+      "starvedHard": 4,
+      "geoBad": 0,
+      "overlapBad": 0,
+      "connEdge": 156.39999999999998,
+      "lockOver": 0,
+      "spanBad": 0,
+      "hardSegs": []
+    },
+    "quality": 4,
+    "unsolvedReason": null,
+    "firstFeasibleMove": 186,
+    "firstFeasibleMs": 7.033999919891357,
+    "drilledRotationDomain": false,
+    "wirePolish": null,
+    "incompleteNets": [
+      {
+        "id": "e4940df0-7a1b-465a-ae94-3261f4ba1b63",
+        "name": "GND",
+        "groups": [
+          [
+            {
+              "componentLabel": "SH4OT GND",
+              "pinName": "1"
+            },
+            {
+              "componentLabel": "MIC1 L/R",
+              "pinName": "1"
+            },
+            {
+              "componentLabel": "MIC1 GND",
+              "pinName": "1"
+            },
+            {
+              "componentLabel": "DISP1 GND",
+              "pinName": "1"
+            },
+            {
+              "componentLabel": "5v Buck",
+              "pinName": "GND"
+            },
+            {
+              "componentLabel": "5v Buck",
+              "pinName": "GND"
+            },
+            {
+              "componentLabel": "ESP32",
+              "pinName": "GND"
+            },
+            {
+              "componentLabel": "C1",
+              "pinName": "2"
+            },
+            {
+              "componentLabel": "C2",
+              "pinName": "−"
+            },
+            {
+              "componentLabel": "C3",
+              "pinName": "2"
+            },
+            {
+              "componentLabel": "C4",
+              "pinName": "−"
+            },
+            {
+              "componentLabel": "C6",
+              "pinName": "2"
+            },
+            {
+              "componentLabel": "C7",
+              "pinName": "−"
+            },
+            {
+              "componentLabel": "BMS",
+              "pinName": "B-"
+            },
+            {
+              "componentLabel": "AmpLeft",
+              "pinName": "GND"
+            }
+          ],
+          [
+            {
+              "componentLabel": "AmpRight",
+              "pinName": "GND"
+            }
+          ]
+        ],
+        "unplacedPins": []
+      },
+      {
+        "id": "e75ff5b0-849b-408d-80b2-c340c4532f5f",
+        "name": "net6",
+        "groups": [
+          [
+            {
+              "componentLabel": "ESP32",
+              "pinName": "15"
+            },
+            {
+              "componentLabel": "AmpLeft",
+              "pinName": "BCLK"
+            }
+          ],
+          [
+            {
+              "componentLabel": "AmpRight",
+              "pinName": "BCLK"
+            }
+          ]
+        ],
+        "unplacedPins": []
+      },
+      {
+        "id": "bb85fea9-61df-4fd8-b510-e74c250a0b8f",
+        "name": "net8",
+        "groups": [
+          [
+            {
+              "componentLabel": "R1",
+              "pinName": "1"
+            }
+          ],
+          [
+            {
+              "componentLabel": "AmpRight",
+              "pinName": "SD"
+            }
+          ]
+        ],
+        "unplacedPins": []
+      },
+      {
+        "id": "2fd601fd-22b2-467f-9ab8-d07368cb8744",
+        "name": "net23",
+        "groups": [
+          [
+            {
+              "componentLabel": "ESP32",
+              "pinName": "17"
+            },
+            {
+              "componentLabel": "AmpLeft",
+              "pinName": "DIN"
+            }
+          ],
+          [
+            {
+              "componentLabel": "AmpRight",
+              "pinName": "DIN"
+            }
+          ]
+        ],
+        "unplacedPins": []
+      }
+    ],
+    "invalidDrilledOrientations": [],
+    "knifeCuts": [
+      {
+        "cutIndex": 26,
+        "row": 9,
+        "col": 26,
+        "between": [
+          {
+            "row": 9,
+            "col": 26
+          },
+          {
+            "row": 9,
+            "col": 27
+          }
+        ],
+        "forcedByAdjacentPins": true,
+        "nearestLeft": {
+          "component": "BMS",
+          "pin": "9",
+          "row": 9,
+          "col": 26,
+          "net": "FLOATING"
+        },
+        "nearestRight": {
+          "component": "BMS",
+          "pin": "8",
+          "row": 9,
+          "col": 27,
+          "net": "FLOATING"
+        },
+        "leftPins": [
+          {
+            "component": "BMS",
+            "pin": "9",
+            "row": 9,
+            "col": 26,
+            "net": "FLOATING"
+          }
+        ],
+        "rightPins": [
+          {
+            "component": "BMS",
+            "pin": "8",
+            "row": 9,
+            "col": 27,
+            "net": "FLOATING"
+          }
+        ],
+        "flanks": [
+          {
+            "row": 9,
+            "col": 26,
+            "pins": [
+              {
+                "component": "BMS",
+                "pin": "9",
+                "row": 9,
+                "col": 26,
+                "net": "FLOATING"
+              }
+            ],
+            "wireEndpoints": [],
+            "alreadyDrilled": false,
+            "basicDrillCandidate": false
+          },
+          {
+            "row": 9,
+            "col": 27,
+            "pins": [
+              {
+                "component": "BMS",
+                "pin": "8",
+                "row": 9,
+                "col": 27,
+                "net": "FLOATING"
+              }
+            ],
+            "wireEndpoints": [],
+            "alreadyDrilled": false,
+            "basicDrillCandidate": false
+          }
+        ]
+      },
+      {
+        "cutIndex": 27,
+        "row": 9,
+        "col": 27,
+        "between": [
+          {
+            "row": 9,
+            "col": 27
+          },
+          {
+            "row": 9,
+            "col": 28
+          }
+        ],
+        "forcedByAdjacentPins": true,
+        "nearestLeft": {
+          "component": "BMS",
+          "pin": "8",
+          "row": 9,
+          "col": 27,
+          "net": "FLOATING"
+        },
+        "nearestRight": {
+          "component": "BMS",
+          "pin": "10",
+          "row": 9,
+          "col": 28,
+          "net": "FLOATING"
+        },
+        "leftPins": [
+          {
+            "component": "BMS",
+            "pin": "8",
+            "row": 9,
+            "col": 27,
+            "net": "FLOATING"
+          }
+        ],
+        "rightPins": [
+          {
+            "component": "BMS",
+            "pin": "10",
+            "row": 9,
+            "col": 28,
+            "net": "FLOATING"
+          }
+        ],
+        "flanks": [
+          {
+            "row": 9,
+            "col": 27,
+            "pins": [
+              {
+                "component": "BMS",
+                "pin": "8",
+                "row": 9,
+                "col": 27,
+                "net": "FLOATING"
+              }
+            ],
+            "wireEndpoints": [],
+            "alreadyDrilled": false,
+            "basicDrillCandidate": false
+          },
+          {
+            "row": 9,
+            "col": 28,
+            "pins": [
+              {
+                "component": "BMS",
+                "pin": "10",
+                "row": 9,
+                "col": 28,
+                "net": "FLOATING"
+              }
+            ],
+            "wireEndpoints": [],
+            "alreadyDrilled": false,
+            "basicDrillCandidate": false
+          }
+        ]
+      },
+      {
+        "cutIndex": 31,
+        "row": 10,
+        "col": 17,
+        "between": [
+          {
+            "row": 10,
+            "col": 17
+          },
+          {
+            "row": 10,
+            "col": 18
+          }
+        ],
+        "forcedByAdjacentPins": true,
+        "nearestLeft": {
+          "component": "AmpRight",
+          "pin": "1",
+          "row": 10,
+          "col": 17,
+          "net": "net2"
+        },
+        "nearestRight": {
+          "component": "AmpRight",
+          "pin": "2",
+          "row": 10,
+          "col": 18,
+          "net": "net6"
+        },
+        "leftPins": [
+          {
+            "component": "AmpRight",
+            "pin": "1",
+            "row": 10,
+            "col": 17,
+            "net": "net2"
+          }
+        ],
+        "rightPins": [
+          {
+            "component": "AmpRight",
+            "pin": "2",
+            "row": 10,
+            "col": 18,
+            "net": "net6"
+          }
+        ],
+        "flanks": [
+          {
+            "row": 10,
+            "col": 17,
+            "pins": [
+              {
+                "component": "AmpRight",
+                "pin": "1",
+                "row": 10,
+                "col": 17,
+                "net": "net2"
+              }
+            ],
+            "wireEndpoints": [],
+            "alreadyDrilled": false,
+            "basicDrillCandidate": false
+          },
+          {
+            "row": 10,
+            "col": 18,
+            "pins": [
+              {
+                "component": "AmpRight",
+                "pin": "2",
+                "row": 10,
+                "col": 18,
+                "net": "net6"
+              }
+            ],
+            "wireEndpoints": [],
+            "alreadyDrilled": false,
+            "basicDrillCandidate": false
+          }
+        ]
+      },
+      {
+        "cutIndex": 32,
+        "row": 10,
+        "col": 18,
+        "between": [
+          {
+            "row": 10,
+            "col": 18
+          },
+          {
+            "row": 10,
+            "col": 19
+          }
+        ],
+        "forcedByAdjacentPins": true,
+        "nearestLeft": {
+          "component": "AmpRight",
+          "pin": "2",
+          "row": 10,
+          "col": 18,
+          "net": "net6"
+        },
+        "nearestRight": {
+          "component": "AmpRight",
+          "pin": "3",
+          "row": 10,
+          "col": 19,
+          "net": "net23"
+        },
+        "leftPins": [
+          {
+            "component": "AmpRight",
+            "pin": "2",
+            "row": 10,
+            "col": 18,
+            "net": "net6"
+          }
+        ],
+        "rightPins": [
+          {
+            "component": "AmpRight",
+            "pin": "3",
+            "row": 10,
+            "col": 19,
+            "net": "net23"
+          }
+        ],
+        "flanks": [
+          {
+            "row": 10,
+            "col": 18,
+            "pins": [
+              {
+                "component": "AmpRight",
+                "pin": "2",
+                "row": 10,
+                "col": 18,
+                "net": "net6"
+              }
+            ],
+            "wireEndpoints": [],
+            "alreadyDrilled": false,
+            "basicDrillCandidate": false
+          },
+          {
+            "row": 10,
+            "col": 19,
+            "pins": [
+              {
+                "component": "AmpRight",
+                "pin": "3",
+                "row": 10,
+                "col": 19,
+                "net": "net23"
+              }
+            ],
+            "wireEndpoints": [],
+            "alreadyDrilled": false,
+            "basicDrillCandidate": false
+          }
+        ]
+      },
+      {
+        "cutIndex": 33,
+        "row": 10,
+        "col": 19,
+        "between": [
+          {
+            "row": 10,
+            "col": 19
+          },
+          {
+            "row": 10,
+            "col": 20
+          }
+        ],
+        "forcedByAdjacentPins": true,
+        "nearestLeft": {
+          "component": "AmpRight",
+          "pin": "3",
+          "row": 10,
+          "col": 19,
+          "net": "net23"
+        },
+        "nearestRight": {
+          "component": "AmpRight",
+          "pin": "4",
+          "row": 10,
+          "col": 20,
+          "net": "FLOATING"
+        },
+        "leftPins": [
+          {
+            "component": "AmpRight",
+            "pin": "3",
+            "row": 10,
+            "col": 19,
+            "net": "net23"
+          }
+        ],
+        "rightPins": [
+          {
+            "component": "AmpRight",
+            "pin": "4",
+            "row": 10,
+            "col": 20,
+            "net": "FLOATING"
+          }
+        ],
+        "flanks": [
+          {
+            "row": 10,
+            "col": 19,
+            "pins": [
+              {
+                "component": "AmpRight",
+                "pin": "3",
+                "row": 10,
+                "col": 19,
+                "net": "net23"
+              }
+            ],
+            "wireEndpoints": [],
+            "alreadyDrilled": false,
+            "basicDrillCandidate": false
+          },
+          {
+            "row": 10,
+            "col": 20,
+            "pins": [
+              {
+                "component": "AmpRight",
+                "pin": "4",
+                "row": 10,
+                "col": 20,
+                "net": "FLOATING"
+              }
+            ],
+            "wireEndpoints": [],
+            "alreadyDrilled": false,
+            "basicDrillCandidate": false
+          }
+        ]
+      },
+      {
+        "cutIndex": 34,
+        "row": 10,
+        "col": 20,
+        "between": [
+          {
+            "row": 10,
+            "col": 20
+          },
+          {
+            "row": 10,
+            "col": 21
+          }
+        ],
+        "forcedByAdjacentPins": true,
+        "nearestLeft": {
+          "component": "AmpRight",
+          "pin": "4",
+          "row": 10,
+          "col": 20,
+          "net": "FLOATING"
+        },
+        "nearestRight": {
+          "component": "AmpRight",
+          "pin": "5",
+          "row": 10,
+          "col": 21,
+          "net": "net8"
+        },
+        "leftPins": [
+          {
+            "component": "AmpRight",
+            "pin": "4",
+            "row": 10,
+            "col": 20,
+            "net": "FLOATING"
+          }
+        ],
+        "rightPins": [
+          {
+            "component": "AmpRight",
+            "pin": "5",
+            "row": 10,
+            "col": 21,
+            "net": "net8"
+          }
+        ],
+        "flanks": [
+          {
+            "row": 10,
+            "col": 20,
+            "pins": [
+              {
+                "component": "AmpRight",
+                "pin": "4",
+                "row": 10,
+                "col": 20,
+                "net": "FLOATING"
+              }
+            ],
+            "wireEndpoints": [],
+            "alreadyDrilled": false,
+            "basicDrillCandidate": false
+          },
+          {
+            "row": 10,
+            "col": 21,
+            "pins": [
+              {
+                "component": "AmpRight",
+                "pin": "5",
+                "row": 10,
+                "col": 21,
+                "net": "net8"
+              }
+            ],
+            "wireEndpoints": [],
+            "alreadyDrilled": false,
+            "basicDrillCandidate": false
+          }
+        ]
+      },
+      {
+        "cutIndex": 35,
+        "row": 10,
+        "col": 21,
+        "between": [
+          {
+            "row": 10,
+            "col": 21
+          },
+          {
+            "row": 10,
+            "col": 22
+          }
+        ],
+        "forcedByAdjacentPins": true,
+        "nearestLeft": {
+          "component": "AmpRight",
+          "pin": "5",
+          "row": 10,
+          "col": 21,
+          "net": "net8"
+        },
+        "nearestRight": {
+          "component": "AmpRight",
+          "pin": "6",
+          "row": 10,
+          "col": 22,
+          "net": "GND"
+        },
+        "leftPins": [
+          {
+            "component": "AmpRight",
+            "pin": "5",
+            "row": 10,
+            "col": 21,
+            "net": "net8"
+          }
+        ],
+        "rightPins": [
+          {
+            "component": "AmpRight",
+            "pin": "6",
+            "row": 10,
+            "col": 22,
+            "net": "GND"
+          }
+        ],
+        "flanks": [
+          {
+            "row": 10,
+            "col": 21,
+            "pins": [
+              {
+                "component": "AmpRight",
+                "pin": "5",
+                "row": 10,
+                "col": 21,
+                "net": "net8"
+              }
+            ],
+            "wireEndpoints": [],
+            "alreadyDrilled": false,
+            "basicDrillCandidate": false
+          },
+          {
+            "row": 10,
+            "col": 22,
+            "pins": [
+              {
+                "component": "AmpRight",
+                "pin": "6",
+                "row": 10,
+                "col": 22,
+                "net": "GND"
+              }
+            ],
+            "wireEndpoints": [],
+            "alreadyDrilled": false,
+            "basicDrillCandidate": false
+          }
+        ]
+      },
+      {
+        "cutIndex": 36,
+        "row": 10,
+        "col": 22,
+        "between": [
+          {
+            "row": 10,
+            "col": 22
+          },
+          {
+            "row": 10,
+            "col": 23
+          }
+        ],
+        "forcedByAdjacentPins": true,
+        "nearestLeft": {
+          "component": "AmpRight",
+          "pin": "6",
+          "row": 10,
+          "col": 22,
+          "net": "GND"
+        },
+        "nearestRight": {
+          "component": "AmpRight",
+          "pin": "7",
+          "row": 10,
+          "col": 23,
+          "net": "net28"
+        },
+        "leftPins": [
+          {
+            "component": "AmpRight",
+            "pin": "6",
+            "row": 10,
+            "col": 22,
+            "net": "GND"
+          }
+        ],
+        "rightPins": [
+          {
+            "component": "AmpRight",
+            "pin": "7",
+            "row": 10,
+            "col": 23,
+            "net": "net28"
+          }
+        ],
+        "flanks": [
+          {
+            "row": 10,
+            "col": 22,
+            "pins": [
+              {
+                "component": "AmpRight",
+                "pin": "6",
+                "row": 10,
+                "col": 22,
+                "net": "GND"
+              }
+            ],
+            "wireEndpoints": [],
+            "alreadyDrilled": false,
+            "basicDrillCandidate": false
+          },
+          {
+            "row": 10,
+            "col": 23,
+            "pins": [
+              {
+                "component": "AmpRight",
+                "pin": "7",
+                "row": 10,
+                "col": 23,
+                "net": "net28"
+              }
+            ],
+            "wireEndpoints": [],
+            "alreadyDrilled": false,
+            "basicDrillCandidate": false
+          }
+        ]
+      },
+      {
+        "cutIndex": 55,
+        "row": 12,
+        "col": 13,
+        "between": [
+          {
+            "row": 12,
+            "col": 13
+          },
+          {
+            "row": 12,
+            "col": 14
+          }
+        ],
+        "forcedByAdjacentPins": false,
+        "nearestLeft": {
+          "component": "ESP32",
+          "pin": "R11",
+          "row": 12,
+          "col": 13,
+          "net": "FLOATING"
+        },
+        "nearestRight": null,
+        "leftPins": [
+          {
+            "component": "ESP32",
+            "pin": "R11",
+            "row": 12,
+            "col": 13,
+            "net": "FLOATING"
+          }
+        ],
+        "rightPins": [],
+        "flanks": [
+          {
+            "row": 12,
+            "col": 13,
+            "pins": [
+              {
+                "component": "ESP32",
+                "pin": "R11",
+                "row": 12,
+                "col": 13,
+                "net": "FLOATING"
+              }
+            ],
+            "wireEndpoints": [],
+            "alreadyDrilled": false,
+            "basicDrillCandidate": false
+          },
+          {
+            "row": 12,
+            "col": 14,
+            "pins": [],
+            "wireEndpoints": [],
+            "alreadyDrilled": false,
+            "basicDrillCandidate": true
+          }
+        ]
+      },
+      {
+        "cutIndex": 56,
+        "row": 14,
+        "col": 13,
+        "between": [
+          {
+            "row": 14,
+            "col": 13
+          },
+          {
+            "row": 14,
+            "col": 14
+          }
+        ],
+        "forcedByAdjacentPins": false,
+        "nearestLeft": {
+          "component": "ESP32",
+          "pin": "R9",
+          "row": 14,
+          "col": 13,
+          "net": "FLOATING"
+        },
+        "nearestRight": null,
+        "leftPins": [
+          {
+            "component": "ESP32",
+            "pin": "R9",
+            "row": 14,
+            "col": 13,
+            "net": "FLOATING"
+          }
+        ],
+        "rightPins": [],
+        "flanks": [
+          {
+            "row": 14,
+            "col": 13,
+            "pins": [
+              {
+                "component": "ESP32",
+                "pin": "R9",
+                "row": 14,
+                "col": 13,
+                "net": "FLOATING"
+              }
+            ],
+            "wireEndpoints": [],
+            "alreadyDrilled": false,
+            "basicDrillCandidate": false
+          },
+          {
+            "row": 14,
+            "col": 14,
+            "pins": [],
+            "wireEndpoints": [],
+            "alreadyDrilled": false,
+            "basicDrillCandidate": true
+          }
+        ]
+      },
+      {
+        "cutIndex": 57,
+        "row": 11,
+        "col": 13,
+        "between": [
+          {
+            "row": 11,
+            "col": 13
+          },
+          {
+            "row": 11,
+            "col": 14
+          }
+        ],
+        "forcedByAdjacentPins": false,
+        "nearestLeft": {
+          "component": "ESP32",
+          "pin": "R12",
+          "row": 11,
+          "col": 13,
+          "net": "FLOATING"
+        },
+        "nearestRight": {
+          "component": "C7",
+          "pin": "2",
+          "row": 11,
+          "col": 44,
+          "net": "GND"
+        },
+        "leftPins": [
+          {
+            "component": "ESP32",
+            "pin": "R12",
+            "row": 11,
+            "col": 13,
+            "net": "FLOATING"
+          }
+        ],
+        "rightPins": [],
+        "flanks": [
+          {
+            "row": 11,
+            "col": 13,
+            "pins": [
+              {
+                "component": "ESP32",
+                "pin": "R12",
+                "row": 11,
+                "col": 13,
+                "net": "FLOATING"
+              }
+            ],
+            "wireEndpoints": [],
+            "alreadyDrilled": false,
+            "basicDrillCandidate": false
+          },
+          {
+            "row": 11,
+            "col": 14,
+            "pins": [],
+            "wireEndpoints": [],
+            "alreadyDrilled": false,
+            "basicDrillCandidate": true
+          }
+        ]
+      }
+    ],
+    "wireViolations": [
+      {
+        "wire": 1,
+        "netNames": [
+          "net9"
+        ],
+        "from": {
+          "row": 21,
+          "col": 3
+        },
+        "to": {
+          "row": 8,
+          "col": 31
+        },
+        "violations": [
+          "NONVERTICAL",
+          "SLANTED",
+          "CROSSINGS"
+        ],
+        "crossingComponents": [
+          "5v Buck",
+          "ESP32",
+          "D1",
+          "BMS"
+        ],
+        "stackedWith": []
+      },
+      {
+        "wire": 2,
+        "netNames": [
+          "net23"
+        ],
+        "from": {
+          "row": 11,
+          "col": 3
+        },
+        "to": {
+          "row": 6,
+          "col": 32
+        },
+        "violations": [
+          "NONVERTICAL",
+          "SLANTED",
+          "CROSSINGS"
+        ],
+        "crossingComponents": [
+          "ESP32",
+          "BMS",
+          "AmpRight"
+        ],
+        "stackedWith": []
+      },
+      {
+        "wire": 3,
+        "netNames": [
+          "net2"
+        ],
+        "from": {
+          "row": 10,
+          "col": 3
+        },
+        "to": {
+          "row": 10,
+          "col": 15
+        },
+        "violations": [
+          "NONVERTICAL",
+          "HORIZONTAL",
+          "CROSSINGS"
+        ],
+        "crossingComponents": [
+          "ESP32"
+        ],
+        "stackedWith": []
+      },
+      {
+        "wire": 6,
+        "netNames": [
+          "net6"
+        ],
+        "from": {
+          "row": 9,
+          "col": 3
+        },
+        "to": {
+          "row": 5,
+          "col": 31
+        },
+        "violations": [
+          "NONVERTICAL",
+          "SLANTED",
+          "CROSSINGS"
+        ],
+        "crossingComponents": [
+          "ESP32",
+          "BMS",
+          "AmpRight"
+        ],
+        "stackedWith": []
+      },
+      {
+        "wire": 8,
+        "netNames": [
+          "net1"
+        ],
+        "from": {
+          "row": 14,
+          "col": 16
+        },
+        "to": {
+          "row": 9,
+          "col": 16
+        },
+        "violations": [
+          "STACKED"
+        ],
+        "crossingComponents": [],
+        "stackedWith": [
+          4
+        ]
+      },
+      {
+        "wire": 10,
+        "netNames": [
+          "3V3"
+        ],
+        "from": {
+          "row": 0,
+          "col": 21
+        },
+        "to": {
+          "row": 6,
+          "col": 1
+        },
+        "violations": [
+          "NONVERTICAL",
+          "SLANTED",
+          "CROSSINGS"
+        ],
+        "crossingComponents": [
+          "ESP32",
+          "L1"
+        ],
+        "stackedWith": []
+      },
+      {
+        "wire": 11,
+        "netNames": [
+          "5V"
+        ],
+        "from": {
+          "row": 22,
+          "col": 3
+        },
+        "to": {
+          "row": 22,
+          "col": 15
+        },
+        "violations": [
+          "NONVERTICAL",
+          "HORIZONTAL",
+          "CROSSINGS"
+        ],
+        "crossingComponents": [
+          "ESP32"
+        ],
+        "stackedWith": []
+      },
+      {
+        "wire": 18,
+        "netNames": [
+          "GND"
+        ],
+        "from": {
+          "row": 18,
+          "col": 18
+        },
+        "to": {
+          "row": 0,
+          "col": 15
+        },
+        "violations": [
+          "NONVERTICAL",
+          "SLANTED"
+        ],
+        "crossingComponents": [],
+        "stackedWith": []
+      }
+    ],
+    "rows": 24,
+    "cols": 56,
+    "area": 1344,
+    "wires": 19,
+    "offAxis": 5,
+    "crossings": 14,
+    "stacked": 1,
+    "cuts": 57,
+    "knife": 11,
+    "connOff": 5,
+    "connIn": 0,
+    "conflicts": 0,
+    "incomplete": 4,
+    "geo": 0,
+    "bodyOverhangWarnings": [],
+    "issues": [
+      "21 wires could not be made straight and crossing-free"
+    ],
+    "cliVersion": "v1.60-cli-audit",
+    "strictValid": false,
+    "strictFailures": [
+      "QUALITY_4",
+      "INCOMPLETE_4",
+      "NONVERTICAL_7",
+      "SLANTED_5",
+      "CROSSINGS_14",
+      "SOLVER_ISSUES"
+    ],
+    "diagonalsActual": 7,
+    "slantedWires": 5,
+    "horizontalWires": 2,
+    "moveSummary": {
+      "attempted": 50000,
+      "mutateFailed": 0,
+      "decodeFailed": 0,
+      "rejected": 32658,
+      "accepted": 17342,
+      "sameBoard": 15059,
+      "newBest": 87,
+      "byKind": {
+        "0": 3018,
+        "1": 5536,
+        "2": 1577,
+        "3": 1591,
+        "4": 2049,
+        "5": 3696,
+        "6": 4672,
+        "7": 3654,
+        "8": 5498,
+        "9": 1146,
+        "10": 1146,
+        "11": 1452,
+        "12": 14965
+      },
+      "percent": {
+        "mutateFailed": 0,
+        "decodeFailed": 0,
+        "rejected": 65.32,
+        "accepted": 34.68,
+        "sameBoard": 30.12
+      }
+    }
+  },
+  "finishTraces": [
+    {
+      "seed": 1688,
+      "selected": "router",
+      "repair": {
+        "score": 430913.6370135627,
+        "scoreTerms": {
+          "quality": 0,
+          "overCap": 0,
+          "offAxis": 11,
+          "crossings": 32,
+          "stacked": 0,
+          "mess": 43,
+          "qualityCost": 0,
+          "messCost": 430000,
+          "price": 913.6370135627147
+        },
+        "eligible": false,
+        "quality": 0,
+        "columnShiftWires": 11,
+        "slantedWires": 9,
+        "horizontalWires": 2,
+        "crossings": 32,
+        "stacked": 3,
+        "knife": 8,
+        "forcedKnife": 8,
+        "avoidableKnife": 0,
+        "wires": 20,
+        "cuts": 54,
+        "issues": [
+          "43 wires could not be made straight and crossing-free"
+        ],
+        "verification": {
+          "compliant": false,
+          "failReasons": [
+            "COLUMN_SHIFT",
+            "CROSSINGS",
+            "ISSUES",
+            "LOCKED_BOARD"
+          ],
+          "conflicts": 0,
+          "incomplete": 0,
+          "geometry": 0,
+          "crossingsHarness": 32,
+          "lockedBoardKept": false,
+          "lockedPartsKept": true
+        }
+      },
+      "router": {
+        "score": 4000210947.754699,
+        "scoreTerms": {
+          "quality": 4,
+          "overCap": 0,
+          "offAxis": 7,
+          "crossings": 14,
+          "stacked": 0,
+          "mess": 21,
+          "qualityCost": 4000000000,
+          "messCost": 210000,
+          "price": 947.7546991504673
+        },
+        "eligible": null,
+        "quality": 4,
+        "columnShiftWires": 7,
+        "slantedWires": 5,
+        "horizontalWires": 2,
+        "crossings": 14,
+        "stacked": 1,
+        "knife": 11,
+        "forcedKnife": 8,
+        "avoidableKnife": 3,
+        "wires": 19,
+        "cuts": 57,
+        "issues": [
+          "21 wires could not be made straight and crossing-free"
+        ],
+        "verification": {
+          "compliant": false,
+          "failReasons": [
+            "QUALITY",
+            "INCOMPLETE",
+            "COLUMN_SHIFT",
+            "CROSSINGS",
+            "ISSUES"
+          ],
+          "conflicts": 0,
+          "incomplete": 4,
+          "geometry": 0,
+          "crossingsHarness": 14,
+          "lockedBoardKept": true,
+          "lockedPartsKept": true
+        }
+      },
+      "routePhases": {
+        "initialRoute": 13.472792000000027,
+        "fallbackRoute": 8.099929999999858,
+        "compaction": 0.0016669999999976426,
+        "insertWireChannels": 0.0015200000000277214,
+        "repairSlantWires": 0.0007020000000466098,
+        "freeLinePass": 0.0008940000000166037,
+        "trim": 0.30888499999991836,
+        "cutCleanupAndDrill": 0.0009399999999004649
+      },
+      "anyCompliant": false,
+      "selectedCompliant": false
+    }
+  ],
+  "command": [
+    "node",
+    "/Users/nick/Documents/stripboard-optimiser/src/frontend/tests/solver/v5Solve.js",
+    "--data",
+    "/Users/nick/Desktop/audioex_debug50_git/jobs/seed_1688/input",
+    "--id",
+    "1",
+    "--seed",
+    "1688",
+    "--moves",
+    "50000",
+    "--native",
+    "1",
+    "--strict",
+    "1",
+    "--drilled",
+    "0",
+    "--nostack",
+    "0",
+    "--drill-domain",
+    "0",
+    "--wire-polish",
+    "0",
+    "--routing-preference",
+    "wires",
+    "--finish-trace",
+    "1",
+    "--move-summary",
+    "1",
+    "--save",
+    "/Users/nick/Desktop/audioex_debug50_git/jobs/seed_1688/candidate.json"
+  ]
+}

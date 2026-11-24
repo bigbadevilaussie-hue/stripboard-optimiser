@@ -1,0 +1,1 @@
+{"valid":false,"failures":["NONVERTICAL_7","BODY_CROSSINGS_9"],"warnings":["BODY_OVERHANG_C7"],"wires":19,"cuts":53,"stacked":0,"nonvertical":7,"crossings":9,"conflicts":0,"incomplete":0,"geometry":0,"wireLength":193.521,"unplaced":[]}
