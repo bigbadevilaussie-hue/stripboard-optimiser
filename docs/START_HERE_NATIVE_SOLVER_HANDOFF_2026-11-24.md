@@ -280,6 +280,35 @@ The next benchmark was requested with **drilled-only OFF** (knife cuts allowed),
 
 The new runner and its pure schedule/ranking tests are committed, **not yet tested on the user's Mac**. Primary entry: [docs/native-fixed-usb-200x25k-sweep.md](native-fixed-usb-200x25k-sweep.md). That file has the exact `git pull`, unittest, TypeScript/native build and 200-seed execution command, archive tree and `--resume` procedure. It records source Git hash and binary hashes, `STRIPBOARD_TIMING=1`, move outcome histogram, finish trace, independently verified strict reason codes, JSONL checkpoint and top five distinct full-geometry signatures. User selected `--wire-polish yes` for strict-quality assistance in the example command. **No timing results or best five can be reported until the Mac completes the sweep.** Existing source master and prior runs are left unchanged.
 
+## 8E. 200×25k USB-FIXED sweep **COMPLETE** — 24 Nov 2026 (LATEST EVIDENCE)
+
+**Actual result pasted from user's Mac:** 200/200 solves completed in **150.08 seconds** with 6 workers and **no USB sliding** (all 200 seeds at source row13 col47). `--drilled 0` allowed knives, `--nostack 0` allowed stacking, `--wire-polish yes` enabled experimental local post-pass, native Edge build. All configuration tests (6/6) and builds passed. Strict electrical, locked 24×56, vertical wire and body-crossing rules remained mandatory.
+
+**0 of 200 strictly solved.** The top-five *solved* ranking must remain empty; do **not** mark invalid near-misses as solves. All candidate JSONs were archived under `~/Desktop/motoex_native_fixed_200x25k_v1/rejected/` and per-seed timing/diagnostics under `results.jsonl`, `results.csv`, `jobs/`. **63 of 199 routed boards were electrically complete**, but none satisfied both zero nonvertical and zero crossings; seed162 never found a fitting placement. This is a **routing/placement repair bottleneck**, not a reason to relax the remaining hard validators. Mean per-seed elapsed time reported in terminal was ~4.45s, with overlap across six processes.
+
+Top five **invalid** electrical-first / fewest-remaining-wire-defects candidates, retained for post-analysis:
+
+| Seed | W/C | Incomplete | Nonvertical | Crossings | Knives allowed | Stacks allowed |
+|---:|---:|---:|---:|---:|---:|---:|
+| 157 | **43/59** | 0 | **0** | **1** | 10 | 7 |
+| 129 | **40/56** | 0 | **1** | **0** | 7 | 4 |
+| 151 | 40/56 | 0 | 1 | 2 | 9 | 6 |
+| 111 | 42/58 | 0 | 1 | 2 | 9 | 6 |
+| 69 | 56/72 | 0 | 1 | 2 | 24 | 18 |
+
+The first two nearly satisfy the chosen physical rules. Next: inspect seed157's sole component crossing and seed129's sole nonvertical wire; apply **generic bounded conflict-directed component relocation or multiwire rip-up/reroute**, independently verify full projects and preserve fixed physical board. **No need to rerun all 200.**
+
+A new post-processor `scripts/analyze_motoex_native_sweep.py` and synthetic tests in `scripts/tests/test_analyze_motoex_native_sweep.py` are committed, but have **not been run yet on the user's Mac**. It consumes existing `results.jsonl`, copies the five nearest incomplete/invalid candidates into `analysis/near_misses/`, and reports full saved wire-violation details, timings and fit/CPU/finisher counts. It does not overwrite the 200 original JSONs.
+
+```bash
+cd ~/Documents/stripboard-optimiser
+git pull --ff-only
+PYTHONPATH=scripts python3 -m unittest discover -s scripts/tests -p 'test_analyze_motoex_native_sweep.py' -v
+python3 scripts/analyze_motoex_native_sweep.py --out ~/Desktop/motoex_native_fixed_200x25k_v1 --top 5
+```
+
+Latest detailed run results: [docs/native-fixed-usb-200x25k-sweep.md](native-fixed-usb-200x25k-sweep.md). Previous §8D “not run” language is historical and superseded by this section.
+
 ## 9. Starting a new ChatGPT chat
 
 Suggested initial instruction: **“Read `docs/START_HERE_NATIVE_SOLVER_HANDOFF_2026-11-24.md`, root `README.md`, `project.md` and `docs/native-edge-slide-motoex.md` from branch `feature/native-edge-slide-motoex` in `bigbadevilaussie-hue/stripboard-optimiser`. Continue the general-purpose native optimiser where we left off. The immediate job is to compile/test/replay `wireColumnPolish.ts` on existing 500k saved layouts and fix it, then tackle net6 and integrate edge-slide into native anneal. Do not hard-code for MOTOEX. Quality/strict verification first; use existing branch; make code and commits, not just plans.”**
