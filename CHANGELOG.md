@@ -94,3 +94,14 @@ documentation together. A Git release tag is separate from the branch version.
 - Keep source JSON, persistent sidecars, board/copper views, exact donor
   dimensions/spacing/lock-review workflow and solver hard stop untouched.
 - Add unit and Qt smoke test coverage of raster generation and switching.
+
+### Route-Mate GUI 2.01 — independent GUI versioning (24 November 2026)
+
+- Bumped the desktop GUI to **2.01** after the schematic-view integration
+  and the restored Tk-compatible librsvg schematic display.
+- Added `gui/VERSION` as the single source of the GUI's displayed version.
+- Kept the root `VERSION` and npm package release at **2.00 / 2.0.0**.
+- Required future changes to GUI and GUI-renderer/import integration to
+  increment `gui/VERSION` and update this changelog in the same commit.
+- No changes to the native solver, SVG drawing code, original lock workflow
+  or hard stop before Pass 1.

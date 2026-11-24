@@ -18,9 +18,13 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-_VERSION_FILE = REPO_ROOT / "VERSION"
-GUI_VERSION = (_VERSION_FILE.read_text(encoding="utf-8").strip()
-               if _VERSION_FILE.is_file() else "1.44")
+# The GUI has its own release counter; the top-level VERSION stays at 2.00
+# for the two-repository consolidation milestone.
+_GUI_VERSION_FILE = REPO_ROOT / "gui" / "VERSION"
+_ROOT_VERSION_FILE = REPO_ROOT / "VERSION"
+GUI_VERSION = (_GUI_VERSION_FILE.read_text(encoding="utf-8").strip()
+               if _GUI_VERSION_FILE.is_file()
+               else _ROOT_VERSION_FILE.read_text(encoding="utf-8").strip())
 CODE_VERSION = GUI_VERSION
 
 from PySide6.QtCore import Qt, QByteArray, QPoint, QThread, Signal, QTimer

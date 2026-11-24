@@ -1,4 +1,4 @@
-# Route-Mate 2.00 — direct PySide6 GUI import
+# Route-Mate GUI 2.01 — direct PySide6 GUI import
 
 Donor: `bigbadevilaussie-hue/Route-Mate`, audited commit
 `bb764a0b61cbf813d4abc687ef6c596243abc929` (Route-Mate GUI 1.44).
@@ -111,3 +111,14 @@ Neither the compiled schematic generator, original project/sidecars nor
 the original component-side/copper SVG board viewer is altered. Component
 locks, board dimensions and the disabled native CLI remain untouched.
 Regression test: `python3 -m unittest discover -s tests -p 'test_schematic_tk_raster.py' -v`.
+
+## GUI version policy
+
+**GUI release: 2.01** (`gui/VERSION`). The Git repository's consolidated
+solver milestone remains **2.00** (`VERSION`). The window title and GUI
+Activity startup message read `gui/VERSION`, not the root file.
+
+**Every change to the GUI or its rendering/import integration must bump
+`gui/VERSION` in the same commit** (2.02, 2.03, etc.) and document the
+change in `CHANGELOG.md`. Changes only to the headless solver or tests do
+not require a GUI version bump.

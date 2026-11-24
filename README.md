@@ -2,7 +2,7 @@
 
 **Release milestone:** Version 2.00 — Consolidation of Two Repositories (24 November 2026).
 
-**Git version:** `v2.00` · **npm/package version:** `2.0.0`.
+**Git version:** `v2.00` · **npm/package version:** `2.0.0` · **Route-Mate GUI version:** `2.01` (see `gui/VERSION`).
 
 See [CHANGELOG.md](CHANGELOG.md) for release scope.
 
