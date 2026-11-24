@@ -50,6 +50,7 @@ class GuiShellSmoke(unittest.TestCase):
             project_path = Path(tmp) / "motoex.json"
             project_path.write_bytes(source_bytes)
             window = RouteMateWindow()
+            window.work_root = Path(tmp) / "Work"
             try:
                 with (
                     patch("gui.main.QFileDialog.getOpenFileName",
@@ -145,6 +146,7 @@ class GuiShellSmoke(unittest.TestCase):
             project_path = Path(tmp) / "motoex.json"
             project_path.write_bytes(source_path.read_bytes())
             window = RouteMateWindow()
+            window.work_root = Path(tmp) / "Work"
             try:
                 with (
                     patch("gui.main.QFileDialog.getOpenFileName",
