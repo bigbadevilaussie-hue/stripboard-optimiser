@@ -144,7 +144,8 @@ function verify(b, components, nets, assignments, defs) {
 /**
  * Geometric invariants every layout must satisfy: span limits, flexible
  * bodies not intersecting/too close, corridors clear of pins and rigid
- * bodies, flexible bodies clear of rigid footprints, everything on-board.
+ * bodies, flexible bodies clear of rigid footprints and all electrical pins
+ * on-board. Package-body overhang alone is a separately reported warning.
  */
 function checkGeometry(b, components, defs) {
   const d = defs ?? DEFS;

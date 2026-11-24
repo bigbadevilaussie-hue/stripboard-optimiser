@@ -487,7 +487,7 @@ static int flexCellBad(i32 r, i32 c, int modeV) {
 // A body wider than the line between its legs (a can) lies over holes of its
 // own: nothing else may use them, and a link through them runs under the
 // part. Off-board covered holes are clipped from routing occupancy, but the
-// exact capsule boundary is independently penalised in geoBad below.
+// exact capsule boundary is independently soft-penalised as bodyOverhang.
 static void claimBody(i32 pi, i32 r1, i32 c1, i32 r2, i32 c2) {
   if (!pFat[pi]) return;
   double cap[5];
