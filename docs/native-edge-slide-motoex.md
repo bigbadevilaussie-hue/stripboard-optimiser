@@ -1,5 +1,8 @@
 # MOTOEX native Edge + Slide — implementation and iMac test
 
+> **New separate fixed-column 200-seed quality sweep:** [200 × 25k, drills-only OFF, stacking allowed, Slide OFF](native-fixed-usb-200x25k-sweep.md). This tournament fixes USB at original (13,47) for all 200 seeds, archives every solved project and records timings, failure diagnostics and the top five. **Do not confuse it with the Edge+Slide column-search controller described below.** Sliding is a future explicit `--slide yes` option. As of 24 November 2026 this tournament script is committed but unexecuted on the Mac.
+
+
 **Status: opt-in feature branch, not yet verified on the user's iMac.** No WR or default build was changed.
 
 ## Real fixture and required semantics
