@@ -220,3 +220,10 @@ documentation together. A Git release tag is separate from the branch version.
   a new compiled revision can generate a fresh splash. GUI-only visibility;
   the native CLI and both headless renderer CLIs retain their stderr splashes.
 - No wiring, routing, strict acceptance, SVG content or saved project changes.
+
+### Standalone renderer compiled CLI splash sync (24 November 2026)
+
+- Committed the built renderer and schematic JavaScript entry points and the
+  shared compiled revision helper alongside their TypeScript source, so a clean
+  `git pull` displays revision splashes without a local build or dirty dist.
+- Added lightweight Node startup checks for both compiled renderers.

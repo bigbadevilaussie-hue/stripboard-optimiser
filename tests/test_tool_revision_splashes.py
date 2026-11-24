@@ -29,6 +29,20 @@ class ToolRevisionSplashTests(unittest.TestCase):
         self.assertIn("buildSha(dist)", shared)
         self.assertIn("process.stderr.write(", shared)
 
+    def test_compiled_renderers_print_revision_before_usage(self):
+        base = ROOT / "src/frontend/standalone-renderer/dist/standalone-renderer"
+        for tool, entry in (("RENDER", base / "cli.js"),
+                            ("SCHEMATIC", base / "schematic/cli.js")):
+            with self.subTest(tool=tool):
+                if not entry.is_file():
+                    self.skipTest("Compiled renderer dist not installed")
+                run = subprocess.run(["node", str(entry)],
+                                     capture_output=True, text=True, check=False)
+                self.assertNotEqual(run.returncode, 0)
+                self.assertEqual(run.stdout, "")
+                self.assertIn(f"[TOOL-REVISION] tool={tool}", run.stderr)
+                self.assertIn("build_sha256=", run.stderr)
+
     def test_gui_reports_cli_revisions(self):
         code = (ROOT / "gui/main.py").read_text()
         self.assertIn('self._show_tool_revision(_renderer_log, "RENDER")', code)

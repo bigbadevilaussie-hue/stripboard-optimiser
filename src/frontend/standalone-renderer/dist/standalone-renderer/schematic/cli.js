@@ -37,6 +37,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
 const render_1 = require("./render");
+const toolSplash_1 = require("../toolSplash");
+(0, toolSplash_1.printRendererSplash)("SCHEMATIC");
 const args = process.argv.slice(2);
 if (args.length === 0) {
     console.error("Usage: node cli.js <project.json> --output <dir>");

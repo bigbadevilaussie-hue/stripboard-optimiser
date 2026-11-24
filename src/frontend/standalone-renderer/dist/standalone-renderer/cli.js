@@ -40,11 +40,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
 const render_1 = require("./render");
+const toolSplash_1 = require("./toolSplash");
 function usage() {
     console.error("Usage: node dist/cli.js <project.json> [--output <dir>]");
     process.exit(1);
 }
 function main() {
+    (0, toolSplash_1.printRendererSplash)("RENDER");
     const args = process.argv.slice(2);
     if (args.length === 0)
         usage();
