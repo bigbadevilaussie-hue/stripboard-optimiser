@@ -1,5 +1,42 @@
 # Stripboard Optimiser
 
+## 🚀 Current work — START HERE (24 November 2026)
+
+**If resuming in a new chat, read the [complete native optimiser handover](docs/START_HERE_NATIVE_SOLVER_HANDOFF_2026-11-24.md) FIRST.** It contains the working branch, code map, verified build tests, exact MOTOEX on/off/500k results, remaining defects, saved result paths, reproducible commands and next engineering steps. Companion source-of-truth notes: [native Edge/Slide implementation](docs/native-edge-slide-motoex.md), [project specification](project.md), [Route-Mate GUI integration roadmap](docs/route-mate-native-solver-integration-roadmap.md).
+
+| Item | As-of 24 Nov 2026 |
+|---|---|
+| Repository / work branch | `bigbadevilaussie-hue/stripboard-optimiser` · `feature/native-edge-slide-motoex` (keep working on it; no extra branch required) |
+| Current focus | **General-purpose native solver quality**: strict 24×56 physical board; real on-board GPS+USB test; drilled cuts, vertical uncrossing/unstacked wires, electrical completeness |
+| Confirmed on the user's Mac | Portable macOS native addon build; Edge decoder build; generic drill rotation and knife-cut synthetic tests; col25 **20k domain ON** first physical fit move **1,194 / 77 ms**, no incomplete nets; domain OFF original signature **`e69806eb68fc`** matches |
+| Observed 500k comparison | Col25 domain ON: **40 wires / 56 cuts, electrically complete, 2 knives, 8 crossings, 4 stacks**; col41 domain ON: **23 wires / 44 cuts, net6 incomplete, 2 knives, 0 crossings, 2 stacks** — user-supplied one-seed results, neither strict PASS |
+| Just committed, **not yet Mac-tested** | Generic fixed-board wire-column and knife→drill polish, CLI `--wire-polish 1`, fixture `--wire-polish yes`, synthetic `testWireColumnPolish.js`, saved-board replay `polishSavedLayout.js`, net-corridor audit |
+| Most useful next work | Compile/run polish test, then polish **existing** 500k saved JSONs without annealing, diagnose net6; fix actual failures and use strict independent verification |
+| Broader pending | 80-signature opt-out parity suite, multiple 500k seeds, native in-anneal USB slide, general finisher improvement, GUI migration **later** |
+
+**Product rule:** MOTOEX is only a **stress-test fixture**. **Never hard-code a particular component (GPS/USB), footprint, column, rotation or net in the solver.** Infer constraints from geometry, net assignments, selected board pattern and build options. A valid result needs independent **zero opens, zero shorts, no illegal geometry, no slants/horizontal jumpers, no crossings, no stacks, drilled-only cuts and exact physical board fit** when these strict options are requested. Low wire count or a physically fitting arrangement is **not** a strict pass. The older **W14/C30 reference** had GPS and USB moved off-board and is **not** an apples-to-apples on-board MOTOEX benchmark.
+
+### Quick developer restart (current native work)
+
+From the repository root:
+
+```sh
+cd ~/Documents/stripboard-optimiser
+git status -sb
+git pull --ff-only
+cd src/frontend
+npx tsc -p tests/solver/tsconfig.json
+npm run build:native
+npm run build:native:edge
+node tests/solver/testDrilledRotationDomain.js
+node tests/solver/testKnifeCutAudit.js
+node tests/solver/testWireColumnPolish.js
+```
+
+Build is now portable on macOS/Linux: `npm run build:native` discovers Node headers using `tests/solver/native/buildAddon.js`. There is **no need** to hard-code `-I/usr/include/node` or manually compile the addon on an iMac. The final test above is **pending validation**; if it fails, fix the code before launching an anneal. Check the [handover](docs/START_HERE_NATIVE_SOLVER_HANDOFF_2026-11-24.md) for specific existing saved-file commands. Native Edge is still a CLI experiment: the current Tk and inherited web GUIs are **not** proven to use this experimental pipeline yet.
+
+---
+
 **A stripboard (Veroboard) layout optimiser built on the Stripboard Editor project.**
 
 Stripboard Optimiser is a development fork of [KarloFunke's Stripboard Editor](https://github.com/KarloFunke/stripboard-editor). The aim is to retain the editor's useful stripboard design workflow while adding a headless optimisation engine, independent layout validation, candidate comparison and a dedicated desktop interface.
@@ -22,6 +59,8 @@ Further development and release capabilities include:
 The detailed requirements and staged development plan are maintained in [project.md](project.md).
 
 **Solver-first integration plan:** [Route-Mate GUI + sidecar with the native solver (GUI migration deferred until solver quality gates)](docs/route-mate-native-solver-integration-roadmap.md).
+
+**Current native development handover:** [START HERE — 24 November 2026](docs/START_HERE_NATIVE_SOLVER_HANDOFF_2026-11-24.md). All older desktop tournament and 20k/500k records below should be read as **historical snapshots** unless corroborated against current source.
 
 **MOTOEX edge-mount regression:** [24×56 locked USB overhang test](docs/motoex-locked-usb-24x56-regression.md) — one locked USB, other component positions discarded, exact output geometry and strict CLI gate.
 
@@ -224,20 +263,22 @@ These files belong to the existing web application deployment. They are not the 
 
 The active desktop application is the Tkinter GUI in `desktop/`. It is the current optimisation interface; the inherited web GUI is not the tournament interface.
 
-### Build and launch on macOS (Intel)
+### Build and launch on macOS (legacy Tk GUI)
 
-The Tk GUI is the desktop optimiser. On the Intel Mac, build the native Node addon and its two C libraries from `src/frontend`, then launch the GUI from `desktop`.
+The Tk GUI is the older desktop optimiser; **it is not yet the target GUI for the experimental native Edge/Slide and wire-polish work**. Build the native harness with the **portable**, tested npm script, not manually hard-coded Node include paths.
 
-Requirements: Node.js, Python 3, Clang, the Node.js development header at `/usr/local/include/node/node_api.h`, and the compiled v5 JavaScript/WASM solver assets.
+Requirements: Node.js, Python 3 with Tkinter, Clang, compiled v5 JavaScript/WASM solver assets, and Node development headers for the installed Node version. The builder checks common macOS/Linux header locations and accepts `NODE_INCLUDE_DIR` as an override.
 
-Build the native solver (run from the repository root):
+Build the native solver (from the repository root):
 
 ```bash
 cd src/frontend
-clang -O3 -fPIC -dynamiclib -o tests/solver/native/build/libv5decode.so components/stripboard/v5wasm/decode.c -lm
-clang -O3 -fPIC -dynamiclib -o tests/solver/native/build/libv5route.so components/stripboard/v5wasm/route.c -lm
-clang -O2 -bundle -undefined dynamic_lookup -I/usr/local/include/node -o tests/solver/native/build/v5native.node tests/solver/native/addon.c
+npx tsc -p tests/solver/tsconfig.json
+npm run build:native
+npm run build:native:edge
 ```
+
+`build:native` builds the normal native libraries and addon; `build:native:edge` builds a **separate experimental C decoder** used by the Edge/Slide test controller. No GUI integration is implied by building the experimental decoder.
 
 Launch the Tk GUI:
 
