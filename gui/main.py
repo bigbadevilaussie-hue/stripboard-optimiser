@@ -313,7 +313,7 @@ class WorkflowChecklist(QWidget):
 
     STAGES = (
         ("COLLECT", "Project imported"),
-        ("SANITY", "Netlist checked"),
+        ("SANITY", "Electrical input checked"),
         ("PRE-SOLVE", "Footprints analysed"),
         ("CONSTRAINTS", "Placement locks"),
         ("QUICK FIT", "Components placed"),
@@ -335,7 +335,7 @@ class WorkflowChecklist(QWidget):
         layout.setContentsMargins(15, 15, 15, 12)
         layout.setSpacing(8)
         heading = QHBoxLayout()
-        title = QLabel("Quick Solve progress")
+        title = QLabel("JSON import/preflight")
         title.setObjectName("workflowTitle")
         self.percent = QLabel("0%")
         self.percent.setObjectName("workflowPercent")
@@ -373,7 +373,7 @@ class WorkflowChecklist(QWidget):
         )
         self.lock_warning.hide()
         layout.addWidget(self.lock_warning)
-        note = QLabel("Electrical verification complete · physical clearance not certified")
+        note = QLabel("Input sanity only · routing and physical verification NOT run")
         note.setWordWrap(True)
         note.setStyleSheet("font-size: 10px; color: #697586;")
         layout.addWidget(note)
@@ -1636,7 +1636,7 @@ class RouteMateWindow(QMainWindow):
         self._stop_requested = False
         self.stop_action.setEnabled(False)
         self.load_action.setEnabled(True)
-        self.render_action.setEnabled(True)
+        self.render_action.setEnabled(False)  # Import-only milestone
         self.solve_action.setEnabled(False)  # Import-only milestone; never arm solver
         self.review_locks_action.setEnabled(False)
         if self._close_when_idle:
