@@ -8,10 +8,53 @@ See [CHANGELOG.md](CHANGELOG.md) for release scope.
 
 ## Headless solver
 
-**This repository is for the standalone optimiser, not a GUI or web application.**
-The legacy Tk desktop application, Next.js editor, Django backend and deployment
-configuration have been removed from the current branch. Git history retains
-earlier versions if needed for archaeology; they are not part of this product.
+**One native solver, plus an import-only desktop GUI shell.**
+The obsolete Tkinter GUI, Next.js web editor, Django backend and deployment
+stack have been removed. The Route-Mate PySide6 GUI is being directly transplanted
+at the same `gui/` and `run_gui.py` paths, but **optimisation is disabled** until
+the existing native CLI adapter has been implemented and independently tested.
+The GUI is not a second optimiser.
+
+## Current GUI milestone — JSON sniff + checks, then STOP
+
+The Route-Mate 1.44 PySide6 window has been copied into the repository,
+including its icons, source import support, electrical input sanity
+checks, read-only geometry contracts and local standalone renderer bridge.
+The old Python Quick Solve/Hell Mode routing engines are **not included**.
+
+```sh
+python3 -m pip install -r requirements-gui.txt
+python3 run_gui.py
+```
+
+Use **Load JSON**. The GUI checks the source JSON schema and board dimensions,
+counts components/nets/pins, identifies unresolved footprints, checks electrical
+**input metadata integrity** (not a solved-board electrical certification),
+displays existing placements and attempts a read-only preview via the included
+local SVG renderer. It then **STOPS BEFORE PASS 1**.
+
+No search, routing, worker calibration, speed probe, solver subprocess or
+Pass 1 is started. All solve controls remain disabled. No source JSON or
+pipeline sidecar is written.
+
+The same checks can be run without PySide6:
+
+```sh
+python3 -m gui.preflight test-fixtures/masters/moto/motoex.json
+python3 -m unittest discover -s tests -p 'test_gui_*' -v
+```
+
+If preview is unavailable, the JSON and input-sanity checks still complete.
+To enable preview, compile the existing local renderers:
+
+```sh
+cd src/frontend
+npm install
+npm run build:renderers
+```
+
+This is **not** an end-to-end GUI integration. Next milestone will bind
+the same existing native CLI to the GUI, with no duplicate solver.
 
 ## What remains
 

@@ -35,3 +35,18 @@ establishes the unified repository as a **headless stripboard optimiser**.
 The project-facing designation **2.00** maps to the semantic package version
 **2.0.0**. This commit updates `VERSION`, the package metadata and project
 documentation together. A Git release tag is separate from the branch version.
+
+### Version 2.00 — Route-Mate GUI import checkpoint (24 November 2026)
+
+- Directly copied the Route-Mate GUI source and startup structure, plus
+  non-optimising collector, electrical sanity, package geometry, pipeline
+  records and Qt requirements.
+- Kept the existing local board SVG renderer; disabled donor's Git clone
+  and remote-renderer fetching.
+- Added `gui.preflight` for read-only JSON sniff, input electrical integrity,
+  footprint inventory, dimension and lock reporting, plus regression tests.
+- Removed donor Python Quick Solve worker imports and startup calibration.
+  **No solver is invoked.** All solve controls are disabled and the workflow
+  pauses immediately after the checks.
+- The existing C/TypeScript native CLI remains the sole future solver.
+- Both repository release version and GUI title remain **2.00**.

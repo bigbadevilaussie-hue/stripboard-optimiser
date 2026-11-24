@@ -7,9 +7,12 @@ version milestone; it is not a claim of a new solver algorithm or independently
 verified build on a fresh machine.
 
 
-This repository contains **only headless optimisation, verification, research
-scripts, fixture inputs and the existing standalone schematic/board SVG
-renderers**. There is no desktop GUI, web UI, API backend or deployment stack.
+This repository retains **one headless native optimisation engine**, verification,
+research scripts, fixture inputs and standalone schematic/board SVG renderers.
+A new **Route-Mate PySide6 desktop GUI shell** is now included at the donor's
+original `gui/` and `run_gui.py` locations. The first GUI milestone is deliberately
+limited to JSON sniff + input integrity checks, with all solver entry points
+disabled. There is still no web UI, Django backend or deployment stack.
 
 ## Purpose
 
