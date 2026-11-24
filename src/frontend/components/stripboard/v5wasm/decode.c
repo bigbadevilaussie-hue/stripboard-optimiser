@@ -1286,6 +1286,10 @@ static i32 decode(void) {
       rcMinR[pi] = yI[pi]; rcMaxR[pi] = r2; rcMinC[pi] = xI[pi]; rcMaxC[pi] = c2;
     }
   }
+  // For a locked board the purchased envelope, not the rightmost placed
+  // pin, determines the boundary. Unlocked boards include their margin.
+  i32 borderRows = lockRowsCap >= 0 ? lockRowsCap : GH;
+  i32 borderCols = lockColsCap >= 0 ? lockColsCap : GW;
   // Physical board boundaries lie half a pitch outside the outer hole
   // centres. A flexible can may have both pins within the PCB while its
   // actual round body hangs over the edge. Charge the same exact package
@@ -1298,16 +1302,16 @@ static i32 decode(void) {
     if (pKind[pi] == 1) {
       double *cp = rcCap + 5 * pi, r = cp[4];
       if (dmin(cp[0], cp[2]) + mRow - r < -0.5 - 1e-6 ||
-          dmax(cp[0], cp[2]) + mRow + r > GH - 0.5 + 1e-6 ||
+          dmax(cp[0], cp[2]) + mRow + r > borderRows - 0.5 + 1e-6 ||
           dmin(cp[1], cp[3]) + mCol - r < -0.5 - 1e-6 ||
-          dmax(cp[1], cp[3]) + mCol + r > GW - 0.5 + 1e-6) geoBad++;
+          dmax(cp[1], cp[3]) + mCol + r > borderCols - 0.5 + 1e-6) geoBad++;
     } else {
       double *bd = rcBody + 4 * pi, *reach = rcReach + 4 * pi;
-      int outside = bd[0] + mRow < -1e-6 || bd[1] + mRow > GH - 1 + 1e-6 ||
-                    bd[2] + mCol < -1e-6 || bd[3] + mCol > GW - 1 + 1e-6;
+      int outside = bd[0] + mRow < -1e-6 || bd[1] + mRow > borderRows - 1 + 1e-6 ||
+                    bd[2] + mCol < -1e-6 || bd[3] + mCol > borderCols - 1 + 1e-6;
       if (rcHasReach[pi]) outside |=
-        reach[0] + mRow < -1e-6 || reach[1] + mRow > GH - 1 + 1e-6 ||
-        reach[2] + mCol < -1e-6 || reach[3] + mCol > GW - 1 + 1e-6;
+        reach[0] + mRow < -1e-6 || reach[1] + mRow > borderRows - 1 + 1e-6 ||
+        reach[2] + mCol < -1e-6 || reach[3] + mCol > borderCols - 1 + 1e-6;
       if (outside) geoBad++;
     }
   }
