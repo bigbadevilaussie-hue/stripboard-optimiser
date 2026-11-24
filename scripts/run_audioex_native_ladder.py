@@ -161,7 +161,8 @@ def last_json(stdout: str) -> dict | None:
 
 
 def run_one(folder: Path, prepared: dict, moves: int, seed: int,
-            timeout: int, drilled: bool = False) -> dict:
+            timeout: int, drilled: bool = False,
+            drill_domain: bool = False, forensic: bool = False) -> dict:
     """Each worker owns one disjoint folder; never touches fixture or peers."""
     tag = f"moves_{moves:06d}_seed_{seed:03d}"
     job = folder / "jobs" / tag
@@ -172,8 +173,11 @@ def run_one(folder: Path, prepared: dict, moves: int, seed: int,
     command = ["node", str(CLI), "--data", str(job / "input"),
                "--id", "1", "--seed", str(seed), "--moves", str(moves),
                "--native", "1", "--strict", "1", "--drilled", "1" if drilled else "0",
-               "--nostack", "0", "--drill-domain", "0", "--wire-polish", "0",
+               "--nostack", "0", "--drill-domain", "1" if drill_domain else "0", "--wire-polish", "0",
                "--routing-preference", "wires", "--save", str(candidate)]
+    if forensic:
+        command.extend(["--debug-bypass-drill-precheck", "1", "--move-summary", "1",
+                        "--finish-trace", "1"])
     env = os.environ.copy()
     env["V5_NATIVE_LIB_DIR"] = str(EDGE_DECODE.parent)
     env.pop("V5_NATIVE_ROUTE_LIB_DIR", None)
