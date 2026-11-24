@@ -2045,37 +2045,106 @@ class RouteMateWindow(QMainWindow):
         self._solve_done = progress["done"]
         self.solve_progress.setValue(self._solve_done)
         passed = progress["qualified"]
+        errors = progress.get("errors", 0)
         self.solve_activity.setText(
             f"Pass One · {self._solve_done:,}/{progress['total']:,} "
-            f"seeds · {passed:,} verified"
+            f"confirmed · {passed:,} verified"
         )
         self.solve_worker_status.setText(
-            f"{self._recommended_workers} workers · {passed} strict+audited CSV rows"
+            f"{self._recommended_workers} workers · {passed} strict PASS · "
+            f"{errors} errors"
         )
         self._update_solve_clock()
 
+    def _display_pass_one_champion(self, result):
+        """Render only independently audited, repeatably replayed winner JSON."""
+        if not result.get("winner_json"):
+            return
+        path = Path(result["winner_json"])
+        champion = json.loads(path.read_text(encoding="utf-8"))
+        top_svg, details = self._render_component_side(champion)
+        copper_svg = self._copper_svg
+        if not copper_svg:
+            raise ValueError("Production renderer returned no copper-side SVG")
+        for kind, svg in (("component", top_svg), ("copper", copper_svg)):
+            if not QSvgRenderer(QByteArray(svg.encode("utf-8"))).isValid():
+                raise ValueError(f"Winner {kind}-side SVG failed SVG validation")
+        top_file = path.with_name(path.stem + "-components.svg")
+        copper_file = path.with_name(path.stem + "-copper.svg")
+        top_file.write_text(top_svg, encoding="utf-8")
+        copper_file.write_text(copper_svg, encoding="utf-8")
+        self._top_svg = top_svg
+        self._board_side = "top"
+        self._switch_board_side("top")
+        self._set_board_summary(
+            f"🏆 Pass One champion · {result['moves'] // 1000}k · "
+            f"seed {result['winner_seed']:04d} · strictly verified",
+            project=champion, level="pass",
+        )
+        self.log_line(f"[PASS1][WINNER][JSON] {path}")
+        self.log_line(f"[PASS1][WINNER][COMPONENTS] {top_file}")
+        self.log_line(f"[PASS1][WINNER][COPPER] {copper_file}")
+        if details:
+            self.log_line("[PASS1][WINNER][RENDER] " + details)
+
     def _pass_one_completed(self, result):
-        self._calibration_stages["PASS1"] = "done"
+        done = result.get("completed", True)
+        self._calibration_stages["PASS1"] = "done" if done else "failed"
         self._refresh_checklist()
-        self.solve_progress.setValue(result["seeds"])
+        self.solve_progress.setValue(result["checked"])
+        label = "PASS ONE COMPLETE" if done else "PASS ONE INCOMPLETE — RESUME AVAILABLE"
         self.solve_activity.setText(
-            f"PASS ONE COMPLETE · {result['qualified']:,} verified CSV rows"
+            f"{label} · {result['qualified']:,} verified CSV rows"
         )
         self.log_line(f"[PASS1][DELIVERED] {result['csv']}")
         self.log_line(f"[PASS1][LOG] {result['log']}")
-        self.log_line("[PASS1][STOP] No solved JSONs retained; Pass Two not started.")
+        self.log_line("[PASS1][STOP] Pass Two not started.")
+        if done:
+            if result.get("winner_error"):
+                self.log_line("[PASS1][WINNER][ERROR] " + result["winner_error"])
+                self._set_board_summary(
+                    "Pass One complete · winner replay failed (see Activity)",
+                    level="failed",
+                )
+            elif result.get("winner_json"):
+                try:
+                    self._display_pass_one_champion(result)
+                except (OSError, ValueError, RuntimeError, TypeError) as exc:
+                    self.log_line(f"[PASS1][WINNER][RENDER ERROR] {exc}")
+                    self._set_board_summary(
+                        "Pass One complete · winner JSON verified, SVG unavailable",
+                        level="failed",
+                    )
+                    QMessageBox.warning(
+                        self, "Pass One winner SVG failed",
+                        f"Winner JSON is saved; renderer failed: {exc}",
+                    )
+            else:
+                self._set_board_summary(
+                    "Pass One complete · no strict survivors",
+                    level="neutral",
+                )
+        else:
+            self._set_board_summary(
+                "Pass One incomplete · resume to retry missing/error seeds",
+                level="working",
+            )
         self.statusBar().showMessage(
-            f"Pass One complete — {result['qualified']} verified seeds in results.csv"
+            f"Pass One {'complete' if done else 'incomplete'} · "
+            f"{result['qualified']} verified · "
+            f"{result.get('errors', 0)} errors"
         )
 
     def _pass_one_failed(self, error):
         self._calibration_stages["PASS1"] = "failed"
         self._refresh_checklist()
-        self.solve_activity.setText("PASS ONE FAILED · see Activity; partial CSV retained")
+        self.solve_activity.setText("PASS ONE INCOMPLETE · see Activity; resume available")
+        self._set_board_summary("Pass One interrupted · existing CSV preserved", level="failed")
         self.log_line("[PASS1][ERROR] " + str(error))
 
     def _pass_one_cancelled(self):
-        self.solve_activity.setText("PASS ONE STOPPED · partial verified CSV retained")
+        self.solve_activity.setText("PASS ONE STOPPED · resume preserves PASS/FAIL rows")
+        self._set_board_summary("Pass One stopped · resume available", level="working")
         self.log_line("[PASS1][CANCELLED] No Pass Two automatically started.")
 
     def _pass_one_finished(self):
@@ -2086,6 +2155,8 @@ class RouteMateWindow(QMainWindow):
             )
         self._solve_started = None
         self._pass_one_worker = None
+        self._pass_one_resume_done = 0
+        self._pass_one_previous_average = None
         self.load_action.setEnabled(True)
         self.pass_one_action.setEnabled(True)
         self.pass_two_action.setEnabled(True)
@@ -2136,7 +2207,25 @@ class RouteMateWindow(QMainWindow):
                         return
                     workspace = dict(available)[selection]
                     chosen = selection
-            rows = read_pass_one(workspace)
+            sources = pass_one_campaign_sources(workspace)
+            if not sources:
+                raise FileNotFoundError(
+                    f"No Pass One CSV found for project {chosen}. "
+                    "No results were overwritten."
+                )
+            if len(sources) == 1:
+                label, source = sources[0]
+            else:
+                label, accepted = QInputDialog.getItem(
+                    self, "Pass Two — Choose Move Budget",
+                    "Which saved Pass One test should Pass Two import?",
+                    [name for name, _ in sources], 0, False,
+                )
+                if not accepted:
+                    self.log_line("[PASS2][CANCELLED] Budget not selected.")
+                    return
+                source = dict(sources)[label]
+            rows = read_pass_one(workspace, csv_path=source)
         except (OSError, ValueError, KeyError) as exc:
             self.log_line("[PASS2][INPUT ERROR] " + str(exc))
             QMessageBox.warning(self, "Pass Two needs project Pass One CSV", str(exc))
@@ -2146,14 +2235,13 @@ class RouteMateWindow(QMainWindow):
                 self, "Pass Two", "This project's results.csv contains no verified seeds."
             )
             return
-        source = workspace / PASS_ONE / "results.csv"
         dialog = PassTwoDialog(source, len(rows), self)
         if dialog.exec() != QDialog.DialogCode.Accepted:
             self.log_line(f"[PASS2][CANCELLED] {workspace / PASS_TWO} unchanged.")
             return
         try:
             # A different project's directories can never be the clear target.
-            path, count = prepare_pass_two(workspace)
+            path, count = prepare_pass_two(workspace, source_csv=source)
         except (OSError, ValueError) as exc:
             self.log_line("[PASS2][ERROR] " + str(exc))
             QMessageBox.critical(self, "Pass Two import failed", str(exc))
@@ -2216,13 +2304,17 @@ class RouteMateWindow(QMainWindow):
             return
         elapsed = max(0.0, perf_counter() - self._solve_started)
         if self._pass_one_worker is not None:
-            # Completed count includes strict rejects; CSV has survivors ONLY.
-            # Derive wall-clock throughput from actual completed solver jobs,
-            # including all 4 workers and native solver startup/finishing.
             remaining_seeds = max(0, self._solve_budget - self._solve_done)
-            if self._solve_done > 0 and elapsed > 0:
-                eta_seconds = elapsed * remaining_seeds / self._solve_done
+            measured_here = max(0, self._solve_done - self._pass_one_resume_done)
+            if not remaining_seeds:
+                remaining = "~0m 00s (finished)"
+            elif measured_here > 0 and elapsed > 0:
+                eta_seconds = elapsed * remaining_seeds / measured_here
                 remaining = f"~{self._clock_text(eta_seconds)} (observed throughput)"
+            elif self._pass_one_previous_average is not None:
+                eta_seconds = (remaining_seeds * self._pass_one_previous_average /
+                               max(1, self._recommended_workers or 1))
+                remaining = f"~{self._clock_text(eta_seconds)} (previous seed timings)"
             else:
                 remaining = "measuring first completed seed"
             self.solve_eta.setText(
