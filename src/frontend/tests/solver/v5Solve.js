@@ -44,6 +44,8 @@ const timingCpuStart = process.cpuUsage();
 const timingEnabled = process.env.STRIPBOARD_TIMING === "1";
 const fs = require("fs");
 const path = require("path");
+// Visible revision splash is stderr-only; the machine-readable result stays one JSON line.
+require("./toolIdentity.js").printSolverSplash(__filename);
 const { metrics } = require("./metricsLib.js");
 const { auditKnifeCuts } = require("./knifeCutAudit.js");
 const { DEFAULT_COMPONENTS, checkGeometry, verify, computeStripSegments, computeConnectivity,
