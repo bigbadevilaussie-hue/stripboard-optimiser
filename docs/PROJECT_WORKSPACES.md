@@ -9,8 +9,16 @@ Each loaded source JSON gets an isolated workspace under the existing repo
 Work/
   audio--<12 hexadecimal characters>/
     project.json.info
-    pass 1/results.csv
-    pass 1/activity.log
+    pass 1/10k/results.csv
+    pass 1/10k/activity.log
+    pass 1/10k/campaign.json
+    pass 1/20k/results.csv
+    pass 1/20k/activity.log
+    pass 1/20k/campaign.json
+    jsons/10k/winner_seed_XXXX.json
+    jsons/10k/winner_seed_XXXX-components.svg
+    jsons/10k/winner_seed_XXXX-copper.svg
+    jsons/20k/
     pass 2/candidates.csv
     pass 2/activity.log
     jsons/
@@ -34,11 +42,24 @@ accidentally binding a folder to a different file.
 
 - **Load JSON:** after successful import, GUI binds that source to its named
   workspace. All Pass One output goes to its own `pass 1/`.
-- **Pass One GO:** clears only that JSON's `pass 1/` immediately before running;
-  preserves other JSONs, pass 2, jsons and logs.
-- **Pass Two GO:** imports results from the selected JSON's `pass 1/`; clears
-  only that same JSON's `pass 2/`. The Pass Two optimiser itself remains
-  unimplemented.
+- **Pass One GO:** keeps 10k and 20k campaigns separate. A fresh campaign
+  starts in its own budget folder. If that budget already has files, the GUI
+  explicitly offers Resume (for a compatible unfinished run), Overwrite & Start
+  (requires a separate checkbox), or Cancel. Only the selected budget's
+  `pass 1/<budget>/` and `jsons/<budget>/` folders can be cleared.
+- **Pass One CSV:** one row **per seed**, `seed,cut,w,q,time_taken,status,reason`,
+  with `PASS`, `FAIL` and `ERROR`. A separate `campaign.json` is
+  `INCOMPLETE`, `STOPPED`, or `COMPLETED`. Resume keeps all completed PASS
+  and FAIL seeds; only missing and ERROR seeds run again. Source fingerprint,
+  solver rules, worker count, move budget and seed count must all match.
+- **Pass One winner:** after every seed has a definitive PASS/FAIL status,
+  replay the highest-Q PASS at its original move budget, independently audit it,
+  and save winner JSON plus component/copper SVGs under `jsons/<budget>/`.
+  Replay/render failure is reported; an unverified winner is never published.
+- **Pass Two GO:** selects exactly one available budget CSV (or a preserved
+  legacy CSV), imports only independently verified PASS seeds, and clears
+  only that same JSON's `pass 2/`. New-format campaigns must be marked
+  COMPLETED. Pass Two native optimisation is still unimplemented.
 - **Cold-start Pass Two:** when no JSON is loaded, choose an existing named
   workspace; if only one exists it is automatically selected. No full JSON
   import or new Pass One sweep is required.
@@ -50,10 +71,15 @@ moved, or overwritten** by the new GUI.
 
 After loading a source JSON and completing its lock review, the GUI can
 **copy** legacy `Work/pass 1/results.csv` and `activity.log` to that source's
-new workspace, but **only** if the original Pass One `input_sha256` in its
-activity log exactly matches the current native-solver input prepared from the
-reviewed JSON. The destination must have an empty Pass One folder. Nonmatching
-or already-present data is left alone. The originals remain untouched.
+new workspace's **legacy `pass 1/` root**, but **only** if the original Pass
+One `input_sha256` in its activity log exactly matches the current native-solver
+input prepared from the reviewed JSON. The destination must have an empty
+Pass One folder. Nonmatching or already-present data is left alone.
+The originals remain untouched.
+
+Any previous `Work/<project>/pass 1/results.csv` remains in place and readable
+for Pass Two as a legacy source. It is not silently migrated into 10k or 20k,
+and it does not contain the failed-seed records required for safe resume.
 
 No JSON layout is reconstructed from a CSV; only the native solver replay can
 recreate a saved candidate.
