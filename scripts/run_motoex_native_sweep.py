@@ -106,6 +106,25 @@ def columns_from_arg(arg, all_columns):
         raise ValueError("USB columns outside legal Edge slide: " + str(illegal))
     return selected
 
+def select_usb_columns(args, usb, definition):
+    """Explicit tournament distinction: fixed original USB, or Slide sweep."""
+    if args.slide:
+        allowed = slide_positions(usb, definition, 24, 56, True)
+        if args.column is not None:
+            raise ValueError("--column is fixed-only; use --columns with --slide yes")
+        return columns_from_arg(args.columns, allowed)
+    if args.columns != "all":
+        raise ValueError("--columns requires --slide yes; use --column to fix one anchor")
+    fixed = usb["boardPos"]["col"] if args.column is None else args.column
+    if not 0 <= fixed <= 50:
+        raise ValueError("--column must be a legal fixed USB anchor 0..50")
+    return [fixed]
+
+def seed_schedule(seed_start, count, columns):
+    """One solver invocation per seed, never one per USB position."""
+    return [(seed, columns[index % len(columns)])
+            for index, seed in enumerate(range(seed_start, seed_start + count))]
+
 def capture_one(args, master, seed, column, output, source_sha):
     """All per-seed files have disjoint paths: thread workers share no input."""
     tag = "seed_{:04d}_col_{:02d}".format(seed, column)
@@ -316,20 +335,7 @@ def run(args):
     source_bytes = contract.MASTER.read_bytes()
     original = json.loads(source_bytes)
     usb, definition, overhang = contract.usb_source(original)
-    # No slide in the normal sweep. Every seed has one identical, fully
-    # fixed USB anchor. Slide experiments are explicitly opted into separately.
-    if args.slide:
-        allowed = slide_positions(usb, definition, 24, 56, True)
-        columns = columns_from_arg(args.columns, allowed)
-        if args.column is not None:
-            raise ValueError("--column is for fixed mode; use --columns with --slide yes")
-    else:
-        if args.columns != "all":
-            raise ValueError("--columns only applies with --slide yes; use --column to fix one anchor")
-        fixed_column = usb["boardPos"]["col"] if args.column is None else args.column
-        if not 0 <= fixed_column <= 50:
-            raise ValueError("--column must be a legal fixed USB anchor 0..50")
-        columns = [fixed_column]
+    columns = select_usb_columns(args, usb, definition)
     for needed in (EDGE_LIB / "libv5decode.so", ROUTE_LIB, NATIVE_ADDON,
                    contract.CLI, FRONTEND / "tests/solver/out/components/stripboard/autoLayout5.js"):
         if not needed.is_file():
@@ -385,10 +391,9 @@ def run(args):
                 raise ValueError("Saved candidate missing during resume: " + str(e["savedJson"]))
             entries[e["seed"]] = e
 
-    # Slide OFF: one identical USB position across every seed. Slide ON:
-    # deterministic round-robin anchors; still exactly one solve per seed.
-    schedule = [(seed, columns[i % len(columns)])
-                for i, seed in enumerate(range(args.seed_start, args.seed_start + args.seeds))]
+    # Slide OFF: identical USB anchor for all seeds; Slide ON: one legal
+    # anchor per seed, round-robin; never multiply total solver invocations.
+    schedule = seed_schedule(args.seed_start, args.seeds, columns)
     pending = [(seed, col) for seed, col in schedule if seed not in entries]
     log("🏁 NATIVE SWEEP | {} TOTAL seeds × {} moves | {} workers | USB {}".format(
         args.seeds, args.moves, args.workers,
