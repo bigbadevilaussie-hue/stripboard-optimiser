@@ -68,6 +68,26 @@ def wire_length(saved):
                       (w["from"]["col"] - w["to"]["col"]) ** 2) ** 0.5
                      for w in saved["board"]["wires"]), 3)
 
+def physical_layout_signature(saved):
+    """Distinct geometry including wires/cuts, not merely placement identity."""
+    board = saved["board"]
+    placements = sorted(
+        (c["id"],
+         c.get("boardPos", {}).get("row") if c.get("boardPos") else None,
+         c.get("boardPos", {}).get("col") if c.get("boardPos") else None,
+         c.get("rotation", 0),
+         c.get("flexibleEndPos", {}).get("row") if c.get("flexibleEndPos") else None,
+         c.get("flexibleEndPos", {}).get("col") if c.get("flexibleEndPos") else None)
+        for c in saved.get("components", []))
+    cuts = sorted((c.get("row"), c.get("col"), c.get("kind", "between"))
+                  for c in board.get("cuts", []))
+    wires = sorted(tuple(sorted(((w["from"]["row"], w["from"]["col"]),
+                                 (w["to"]["row"], w["to"]["col"]))))
+                   for w in board.get("wires", []))
+    payload = {"board": [board.get("rows"), board.get("cols")],
+               "parts": placements, "cuts": cuts, "wires": wires}
+    return hashlib.sha256(jdump(payload).encode("utf-8")).hexdigest()[:20]
+
 def key_of(entry, preference):
     def val(key):
         v = entry.get(key)
@@ -211,6 +231,7 @@ def capture_one(args, master, seed, column, output, source_sha):
             saved = json.loads(candidate.read_text(encoding="utf-8"))
             entry["errors"].extend(check_trial(master, prepared, saved, result, code))
             entry["wireLength"] = wire_length(saved)
+            entry["layoutSig"] = physical_layout_signature(saved)
         if code not in (0, 2):
             entry["errors"].append("CLI_EXIT_" + str(code))
         if code == 0 and result.get("strictValid") is not True:
@@ -232,7 +253,7 @@ def write_csv(path, rows):
               "knife", "stacked", "nonvertical", "crossings", "conflicts", "incomplete",
               "geometry", "quality", "price", "elapsedWallMs", "solveMs", "totalMs",
               "cpuMs", "rssMb", "firstFeasibleMove", "firstFeasibleMs", "sig",
-              "strictFailures", "errors", "savedJson"]
+              "layoutSig", "strictFailures", "errors", "savedJson"]
     with path.open("w", newline="", encoding="utf-8") as handle:
         out = csv.DictWriter(handle, fieldnames=fields)
         out.writeheader()
@@ -250,7 +271,9 @@ def summarize(args, output, entries, source_hash, columns, started):
     used = set()
     distinct = []
     for e in solved:
-        signature = e.get("sig") or e.get("savedSha256")
+        # Full geometry signature includes wire and cut arrangements, so
+        # alternative routing of the same component placement is retained.
+        signature = e.get("layoutSig") or e.get("savedSha256")
         if signature not in used:
             used.add(signature)
             distinct.append(e)
