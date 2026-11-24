@@ -290,6 +290,40 @@ class PassControlTests(unittest.TestCase):
                 window.close()
 
 
+    def test_pass_two_selects_20k_when_both_budgets_exist(self):
+        from gui.work_directory import CAMPAIGN_FIELDS, pass_one_budget_dir, project_workspace
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td) / "Work"
+            source = Path(td) / "moto.json"
+            source.write_text("{}")
+            workspace = project_workspace(source, root, create=True)
+            for moves, seed in ((10000, "0001"), (20000, "0002")):
+                folder = pass_one_budget_dir(workspace, moves, create=True)
+                with (folder / "results.csv").open("w", newline="", encoding="utf-8") as f:
+                    writer = csv.DictWriter(f, fieldnames=CAMPAIGN_FIELDS)
+                    writer.writeheader()
+                    writer.writerow({
+                        "seed": seed, "cut": 44, "w": 29, "q": "78.24",
+                        "time_taken": "1.200", "status": "PASS", "reason": ""
+                    })
+                (folder / "campaign.json").write_text('{"state": "COMPLETED"}')
+            window = RouteMateWindow()
+            try:
+                window.work_root = root
+                with patch("gui.main.QInputDialog.getItem",
+                           return_value=("20k moves", True)) as select, \
+                     patch.object(PassTwoDialog, "exec",
+                                  return_value=QDialog.DialogCode.Accepted):
+                    window.start_pass_two()
+                select.assert_called_once()
+                target = workspace / "pass 2" / "candidates.csv"
+                self.assertIn("0002", target.read_text())
+                self.assertNotIn("0001", target.read_text())
+                self.assertTrue((workspace / "pass 1" / "10k" / "results.csv").exists())
+                self.assertTrue((workspace / "pass 1" / "20k" / "results.csv").exists())
+            finally:
+                window.close()
+
     def test_live_pass_one_eta_uses_all_completed_seeds(self):
         from time import perf_counter
         w = RouteMateWindow()
