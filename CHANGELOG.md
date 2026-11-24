@@ -195,3 +195,18 @@ documentation together. A Git release tag is separate from the branch version.
 - Native solver C/TS, saved-board auditor, case-locked BMS, original AUDIOEX
   fixture, GUI implementation and GUI version are unchanged.
 - Target Mac must run the extended tests before a fresh smoke/ladder.
+
+### Route-Mate GUI 2.03 — executable revision splashes (24 November 2026)
+
+- Expose a persistent launch identity in the desktop Activity log, separately for
+  the compiled board renderer and schematic renderer; avoid repeating it for every
+  component-highlight preview. Warn clearly when an old compiled renderer has no
+  revision stamp. GUI window title and Activity header show the checked-out Git
+  commit alongside GUI 2.03.
+- The native solver CLI prints a distinctive startup revision splash to **stderr**
+  without changing its single machine-readable JSON result on stdout.
+- Both Node renderer CLIs print their release, checked-out Git commit and
+  SHA-256 fingerprint of the actual compiled renderer JavaScript, also to stderr.
+- Root VERSION stays 2.00. Native decoder, router, anneal and strict constraints
+  are unchanged; this is diagnostic visibility, not a new solver release.
+- Headless rendering requires rebuilding compiled files: `cd src/frontend && npm run build:renderers`.

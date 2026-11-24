@@ -27,6 +27,23 @@ GUI_VERSION = (_GUI_VERSION_FILE.read_text(encoding="utf-8").strip()
                else _ROOT_VERSION_FILE.read_text(encoding="utf-8").strip())
 CODE_VERSION = GUI_VERSION
 
+
+def _git_revision() -> str:
+    """Report the checked-out repository revision; no solver or renderer runs."""
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(REPO_ROOT), "rev-parse", "--short=12", "HEAD"],
+            capture_output=True, text=True, timeout=2, check=False,
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            return result.stdout.strip()
+    except (OSError, subprocess.TimeoutExpired):
+        pass
+    return "unavailable"
+
+
+GUI_GIT_REVISION = _git_revision()
+
 from PySide6.QtCore import Qt, QByteArray, QPoint, QThread, Signal, QTimer
 from PySide6.QtGui import QAction, QBrush, QColor, QFontDatabase, QPainter, QPixmap, QIcon
 from PySide6.QtSvg import QSvgRenderer
@@ -464,7 +481,7 @@ class WorkflowChecklist(QWidget):
 class RouteMateWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle(f"Route-Mate {GUI_VERSION} — JSON Preflight")
+        self.setWindowTitle(f"Route-Mate {GUI_VERSION} · rev {GUI_GIT_REVISION} — JSON Preflight")
         self.resize(1560, 900)
         self.setMinimumSize(950, 600)
         self.project: dict[str, Any] | None = None
@@ -476,6 +493,7 @@ class RouteMateWindow(QMainWindow):
         self._schematic_svg = None
         self._schematic_png = None  # Old Tk GUI’s rsvg-convert preview bytes
         self._board_side = "top"
+        self._tool_revisions_seen: set[str] = set()
         self._solver_worker = None
         self._speed_probe_worker = None
         self._stop_requested = False
@@ -694,6 +712,7 @@ class RouteMateWindow(QMainWindow):
         """)
         self.statusBar().showMessage("Ready. Load a project JSON to begin.")
         self.log_line(f"Route-Mate {GUI_VERSION} — JSON import preflight only")
+        self.log_line(f"[GUI][REVISION] git={GUI_GIT_REVISION}")
         self.log_line("Workflow: JSON sniff → geometry/footprint inventory → electrical input sanity → STOP.")
         self.log_line("[SOLVER] DISCONNECTED. No Quick Solve, Hell Mode, native CLI or speed probe.")
         self.statusBar().showMessage("Ready. Load JSON to check; Pass 1 remains disabled.")
@@ -722,6 +741,22 @@ class RouteMateWindow(QMainWindow):
 
     def log_line(self, message: str):
         self.log.appendPlainText(message)
+
+    def _show_tool_revision(self, diagnostic: str, tool: str):
+        """Show each actual renderer CLI build in the Activity log once."""
+        prefix = f"[TOOL-REVISION] tool={tool} "
+        revision = next((line.strip() for line in diagnostic.splitlines()
+                         if line.startswith(prefix)), None)
+        if revision is None:
+            revision = (f"[{tool}][REVISION NOT STAMPED] Compiled renderer lacks "
+                        "revision splash; rebuild with cd src/frontend && npm run build:renderers")
+        if revision in self._tool_revisions_seen:
+            return
+        self._tool_revisions_seen.add(revision)
+        self.log_line(f"━━━━━━ {tool} · EXECUTABLE REVISION ━━━━━━")
+        self.log_line(revision)
+        self.log_line("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        self.statusBar().showMessage(revision, 8000)
 
     def _log_handoff(self, handoff: dict[str, Any]):
         self.log_line(
@@ -808,6 +843,7 @@ class RouteMateWindow(QMainWindow):
             project, highlight_component_id=highlight_component_id
         )
         self._copper_svg = copper_svg
+        self._show_tool_revision(_renderer_log, "RENDER")
         # Surface render-only moved-label diagnostics (the source JSON and
         # solder pads are untouched); avoid dumping raw Node CLI messages.
         label_notes = [
@@ -836,6 +872,7 @@ class RouteMateWindow(QMainWindow):
             # A renderer failure must never prevent the donor import/lock review.
             return
         self._schematic_svg = svg
+        self._show_tool_revision(diagnostic, "SCHEMATIC")
         try:
             # Exactly the renderer path used by the old Tk GUI: the existing
             # standalone schematic SVG converted to PNG by librsvg at 2400px.
@@ -850,8 +887,9 @@ class RouteMateWindow(QMainWindow):
             self.log_line("[SCHEMATIC][WARN] Using direct QtSvg fallback; text may be faint.")
         self.schematic_action.setEnabled(True)
         self.log_line("[SCHEMATIC] Original JSON schematic ready. Solver not started.")
-        if diagnostic:
-            self.log_line("[SCHEMATIC] " + diagnostic)
+        for line in diagnostic.splitlines():
+            if line.startswith("Saved "):
+                self.log_line("[SCHEMATIC] " + line)
 
     def _record_assumed_geometry(self, project: dict[str, Any], *, stage=None):
         """Use the SAME versioned geometry generator as collect.py.
