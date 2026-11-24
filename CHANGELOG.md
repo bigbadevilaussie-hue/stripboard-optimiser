@@ -1,5 +1,11 @@
 # Changelog
 
+### GUI 2.07 — Respect the selected physical board in native audit (24 November 2026)
+- The 100-check native solver audit now locks the GUI-selected physical rows and columns in its temporary input snapshot, so native strict mode cannot resize the selected board.
+- The imported JSON and GUI project remain unmodified; no changes to the original CPU speed probe or optimisation passes.
+- Add a regression test for a 24×56 physical board imported with unlocked dimensions.
+
+
 ### GUI 2.06 — PySide6 splash constructor fix (24 November 2026)
 - Fix renderer revision splash constructor to use the PySide6-supported `(pixmap, flags)` signature.
 - Prevent the splash error from interrupting JSON import and lock review.

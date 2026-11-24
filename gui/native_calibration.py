@@ -141,6 +141,16 @@ def calibrate(project, workers, callback, cancelled):
         raise ValueError("Workers must be 3 or 4")
     prereqs()
     snapshot = copy.deepcopy(project)
+    # The board-size dialog supplies the actual physical board. Its original
+    # lockedRows/lockedCols flags may still be False from the imported JSON.
+    # Lock BOTH physical dimensions in the audit's private input snapshot so
+    # V5's strict mode measures exactly the board selected in the GUI.
+    # Never modify the source JSON, the on-screen project or the V5 solver.
+    board = snapshot["board"]
+    if not isinstance(board.get("rows"), int) or not isinstance(board.get("cols"), int) or board["rows"] <= 0 or board["cols"] <= 0:
+        raise ValueError("The actual physical board must have positive row and column counts.")
+    board["lockedRows"] = True
+    board["lockedCols"] = True
     with tempfile.TemporaryDirectory(prefix="stripboard_calibration_") as td:
         scratch = Path(td)
         trials = {moves: [] for moves in PAIR_BUDGETS}
