@@ -1,5 +1,7 @@
 # Stripboard Optimiser — Project Specification
 
+> **Current engineering status (24 Nov 2026):** For the *implemented* experimental native solver and measured evidence, start at [docs/START_HERE_NATIVE_SOLVER_HANDOFF_2026-11-24.md](docs/START_HERE_NATIVE_SOLVER_HANDOFF_2026-11-24.md). This long file mixes target specification and historical implementation snapshots; the handover and current source supersede old implementation descriptions, **not** the broader product goals. The MOTOEX test is a general-solver stress fixture, never a reason to hard-code components/rotations/nets. Strict electrical and physical compliance is non-negotiable.
+
 ## 1. Project objective
 
 Develop a distributable desktop application around the headless stripboard
@@ -919,3 +921,34 @@ The tournament's observed intermediate results are not a replacement for this ba
 - The current GUI version is v1.36.
 
 When implementation changes, update this section from the actual source and tests. Do not convert target requirements elsewhere in this specification into claims of implemented behaviour without evidence.
+
+
+## 27. Native hard-board, rotation-domain and local polish implementation — 24 November 2026
+
+**Current source/measurement handover:** [START HERE](docs/START_HERE_NATIVE_SOLVER_HANDOFF_2026-11-24.md). This implementation-status section supersedes Sections 4.2, 7, 25 and 26 **only where those sections describe older observed solver state**. It does not remove requirements, promise GUI integration, or rewrite historical benchmark measurements.
+
+### 27.1 Actual implementation and controls
+
+- Native C `v5wasm/decode.c` now has a separate **opt-in experimental Edge decoder** with a hard-physical-board placement ratchet and first-fit telemetry. Locked 24×56 output must remain exactly 24×56 even when an explicitly edge-mounted locked body overhangs the board; the 2-row USB body overhang permits no out-of-bounds pins/copper/cuts/wire endpoints.
+- General-purpose drilled-rotation domain: for **horizontal strip copper only**, adjacent component pins in neighboring holes of the same row carrying *different electrical net keys* make a rotation incompatible with **drilled-only** cuts. Allowed rotations are derived from footprint pin geometry and actual net assignments, with half-turn-only, floating-pin and locked-component rules; never from GPS/USB/other names. The command-line harness accepts `--drill-domain 0|1`; `0` preserves the ordinary annealing path in the same Edge binary.
+- Generic fixed-placement wire/cut polish: `wireColumnPolish.ts`, opt-in `AutoLayout5Options.wirePolish` and CLI `--wire-polish 1`. Candidate wire endpoints may move together to a shared legal vertical column **on the same copper segments**. After freeing cut holes, knife→drill conversion is rechecked. This is an *improving local post-pass*, not full rearrangement or universal feasibility proof; it leaves placements and board dimensions unchanged.
+- Independent CLI strict qualification still gates electrical opens/shorts, physical bounds, component geometry, wire direction, body crossings, wire stacks, drill/knife requirements and solver issues; CLI exit code 2 means a complete run whose candidate is **not strictly valid**. `UNSOLVED: NO_FEASIBLE_PLACEMENT` and `UNSOLVED: NO_PHYSICAL_FINISH` represent empty no-solution-at-this-budget outcomes rather than zero-wire successes.
+- Benchmark-only `scripts/run_motoex_native_edge_slide.py` tests each USB column by locking it in a fresh input. **USB Slide is not yet a C annealing move.** Core solver remains general-purpose; benchmark-specific setup must not be copied to production.
+
+### 27.2 Verifiable results and pending gates
+
+- On the user's iMac: portable native addon build passed; experimental Edge build passed; `testDrilledRotationDomain.js` and `testKnifeCutAudit.js` passed.
+- Col25, 20k seed1, drilled rotation **OFF**: no feasible 24×56 placement, signature `e69806eb68fc` identical to the pre-domain baseline. Col25 same seed/build/budget domain **ON**: first physical fit at move 1,194 (77ms), **56 wires/72 cuts**, no reported incomplete nets, but physical routing still fails (nonvertical/stacked/crossing/knife). This is **one A/B sample**, not an 80-run statistical or parity result.
+- User-supplied 500k one-seed results domain ON: col25 **40 W/56 C**, electrically complete but 2 knife cuts/8 crossings/4 stacks; col41 **23 W/44 C**, net6 incomplete, 2 knife cuts/0 crossings/2 stacks. Neither passed all strict gates. The original off-board GPS+USB reference is a **different physical problem** and must not be used as a strict on-board quality claim.
+- Read-only knife audit identified a 20k col25 cut at row0 between columns49/50; R11.2 net19 on hole49, GND jumper #56 endpoint on hole50, and fan GND pin on hole51. This is potentially recoverable through verified wire endpoint/column relocation, not a proven impossible footprint rotation.
+- As of this edit, new `wireColumnPolish.ts` compiled under TypeScript on the user's Mac but `testWireColumnPolish.js` initially failed at *bootstrap* because it omitted the existing `@/` CommonJS resolution hook. Fixed in branch commit `b6aae85`. **Its synthetic functional assertions and real saved-layout replay are not yet Mac-verified.** Do not describe the polish as successful before rerunning tests.
+
+### 27.3 Next milestones
+
+1. Pull the current feature branch, rebuild TS and rerun synthetic polish test; fix actual failures, preserving the new independent electrical checks.
+2. Inspect remaining 500k knife cuts at columns 25 and 41 with `inspectSavedCuts.js`; diagnose net6 disconnected strips and free vertical columns with `inspectNetCorridors.js`.
+3. Reprocess those **already saved** 500k boards with `polishSavedLayout.js`, independently compare opens, shorts, geometry, vertical wires, crossings, stacks, drilled cuts and true board dimensions; preserve original JSON files.
+4. Expand general-purpose placement/routing improvements only where diagnostics justify them. Run multiple equal-budget seeds at cols25/41, retain all real strict finalists and Pareto alternatives. Never promote a physically invalid layout on low wire count alone.
+5. Run 80-run domain-OFF signature parity on identical original input snapshots and correct C1 provenance; preserve normal native/WASM and AUDIO/MOTO behaviour. Subsequently implement *generic* slide-in-annealer and integrate the solver with the target GUI only after quality gates.
+
+This source is meant to survive chat turnover. Update it, the top-level README, and the [handover](docs/START_HERE_NATIVE_SOLVER_HANDOFF_2026-11-24.md) when implementation or measured results change.
