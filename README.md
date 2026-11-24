@@ -1,5 +1,7 @@
 # Stripboard Optimiser
 
+> **Latest verified result (24 Nov, saved 500k replays):** All three synthetic tests passed on the user's iMac. Generic fixed-board wire-column polish reduced **col25 7→4 knife cuts** (384 attempts, 3 accepted, no shorts/opens/geometry regression) while col41 remained unchanged (119 attempts; no improving move). The remaining four col25 knives are **forced by GPS's 0° adjacent different-net pins** in that historical pre-domain board; they require a rotation/placement change, not more single-wire tweaks. On col41, 2 nonvertical wires, 8 crossings and 1 stack persist; a broader **multiwire or placement-aware repair** is next. See the [verified results and output paths](docs/START_HERE_NATIVE_SOLVER_HANDOFF_2026-11-24.md#8a-user-verified-fixed-board-polish-replay--24-nov-2026-new). The 500k board files tested were the *pre-domain* `motoex_col25_500k` and `motoex_col41_500k`, not the newer domain-ON outputs.
+
 ## 🚀 Current work — START HERE (24 November 2026)
 
 **If resuming in a new chat, read the [complete native optimiser handover](docs/START_HERE_NATIVE_SOLVER_HANDOFF_2026-11-24.md) FIRST.** It contains the working branch, code map, verified build tests, exact MOTOEX on/off/500k results, remaining defects, saved result paths, reproducible commands and next engineering steps. Companion source-of-truth notes: [native Edge/Slide implementation](docs/native-edge-slide-motoex.md), [project specification](project.md), [Route-Mate GUI integration roadmap](docs/route-mate-native-solver-integration-roadmap.md).
