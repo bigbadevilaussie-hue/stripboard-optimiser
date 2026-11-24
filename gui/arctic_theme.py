@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from PySide6.QtGui import QColor, QFont, QFontDatabase, QPalette
 from PySide6.QtWidgets import QApplication
+from gui.curved_windows import install_curved_windows
 
 
 COLORS = {
@@ -36,6 +37,49 @@ QWidget {
 }
 QMainWindow, QDialog, QMessageBox, QFileDialog {
     background-color: #edf6fd;
+    border-radius: 18px;
+}
+QWidget#arcticTitleBar {
+    background-color: #e1f0fb;
+    border-bottom: 1px solid #bbd8ec;
+    border-radius: 8px;
+}
+QLabel#arcticWindowCaption {
+    color: #245476;
+    font-size: 12px;
+    font-weight: 700;
+    padding-left: 4px;
+}
+QToolButton#arcticClose, QToolButton#arcticMinimize,
+QToolButton#arcticMaximize {
+    background: transparent;
+    color: #3b6682;
+    border: 0;
+    border-radius: 7px;
+    padding: 2px;
+    font-size: 18px;
+    min-height: 0;
+}
+QToolButton#arcticClose:hover {
+    background: #ffe5e9;
+    color: #b43352;
+}
+QToolButton#arcticMinimize:hover,
+QToolButton#arcticMaximize:hover {
+    background: #cbe7fa;
+    color: #215e8e;
+}
+QLineEdit#dimensionEntry {
+    background: white;
+    border: 1px solid #bcd4e8;
+    border-radius: 8px;
+    padding: 7px 9px;
+    font-weight: 650;
+}
+QLabel#dimensionCheck {
+    color: #168d95;
+    font-weight: 800;
+    font-size: 16px;
 }
 QLabel {
     background: transparent;
@@ -280,4 +324,5 @@ def apply_arctic_theme(app: QApplication) -> str:
         palette.setColor(QPalette.ColorGroup.Disabled, role, QColor("#91a5b7"))
     app.setPalette(palette)
     app.setStyleSheet(STYLESHEET)
+    install_curved_windows(app)
     return family
