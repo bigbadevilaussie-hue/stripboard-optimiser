@@ -10,8 +10,8 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 try:
     from PySide6.QtWidgets import QApplication, QDialog, QDialogButtonBox, QLabel
     from gui.main import (
-        RouteMateWindow, PassOneDialog, PassTwoDialog, PassOneWorker,
-        RoutingRulesDialog,
+        RouteMateWindow, PassOneDialog, PassOneExistingDialog, PassTwoDialog,
+        PassOneWorker, RoutingRulesDialog, WorkflowChecklist,
     )
 except ImportError:
     QApplication = None
@@ -117,6 +117,58 @@ class PassControlTests(unittest.TestCase):
         finally:
             dialog.close()
 
+    def test_overwrite_requires_distinct_checkbox_and_explicit_action(self):
+        d = PassOneExistingDialog(
+            "moto.json", 10000, [Path("results.csv")], resume_error="no manifest"
+        )
+        try:
+            self.assertFalse(d.restart_button.isEnabled())
+            self.assertFalse(d.resume_button.isEnabled())
+            d.confirm.setChecked(True)
+            self.assertTrue(d.restart_button.isEnabled())
+            self.assertIsNone(d.action)
+            d._choose("restart")
+            self.assertEqual(d.action, "restart")
+        finally:
+            d.close()
+
+    def test_sidebar_preparation_progress_not_diluted_by_passes(self):
+        panel = WorkflowChecklist()
+        try:
+            panel.update_states(
+                {key: "done" for key in panel.PREPARATION_STAGES}
+            )
+            self.assertEqual(panel.percent.text(), "100%")
+            self.assertEqual(panel.bar.value(), len(panel.PREPARATION_STAGES))
+            panel.update_states({})
+            self.assertEqual(panel.percent.text(), "0%")
+        finally:
+            panel.close()
+
+    def test_champion_svg_files_and_preview(self):
+        import json
+        with tempfile.TemporaryDirectory() as td:
+            champion_file = Path(td) / "winner_seed_0017.json"
+            champion_file.write_text(json.dumps({
+                "board": {"rows": 24, "cols": 56}, "components": []
+            }))
+            valid_svg = ('<svg xmlns="http://www.w3.org/2000/svg" '
+                         'width="20" height="20"><rect width="20" height="20"/></svg>')
+            w = RouteMateWindow()
+            try:
+                w._copper_svg = valid_svg
+                with patch.object(w, "_render_component_side",
+                                  return_value=(valid_svg, "verified renderer")):
+                    w._display_pass_one_champion({
+                        "winner_json": str(champion_file),
+                        "winner_seed": 17, "moves": 10000,
+                    })
+                self.assertTrue((Path(td) / "winner_seed_0017-components.svg").is_file())
+                self.assertTrue((Path(td) / "winner_seed_0017-copper.svg").is_file())
+                self.assertIn("champion", w.solve_summary.text().lower())
+            finally:
+                w.close()
+
     def test_pass_one_explicit_go_only_clears_pass_one(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td) / "Work"
@@ -124,8 +176,16 @@ class PassControlTests(unittest.TestCase):
             source = Path(td) / "audio.json"
             source.write_text('{"board": {"rows":24,"cols":56}}')
             workspace = project_workspace(source, root, create=True)
-            (workspace / "pass 1" / "old.csv").write_text("old")
+            (workspace / "pass 1" / "old.csv").write_text("legacy preserved")
+            (workspace / "pass 1" / "10k").mkdir()
+            (workspace / "pass 1" / "10k" / "old.csv").write_text("old 10k")
+            (workspace / "pass 1" / "20k").mkdir()
+            (workspace / "pass 1" / "20k" / "keep.csv").write_text("preserve 20k")
             (workspace / "pass 2" / "keep.csv").write_text("preserve")
+            (workspace / "jsons" / "10k").mkdir()
+            (workspace / "jsons" / "10k" / "old.svg").write_text("old champion")
+            (workspace / "jsons" / "20k").mkdir()
+            (workspace / "jsons" / "20k" / "keep.svg").write_text("preserve champion")
             (workspace / "jsons" / "keep.json").write_text("preserve")
             window = RouteMateWindow()
             try:
@@ -142,11 +202,19 @@ class PassControlTests(unittest.TestCase):
                      patch.object(PassOneDialog, "moves", return_value=10000), \
                      patch("gui.native_calibration.prerequisites"), \
                      patch("gui.pass_one.AUDITOR", Path(__file__)), \
+                     patch("gui.main.PassOneExistingDialog") as confirm_existing, \
                      patch.object(PassOneWorker, "start") as starter:
+                    confirm_existing.return_value.exec.return_value = QDialog.DialogCode.Accepted
+                    confirm_existing.return_value.action = "restart"
                     window.start_pass_one()
                     starter.assert_called_once()
-                self.assertFalse((workspace / "pass 1" / "old.csv").exists())
+                    confirm_existing.assert_called_once()
+                self.assertTrue((workspace / "pass 1" / "old.csv").exists())
+                self.assertFalse((workspace / "pass 1" / "10k" / "old.csv").exists())
+                self.assertTrue((workspace / "pass 1" / "20k" / "keep.csv").exists())
                 self.assertTrue((workspace / "pass 2" / "keep.csv").exists())
+                self.assertFalse((workspace / "jsons" / "10k" / "old.svg").exists())
+                self.assertTrue((workspace / "jsons" / "20k" / "keep.svg").exists())
                 self.assertTrue((workspace / "jsons" / "keep.json").exists())
             finally:
                 window._solve_clock.stop()
