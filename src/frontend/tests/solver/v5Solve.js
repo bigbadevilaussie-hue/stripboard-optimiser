@@ -8,6 +8,7 @@
 //        [--effort <x>]      moves = the pin-count formula times x (the editor's effort; --time then only guards)
 //        [--routing-preference wires|cuts] favour fewer wires or fewer cuts
 //        [--drilled 1]       drilled cuts only
+//        [--debug-bypass-drill-precheck 1] forensic ONLY: run physically infeasible drilled cases to capture native diagnostics
 //        [--drill-domain 0|1]  opt-in native drilled rotation domain toggle; 0 restores baseline rotation search
 //        [--wire-polish 0|1]  verified fixed-board wire-column and drill-hole local search (default OFF)
 //        [--nostack 1]       no wire stacking
@@ -58,7 +59,7 @@ const valueFlags = new Set([
   "data", "drilled", "dump", "effort", "exact", "finish-trace", "hint", "id",
   "levels", "macro", "macrogap", "mincompress", "mix", "move-summary", "movelog",
   "moves", "native", "nostack", "out", "portcap", "progress", "protect",
-  "repair", "routewasm", "routing-preference", "drill-domain", "wire-polish", "save", "sched", "seed",
+  "repair", "routewasm", "routing-preference", "drill-domain", "wire-polish", "save", "sched", "seed", "debug-bypass-drill-precheck",
   "skeleton", "speedprobe", "stack", "stackfree", "stackmin", "strict",
   "time", "topmoves", "toptime", "upperparts", "wasm",
 ]);
@@ -74,7 +75,7 @@ for (let i = 0; i < args.length; i += 2) {
   if (seenFlags.has(flag)) cliUsageError(`duplicate ${flag}`);
   seenFlags.add(flag);
 }
-for (const flag of ["native", "drilled", "drill-domain", "wire-polish", "nostack", "strict", "move-summary", "finish-trace", "progress", "exact", "protect", "stackfree"]) {
+for (const flag of ["native", "drilled", "drill-domain", "debug-bypass-drill-precheck", "wire-polish", "nostack", "strict", "move-summary", "finish-trace", "progress", "exact", "protect", "stackfree"]) {
   const val = argVal(flag);
   if (val !== undefined && val !== "0" && val !== "1") cliUsageError(`--${flag} must be 0 or 1`);
 }
@@ -206,7 +207,7 @@ const blankComps = data.components.map((c) => (
     : { ...c, boardPos: null, flexibleEndPos: undefined, rotation: 0, locked: undefined }
 ));
 const blankBoard = { ...data.board, cuts: [], wires: [] };
-if (drilled) {
+if (drilled && argVal("debug-bypass-drill-precheck") !== "1") {
   const { lockedAdjacentDrillConflicts } = require("./drilledFeasibility.js");
   const problems = lockedAdjacentDrillConflicts(blankComps, defs, asg,
     boardLayout.getComponentPinPositions, resolveComponentDef);
