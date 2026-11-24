@@ -184,6 +184,44 @@ class PassControlTests(unittest.TestCase):
                 window.close()
 
 
+    def test_cold_pass_two_selects_exact_project_when_multiple_exist(self):
+        with tempfile.TemporaryDirectory() as td:
+            from gui.work_directory import project_workspace, CSV_FIELDS
+            root = Path(td) / "Work"
+            for name, seed in (("audio.json", "1171"), ("moto.json", "0009")):
+                source = Path(td) / name
+                source.write_text("{}")
+                ws = project_workspace(source, root, create=True)
+                with (ws / "pass 1" / "results.csv").open(
+                    "w", newline="", encoding="utf-8"
+                ) as file:
+                    writer = csv.DictWriter(file, fieldnames=CSV_FIELDS)
+                    writer.writeheader()
+                    writer.writerow({"seed": seed, "cut": 39, "w": 11,
+                                     "q": "74.14", "time_taken": "1.030"})
+            audio_ws = project_workspace(Path(td) / "audio.json", root)
+            moto_ws = project_workspace(Path(td) / "moto.json", root)
+            window = RouteMateWindow()
+            try:
+                window.work_root = root
+                with patch("gui.main.QInputDialog.getItem",
+                           return_value=(f"moto.json  ·  {moto_ws.name}", True)) as select, \
+                     patch.object(PassTwoDialog, "exec",
+                                  return_value=QDialog.DialogCode.Accepted):
+                    window.start_pass_two()
+                select.assert_called_once()
+                self.assertTrue((moto_ws / "pass 2" / "candidates.csv").is_file())
+                self.assertFalse((audio_ws / "pass 2" / "candidates.csv").exists())
+                self.assertEqual(
+                    (moto_ws / "pass 2" / "candidates.csv").read_text().count("0009"), 1
+                )
+                self.assertEqual(
+                    (audio_ws / "pass 1" / "results.csv").read_text().count("1171"), 1
+                )
+            finally:
+                window.close()
+
+
     def test_cancel_pass_one_keeps_old_results(self):
         with tempfile.TemporaryDirectory() as td:
             from gui.work_directory import project_workspace
