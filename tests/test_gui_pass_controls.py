@@ -222,6 +222,33 @@ class PassControlTests(unittest.TestCase):
                 window.close()
 
 
+    def test_live_pass_one_eta_uses_all_completed_seeds(self):
+        from time import perf_counter
+        w = RouteMateWindow()
+        try:
+            # Simulate the screenshot's actual counts, without a solver run.
+            w._pass_one_worker = object()
+            w._solve_budget = 2000
+            w._solve_done = 1259
+            w._solve_started = perf_counter() - 516.0
+            w._update_solve_clock()
+            display = w.solve_eta.text()
+            self.assertIn("1,259/2,000 seeds", display)
+            self.assertIn("ETA: ~5m 04s", display)
+            self.assertNotIn("remaining unknown", display)
+
+            w._solve_done = 0
+            w._update_solve_clock()
+            self.assertIn("measuring first completed seed", w.solve_eta.text())
+
+            w._solve_done = 2000
+            w._update_solve_clock()
+            self.assertIn("ETA: ~0m 00s", w.solve_eta.text())
+        finally:
+            w._pass_one_worker = None
+            w.close()
+
+
     def test_cancel_pass_one_keeps_old_results(self):
         with tempfile.TemporaryDirectory() as td:
             from gui.work_directory import project_workspace
