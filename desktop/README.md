@@ -1,5 +1,13 @@
 # Stripboard Optimiser — Tkinter Desktop GUI
 
+> **24 November 2026 status:** This is the **legacy Tkinter GUI** documentation, not the active experimental native solver UI. The general-purpose native Edge/Slide, drilled rotation-domain and fixed-board wire polish improvements live primarily in `src/frontend` and its CLI harness. **Do not assume this GUI offers the new controls or produces the same native benchmark results.** For every new chat read [START HERE — complete native handover](../docs/START_HERE_NATIVE_SOLVER_HANDOFF_2026-11-24.md), [current frontend/native build README](../src/frontend/README.md), and [Route-Mate GUI migration decision](../docs/route-mate-native-solver-integration-roadmap.md).
+>
+> **Version history warning:** The tournament plans described later in this README refer to different debug revisions and have not been re-audited as of this note. Treat the `v1.58` and `v1.61` descriptions as historical snapshots. **Source `desktop/src/stripboard_optimizer/solver/worker.py` and current GUI settings are authoritative for active values.** Do not copy the old “Q0 and zero-off-axis qualification” rule into new development: the newer CLI's **complete strict validation** is the required quality gate.
+>
+> **Native build on the user's Mac:** `cd src/frontend && npx tsc -p tests/solver/tsconfig.json && npm run build:native && npm run build:native:edge`. Native addon headers are now discovered by `tests/solver/native/buildAddon.js`, rather than by a Linux-only `-I/usr/include/node` or assumed macOS installation path.
+>
+> **Latest unverified change:** `src/frontend/components/stripboard/wireColumnPolish.ts` and its synthetic test are opt-in CLI development. A test bootstrap resolution failure on the Mac was corrected in commit `b6aae85` and still needs a rerun. Do not merge or present this as a GUI feature until real strict validation results justify it.
+
 The Tkinter desktop application is the active optimisation interface. It wraps the existing v5 solver through the repository's Node.js harness; it does not reimplement the solver in Python.
 
 ## Launch
