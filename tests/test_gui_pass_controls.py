@@ -221,6 +221,51 @@ class PassControlTests(unittest.TestCase):
                 window._pass_one_worker = None
                 window.close()
 
+    def test_pass_one_resume_does_not_clear_prior_seed_rows(self):
+        with tempfile.TemporaryDirectory() as td:
+            from gui.work_directory import project_workspace, pass_one_budget_dir
+            root = Path(td) / "Work"
+            source = Path(td) / "moto.json"
+            source.write_text("{}")
+            workspace = project_workspace(source, root, create=True)
+            folder = pass_one_budget_dir(workspace, 10000, create=True)
+            csv_file = folder / "results.csv"
+            csv_file.write_text("previous audited PASS/FAIL data")
+            window = RouteMateWindow()
+            try:
+                window.work_root = root
+                window.project = {"board": {"rows": 24, "cols": 56}}
+                window.project_path = source
+                window.active_workspace = workspace
+                window._calibration_stages["CALIBRATION"] = "done"
+                window._probe_cut_drilled_only = False
+                window._probe_stacking_allowed = True
+                window._recommended_workers = 3
+                snapshot = {
+                    "state": "STOPPED", "done": 100, "qualified": 5,
+                    "errors": 0, "seconds_per_seed": 1.5,
+                }
+                with patch.object(PassOneDialog, "exec",
+                                  return_value=QDialog.DialogCode.Accepted), \
+                     patch.object(PassOneDialog, "moves", return_value=10000), \
+                     patch("gui.native_calibration.prerequisites"), \
+                     patch("gui.pass_one.AUDITOR", Path(__file__)), \
+                     patch("gui.pass_one.inspect_pass_one_campaign",
+                           return_value=snapshot), \
+                     patch("gui.main.PassOneExistingDialog") as confirm_existing, \
+                     patch.object(PassOneWorker, "start") as starter:
+                    confirm_existing.return_value.exec.return_value = QDialog.DialogCode.Accepted
+                    confirm_existing.return_value.action = "resume"
+                    window.start_pass_one()
+                    starter.assert_called_once()
+                self.assertTrue(window._pass_one_worker.resume)
+                self.assertEqual(window._solve_done, 100)
+                self.assertEqual(csv_file.read_text(), "previous audited PASS/FAIL data")
+            finally:
+                window._solve_clock.stop()
+                window._pass_one_worker = None
+                window.close()
+
     def test_pass_two_from_cold_gui_without_project(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td) / "Work"
