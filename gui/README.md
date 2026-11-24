@@ -92,3 +92,22 @@ elements only**, solely in the in-memory Qt schematic preview.
 The compiled standalone schematic renderer and the original `schematic.svg`
 output are unchanged. This is not applied to the component/copper board views.
 Regression tests: `python3 -m unittest tests.test_qt_schematic_svg -v`
+
+## Visual parity with the original Tk GUI
+
+The old Tk GUI did not display the standalone SVG through Qt: it ran
+`rsvg-convert -w 2400 -b white -o schematic.png schematic.svg` and showed
+the **PNG**. Direct QtSvg rendering changes text/paint-order handling, making
+labels look missing. The new GUI now runs the **same old Tk conversion**
+on the already-generated schematic SVG, then shows that PNG in the existing
+right-side Qt graphics view. The PNG is cached for instant view switching.
+
+Requires `rsvg-convert` on your Mac, exactly as the old Tk GUI did.
+If missing, install with `brew install librsvg`. The Activity tab
+reports a clear warning and uses the old QtSvg fallback if this dependency
+is not present.
+
+Neither the compiled schematic generator, original project/sidecars nor
+the original component-side/copper SVG board viewer is altered. Component
+locks, board dimensions and the disabled native CLI remain untouched.
+Regression test: `python3 -m unittest discover -s tests -p 'test_schematic_tk_raster.py' -v`.

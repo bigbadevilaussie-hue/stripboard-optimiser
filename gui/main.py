@@ -263,6 +263,22 @@ class BoardView(QGraphicsView):
         if self.scene() and not self.scene().sceneRect().isEmpty() and not self._user_zoomed:
             self.fit_board()
 
+    def show_png(self, png: bytes):
+        """Display the original Tk renderer's PNG using the existing Qt scene."""
+        key = "png:" + hashlib.sha256(png).hexdigest()
+        if self._svg_key == key:
+            return
+        pixmap = QPixmap()
+        if not pixmap.loadFromData(png, "PNG"):
+            raise ValueError("Tk-compatible schematic preview produced an unreadable PNG.")
+        scene = self.scene()
+        scene.clear()
+        item = scene.addPixmap(pixmap)
+        scene.setSceneRect(item.boundingRect())
+        self._renderer = None
+        self._svg_key = key
+        self.fit_board()
+
     def show_svg(self, svg: str, *, schematic: bool = False):
         import re
         # Resolve generic SVG font aliases before Qt parses the image.
@@ -454,6 +470,7 @@ class RouteMateWindow(QMainWindow):
         self._top_svg = None
         self._copper_svg = None
         self._schematic_svg = None
+        self._schematic_png = None  # Old Tk GUI’s rsvg-convert preview bytes
         self._board_side = "top"
         self._solver_worker = None
         self._speed_probe_worker = None
@@ -798,9 +815,10 @@ class RouteMateWindow(QMainWindow):
 
     def _cache_schematic_preview(self, project: dict[str, Any]):
         """Render imported schematic once; keep the board/lock workflow unchanged."""
-        from render.schematic_bridge import render_schematic_data
+        from render.schematic_bridge import render_schematic_data, rasterize_schematic_svg
 
         self._schematic_svg = None
+        self._schematic_png = None
         self.schematic_action.setEnabled(False)
         # A new project always starts on its component-side board view, so the
         # original per-component lock highlighting is still visible.
@@ -814,8 +832,20 @@ class RouteMateWindow(QMainWindow):
             # A renderer failure must never prevent the donor import/lock review.
             return
         self._schematic_svg = svg
+        try:
+            # Exactly the renderer path used by the old Tk GUI: the existing
+            # standalone schematic SVG converted to PNG by librsvg at 2400px.
+            self._schematic_png = rasterize_schematic_svg(svg)
+            self.log_line(
+                "[SCHEMATIC] Original Tk-compatible librsvg PNG (2400 px) ready."
+            )
+        except (OSError, ValueError, RuntimeError, subprocess.SubprocessError) as exc:
+            # Preserve the SVG fallback if librsvg is not installed, but make
+            # the reason explicit instead of silently claiming visual parity.
+            self.log_line(f"[SCHEMATIC][WARN] Tk PNG preview unavailable: {exc}")
+            self.log_line("[SCHEMATIC][WARN] Using direct QtSvg fallback; text may be faint.")
         self.schematic_action.setEnabled(True)
-        self.log_line("[SCHEMATIC] SVG rendered from imported JSON; Schematic button ready.")
+        self.log_line("[SCHEMATIC] Original JSON schematic ready. Solver not started.")
         if diagnostic:
             self.log_line("[SCHEMATIC] " + diagnostic)
 
@@ -949,7 +979,9 @@ class RouteMateWindow(QMainWindow):
         self.schematic_action.setChecked(side == "schematic")
         svg = (self._schematic_svg if side == "schematic" else
                self._copper_svg if side == "copper" else self._top_svg)
-        if svg:
+        if side == "schematic" and self._schematic_png:
+            self.top_view.show_png(self._schematic_png)
+        elif svg:
             self.top_view.show_svg(svg, schematic=(side == "schematic"))
         self.statusBar().showMessage(
             "Schematic — original JSON circuit, rendered without solving."

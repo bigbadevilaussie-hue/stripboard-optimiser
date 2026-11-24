@@ -67,6 +67,9 @@ class GuiShellSmoke(unittest.TestCase):
                                  return_value=(svg, "")) as render,
                     patch("render.schematic_bridge.render_schematic_data",
                           return_value=(svg, "Saved schematic.svg")) as schematic_render,
+                    patch("render.schematic_bridge.rasterize_schematic_svg",
+                          return_value=b"test schematic PNG") as raster_render,
+                    patch.object(window.top_view, "show_png") as png_view,
                     patch.object(QMessageBox, "critical",
                                  side_effect=AssertionError("Original import failed")),
                     patch.object(QMessageBox, "warning",
@@ -94,7 +97,10 @@ class GuiShellSmoke(unittest.TestCase):
                 self.assertEqual(schematic_input["board"]["cols"], 56)
                 self.assertTrue(window.schematic_action.isEnabled())
                 self.assertEqual(window._schematic_svg, svg)
+                self.assertEqual(window._schematic_png, b"test schematic PNG")
+                raster_render.assert_called_once_with(svg)
                 window.schematic_action.trigger()
+                png_view.assert_called_once_with(b"test schematic PNG")
                 self.assertEqual(window._board_side, "schematic")
                 self.assertTrue(window.schematic_action.isChecked())
                 self.assertFalse(window.top_action.isChecked())
@@ -131,6 +137,7 @@ class GuiShellSmoke(unittest.TestCase):
                     patch.object(BoardSizeDialog, "exec",
                                  return_value=QDialog.DialogCode.Rejected),
                     patch("render.schematic_bridge.render_schematic_data") as schematic_render,
+                    patch("render.schematic_bridge.rasterize_schematic_svg") as raster_render,
                     patch.object(SpacingDialog, "exec") as spacing,
                     patch.object(LockDialog, "exec") as locks,
                 ):
@@ -138,6 +145,7 @@ class GuiShellSmoke(unittest.TestCase):
                 spacing.assert_not_called()
                 locks.assert_not_called()
                 schematic_render.assert_not_called()
+                raster_render.assert_not_called()
                 self.assertFalse(window.schematic_action.isEnabled())
                 self.assertFalse(window.solve_action.isEnabled())
                 self.assertIsNone(window._solver_worker)

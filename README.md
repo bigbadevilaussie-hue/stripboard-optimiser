@@ -69,7 +69,10 @@ A **Schematic** button beside Component side / Copper side displays the existing
 standalone schematic SVG renderer's output. The schematic renders once from the
 imported JSON when loading succeeds, before component lock prompts begin;
 clicking the button switches the same viewport without altering or solving the
-board. See [GUI integration notes](gui/README.md).
+board. Schematic display now uses the **original Tk GUI's 2400 px librsvg PNG
+conversion** (requires `rsvg-convert`) for faithful label and part rendering,
+while board/copper views retain their original QtSvg pipeline. See
+[GUI integration notes](gui/README.md).
 
 ## What remains
 

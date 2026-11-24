@@ -80,3 +80,17 @@ documentation together. A Git release tag is separate from the branch version.
 - Kept the original schematic SVG generator, board/copper renderers, lock
   dialogs, input JSON and disabled solver unchanged.
 - Added three targeted, headless text-renderer regression tests.
+
+### Version 2.00 — Restore exact original Tk schematic preview pipeline
+
+- Compared original Tk GUI and current standalone schematic sources: the
+  schematic TS/JS renderer is byte-for-byte unchanged from before cleanup.
+- Diagnosed divergent rendering backends: original Tk used librsvg PNG,
+  whereas the new Qt GUI was displaying the SVG directly in QtSvg.
+- Restored the old `rsvg-convert -w 2400 -b white` raster conversion for
+  schematic **display only**; the existing SVG generator remains authoritative.
+- Cache the PNG and show it in the existing Qt board preview canvas when
+  Schematic is selected. The native renderer's raw SVG remains unchanged.
+- Keep source JSON, persistent sidecars, board/copper views, exact donor
+  dimensions/spacing/lock-review workflow and solver hard stop untouched.
+- Add unit and Qt smoke test coverage of raster generation and switching.

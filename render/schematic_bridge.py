@@ -7,6 +7,8 @@ No changes are made to project JSON, sidecars, components or net assignments.
 from __future__ import annotations
 
 import json
+import shutil
+import subprocess
 import tempfile
 from pathlib import Path
 from typing import Any
@@ -51,3 +53,48 @@ def render_schematic_data(project: dict[str, Any]) -> tuple[str, str]:
         if "<svg" not in svg:
             raise ValueError("Standalone schematic renderer produced invalid SVG.")
         return svg, result.stdout.strip()
+
+
+def rasterize_schematic_svg(svg: str) -> bytes:
+    """Use the exact SVG-to-PNG conversion used by the working Tk GUI.
+
+    Old Tk implementation, desktop/src/stripboard_optimizer/ui/main_window.py:
+    rsvg-convert -w 2400 -b white -o schematic.png schematic.svg
+
+    QtSvg can render white label outlines over text despite SVG paint-order,
+    causing apparently missing component labels. librsvg produces the same
+    raster preview that the old Tk GUI used without changing the schematic SVG.
+    """
+    if not isinstance(svg, str) or "<svg" not in svg:
+        raise ValueError("Standalone schematic must be a valid SVG string.")
+    converter = shutil.which("rsvg-convert")
+    if converter is None:
+        raise RuntimeError(
+            "Original Tk schematic preview requires rsvg-convert "
+            "(install it with 'brew install librsvg'). "
+            "The standalone schematic SVG itself is still available."
+        )
+    with tempfile.TemporaryDirectory(prefix="route-mate-schematic-png-") as scratch:
+        folder = Path(scratch)
+        svg_path = folder / "schematic.svg"
+        png_path = folder / "schematic.png"
+        svg_path.write_text(svg, encoding="utf-8")
+        try:
+            result = subprocess.run(
+                [converter, "-w", "2400", "-b", "white",
+                 "-o", str(png_path), str(svg_path)],
+                capture_output=True, text=True, timeout=60, check=False,
+            )
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            raise RuntimeError(f"Tk-compatible schematic rasterization failed: {exc}") from exc
+        if result.returncode != 0:
+            raise RuntimeError(
+                "Tk-compatible schematic rasterization failed: "
+                + (result.stderr or result.stdout).strip()
+            )
+        if not png_path.is_file():
+            raise RuntimeError("rsvg-convert did not produce schematic.png.")
+        data = png_path.read_bytes()
+        if not data.startswith(b"\x89PNG\r\n\x1a\n"):
+            raise ValueError("rsvg-convert returned an invalid PNG.")
+        return data
