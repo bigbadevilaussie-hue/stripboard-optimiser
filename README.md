@@ -62,6 +62,15 @@ npm run build:renderers
 This is **not** an end-to-end GUI integration. Next milestone will bind
 the same existing native CLI to the GUI, with no duplicate solver.
 
+
+### Schematic preview
+
+A **Schematic** button beside Component side / Copper side displays the existing
+standalone schematic SVG renderer's output. The schematic renders once from the
+imported JSON when loading succeeds, before component lock prompts begin;
+clicking the button switches the same viewport without altering or solving the
+board. See [GUI integration notes](gui/README.md).
+
 ## What remains
 
 - Native C decoder and strip router: `src/frontend/components/stripboard/v5wasm/`

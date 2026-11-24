@@ -65,6 +65,8 @@ class GuiShellSmoke(unittest.TestCase):
                     patch.object(LockDialog, "values", return_value=lock),
                     patch.object(RouteMateWindow, "_render_component_side",
                                  return_value=(svg, "")) as render,
+                    patch("render.schematic_bridge.render_schematic_data",
+                          return_value=(svg, "Saved schematic.svg")) as schematic_render,
                     patch.object(QMessageBox, "critical",
                                  side_effect=AssertionError("Original import failed")),
                     patch.object(QMessageBox, "warning",
@@ -82,6 +84,23 @@ class GuiShellSmoke(unittest.TestCase):
                     if call.kwargs.get("highlight_component_id") is not None
                 ]
                 self.assertEqual(len(highlighted), 4)
+                # Schematic is rendered exactly once on import, before locks.
+                schematic_render.assert_called_once()
+                schematic_input = schematic_render.call_args.args[0]
+                self.assertEqual(len(schematic_input["components"]), 45)
+                self.assertEqual(len(schematic_input["schematicWires"]),
+                                 len(__import__("json").loads(source_bytes)["schematicWires"]))
+                self.assertEqual(schematic_input["board"]["rows"], 24)
+                self.assertEqual(schematic_input["board"]["cols"], 56)
+                self.assertTrue(window.schematic_action.isEnabled())
+                self.assertEqual(window._schematic_svg, svg)
+                window.schematic_action.trigger()
+                self.assertEqual(window._board_side, "schematic")
+                self.assertTrue(window.schematic_action.isChecked())
+                self.assertFalse(window.top_action.isChecked())
+                window.top_action.trigger()
+                self.assertEqual(window._board_side, "top")
+                self.assertTrue(window.top_action.isChecked())
                 self.assertEqual(window.project["board"]["rows"], 24)
                 self.assertEqual(window.project["board"]["cols"], 56)
                 self.assertFalse(window.solve_action.isEnabled())
@@ -111,12 +130,15 @@ class GuiShellSmoke(unittest.TestCase):
                           return_value=(str(project_path), "")),
                     patch.object(BoardSizeDialog, "exec",
                                  return_value=QDialog.DialogCode.Rejected),
+                    patch("render.schematic_bridge.render_schematic_data") as schematic_render,
                     patch.object(SpacingDialog, "exec") as spacing,
                     patch.object(LockDialog, "exec") as locks,
                 ):
                     window.load_json()
                 spacing.assert_not_called()
                 locks.assert_not_called()
+                schematic_render.assert_not_called()
+                self.assertFalse(window.schematic_action.isEnabled())
                 self.assertFalse(window.solve_action.isEnabled())
                 self.assertIsNone(window._solver_worker)
                 self.assertEqual(project_path.read_bytes(), source_path.read_bytes())

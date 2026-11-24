@@ -62,3 +62,21 @@ a disabled hard stop. Later, connect a tested subprocess adapter to the existing
 donor Python Quick Solve/Hell Mode routing engines.
 
 The donor handover and native integration roadmap are in `docs/`.
+
+## Schematic tab in the existing SVG viewer
+
+The **Schematic** button sits beside Component side and Copper side in the
+original Route-Mate toolbar. On a successful JSON import, the existing **local**
+standalone TypeScript/Node renderer produces `schematic.svg` once (using a
+temporary copy of the imported project with all `schematicWires`, labels and
+net assignments). The SVG is cached in memory and displayed when the button is
+clicked. No input JSON or new persistent file is written.
+
+The existing component-side preview and lock-by-lock highlighted board views
+stay unchanged. Changing views does not re-run the renderer or modify locks.
+The schematic renderer does not launch the native CLI or any solver, and the
+Pass 1 hard-stop remains in place. A missing/unbuilt schematic CLI is reported
+in the Activity log but does not prevent board sizing or lock review.
+
+Build using the existing `cd src/frontend && npm run build:renderers` command.
+The compiled CLI is at `src/frontend/standalone-renderer/dist/standalone-renderer/schematic/cli.js`.

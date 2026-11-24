@@ -263,7 +263,7 @@ class BoardView(QGraphicsView):
         if self.scene() and not self.scene().sceneRect().isEmpty() and not self._user_zoomed:
             self.fit_board()
 
-    def show_svg(self, svg: str):
+    def show_svg(self, svg: str, *, schematic: bool = False):
         import re
         # Resolve generic SVG font aliases before Qt parses the image.
         # macOS Qt otherwise spends time constructing missing-font aliases.
@@ -277,15 +277,16 @@ class BoardView(QGraphicsView):
             svg = svg.replace(
                 f"font-family: {alias}", f"font-family: {system_family}"
             )
-        svg = re.sub(
-            r"(<svg\b[^>]*>)",
-            r"\1<style>text{fill:#000000!important;stroke:#fff8ed!important;"
-            r"stroke-width:0.32px!important;paint-order:stroke fill!important;"
-            r"stroke-linejoin:round!important;font-weight:700!important;opacity:1!important;}"
-            r"tspan{fill:#000000!important;stroke:#f3e5bf!important;"
-            r"stroke-width:0.55px!important;font-weight:700!important;opacity:1!important;}</style>",
-            svg, count=1,
-        )
+        if not schematic:
+            svg = re.sub(
+                r"(<svg\b[^>]*>)",
+                r"\1<style>text{fill:#000000!important;stroke:#fff8ed!important;"
+                r"stroke-width:0.32px!important;paint-order:stroke fill!important;"
+                r"stroke-linejoin:round!important;font-weight:700!important;opacity:1!important;}"
+                r"tspan{fill:#000000!important;stroke:#f3e5bf!important;"
+                r"stroke-width:0.55px!important;font-weight:700!important;opacity:1!important;}</style>",
+                svg, count=1,
+            )
         key = hashlib.sha256(svg.encode("utf-8")).hexdigest()
         if key == self._svg_key:
             return
@@ -445,6 +446,7 @@ class RouteMateWindow(QMainWindow):
         self.pipeline_run = None
         self._top_svg = None
         self._copper_svg = None
+        self._schematic_svg = None
         self._board_side = "top"
         self._solver_worker = None
         self._speed_probe_worker = None
@@ -529,6 +531,12 @@ class RouteMateWindow(QMainWindow):
         self.copper_action.setCheckable(True)
         self.copper_action.triggered.connect(lambda: self._switch_board_side("copper"))
         toolbar.addAction(self.copper_action)
+        self.schematic_action = QAction("Schematic", self)
+        self.schematic_action.setCheckable(True)
+        self.schematic_action.setEnabled(False)
+        self.schematic_action.setToolTip("View the original schematic, rendered when JSON loads")
+        self.schematic_action.triggered.connect(lambda: self._switch_board_side("schematic"))
+        toolbar.addAction(self.schematic_action)
         self.render_action = QAction("Open Solved", self)
         self.render_action.setToolTip("Preview an existing routed JSON without re-solving")
         self.render_action.triggered.connect(self.render_json)
@@ -781,6 +789,29 @@ class RouteMateWindow(QMainWindow):
         label_report = ("\n" + "\n".join(label_notes)) if label_notes else ""
         return top_svg, "production standalone renderer (both board sides)" + label_report
 
+    def _cache_schematic_preview(self, project: dict[str, Any]):
+        """Render imported schematic once; keep the board/lock workflow unchanged."""
+        from render.schematic_bridge import render_schematic_data
+
+        self._schematic_svg = None
+        self.schematic_action.setEnabled(False)
+        # A new project always starts on its component-side board view, so the
+        # original per-component lock highlighting is still visible.
+        self._board_side = "top"
+        try:
+            svg, diagnostic = render_schematic_data(project)
+            if not QSvgRenderer(QByteArray(svg.encode("utf-8"))).isValid():
+                raise ValueError("Standalone schematic SVG is invalid for Qt.")
+        except (OSError, RuntimeError, ValueError, TypeError, subprocess.SubprocessError) as exc:
+            self.log_line(f"[SCHEMATIC][WARN] Preview unavailable: {exc}")
+            # A renderer failure must never prevent the donor import/lock review.
+            return
+        self._schematic_svg = svg
+        self.schematic_action.setEnabled(True)
+        self.log_line("[SCHEMATIC] SVG rendered from imported JSON; Schematic button ready.")
+        if diagnostic:
+            self.log_line("[SCHEMATIC] " + diagnostic)
+
     def _record_assumed_geometry(self, project: dict[str, Any], *, stage=None):
         """Use the SAME versioned geometry generator as collect.py.
 
@@ -902,13 +933,20 @@ class RouteMateWindow(QMainWindow):
         self.statusBar().showMessage(f"Exported both SVG board views to {output.parent}")
 
     def _switch_board_side(self, side: str):
+        """Switch cached SVG views without rerouting or changing component locks."""
+        if side == "schematic" and not self._schematic_svg:
+            return
         self._board_side = side
         self.top_action.setChecked(side == "top")
         self.copper_action.setChecked(side == "copper")
-        svg = self._copper_svg if side == "copper" else self._top_svg
+        self.schematic_action.setChecked(side == "schematic")
+        svg = (self._schematic_svg if side == "schematic" else
+               self._copper_svg if side == "copper" else self._top_svg)
         if svg:
-            self.top_view.show_svg(svg)
+            self.top_view.show_svg(svg, schematic=(side == "schematic"))
         self.statusBar().showMessage(
+            "Schematic — original JSON circuit, rendered without solving."
+            if side == "schematic" else
             "Copper side — mirrored underside; red X marks physical cuts."
             if side == "copper" else
             "Component side — transparent top view; cuts aligned to board holes."
@@ -1870,7 +1908,8 @@ class RouteMateWindow(QMainWindow):
             self.project_path = path
             self._solved_verified = False
             self._quick_source = None
-            self.solve_action.setEnabled(True)
+            self.solve_action.setEnabled(False)
+            self._cache_schematic_preview(project)
             self.save_solved_action.setEnabled(False)
             self.project_summary.setText(
                 f"{path.name}\n{len(project['components'])} components · "

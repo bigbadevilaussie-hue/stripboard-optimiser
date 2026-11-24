@@ -62,3 +62,12 @@ documentation together. A Git release tag is separate from the branch version.
   prepared project; input JSON remains unchanged.
 - Donor pipeline/geometry sidecars are written as in Route-Mate.
 - Existing `solve_board()` guard still stops before Pass 1, no solver starts.
+
+### Version 2.00 — Embedded standalone schematic view
+
+- Added a checkable **Schematic** toolbar button using Route-Mate's existing SVG viewport.
+- Automatically rendered/cached the unmodified schematic from the already
+  compiled Node standalone schematic CLI on successful JSON import.
+- Kept existing board renderer, highlighted lock review and board-size dialogs intact.
+- Did not add an alternative routing/optimisation engine or start Pass 1.
+- Added headless CLI-bridge unit tests and Qt offscreen view-switch checks.
