@@ -62,7 +62,6 @@ If the runner is interrupted and the original Git/build/source fingerprints rema
   summary.json              timing distribution, failure histogram, top five, all solved
   solved_index.jsonl        ranked metadata for every strict-solved board
   report.md                 human-readable summary and top-five table
-  source_sha256.txt         (in manifest sourceSha256)
   top5/                    copies of up to five distinct physically solved layouts
   solved/                  **all** strict-solved JSONs (not just five)
   rejected/                saved failed/partial JSONs for post-analysis
