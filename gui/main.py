@@ -61,6 +61,8 @@ from PySide6.QtWidgets import (
 )
 
 
+from gui.arctic_theme import apply_arctic_theme
+
 
 def default_project_directory() -> Path:
     """Start native file pickers in user files, never PyInstaller internals."""
@@ -194,6 +196,7 @@ class RoutingRulesDialog(QDialog):
             QDialogButtonBox.StandardButton.Cancel
         )
         go = buttons.button(QDialogButtonBox.StandardButton.Ok)
+        go.setObjectName("nextActionButton")
         go.setText("CONFIRM RULES / CONTINUE")
         go.setEnabled(False)
         self.confirm.toggled.connect(go.setEnabled)
@@ -273,6 +276,7 @@ class PassOneDialog(QDialog):
             QDialogButtonBox.StandardButton.Cancel
         )
         go = buttons.button(QDialogButtonBox.StandardButton.Ok)
+        go.setObjectName("nextActionButton")
         go.setText("GO — PASS ONE")
         go.setEnabled(False)
         self.confirm.toggled.connect(go.setEnabled)
@@ -311,6 +315,7 @@ class PassTwoDialog(QDialog):
             QDialogButtonBox.StandardButton.Cancel
         )
         go = buttons.button(QDialogButtonBox.StandardButton.Ok)
+        go.setObjectName("nextActionButton")
         go.setText("GO — LOAD PASS TWO")
         go.setEnabled(False)
         self.confirm.toggled.connect(go.setEnabled)
@@ -401,7 +406,7 @@ class BoardView(QGraphicsView):
         self.setRenderHints(QPainter.RenderHint.Antialiasing |
                             QPainter.RenderHint.TextAntialiasing |
                             QPainter.RenderHint.SmoothPixmapTransform)
-        self.setBackgroundBrush(QBrush(QColor("#fafbfd")))
+        self.setBackgroundBrush(QBrush(QColor("#f5faff")))
         self.setFrameShape(QFrame.Shape.NoFrame)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
@@ -530,11 +535,11 @@ class WorkflowChecklist(QWidget):
         super().__init__(parent)
         self.setObjectName("workflowChecklist")
         self.setStyleSheet("""
-            QWidget#workflowChecklist { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; }
-            QLabel#workflowTitle { color: #203047; font-size: 15px; font-weight: 700; }
-            QLabel#workflowPercent { color: #233e6b; font-size: 14px; font-weight: 700; }
-            QProgressBar { background: #e9eef5; border: 0; border-radius: 5px; height: 8px; }
-            QProgressBar::chunk { background: #19866f; border-radius: 5px; }
+            QWidget#workflowChecklist { background: #ffffff; border: 1px solid #cbddec; border-radius: 12px; }
+            QLabel#workflowTitle { color: #1d425f; font-size: 15px; font-weight: 700; }
+            QLabel#workflowPercent { color: #2674ae; font-size: 14px; font-weight: 700; }
+            QProgressBar { background: #e2edf7; border: 0; border-radius: 6px; height: 8px; }
+            QProgressBar::chunk { background: #17a6c8; border-radius: 6px; }
         """)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(15, 15, 15, 12)
@@ -643,7 +648,7 @@ class WorkflowChecklist(QWidget):
             mark = self.rows[key]
             if state == "done":
                 mark.setText("✓")
-                mark.setStyleSheet("font-size: 19px; font-weight: bold; color: #2ebd64;")
+                mark.setStyleSheet("font-size: 19px; font-weight: bold; color: #168d95;")
                 complete += 1
             elif state == "running":
                 mark.setText("●")
@@ -781,10 +786,11 @@ class RouteMateWindow(QMainWindow):
         toolbar = QToolBar("Main")
         toolbar.setObjectName("routeMateToolbar")
         toolbar.setStyleSheet("""
-            QToolBar#routeMateToolbar { background: #17273b; border: none; padding: 9px; spacing: 8px; min-height: 54px; }
-            QToolBar#routeMateToolbar QToolButton { background: #2a405a; color: white; border: 1px solid #3e5976; border-radius: 9px; padding: 9px 14px; font-weight: 600; }
-            QToolBar#routeMateToolbar QToolButton:hover { background: #3a5b7c; }
-            QToolBar#routeMateToolbar QToolButton:checked { background: #23966c; border-color: #35c18b; }
+            QToolBar#routeMateToolbar { background: #f7fbff; border: none; border-bottom: 1px solid #cbddec; padding: 9px; spacing: 8px; min-height: 54px; }
+            QToolBar#routeMateToolbar QToolButton { background: white; color: #245675; border: 1px solid #bfd7e9; border-radius: 9px; padding: 9px 14px; font-weight: 650; }
+            QToolBar#routeMateToolbar QToolButton:hover { background: #e8f7ff; border-color: #50b5dc; }
+            QToolBar#routeMateToolbar QToolButton:checked { background: #dceffc; border-color: #6aaddc; color: #1a5b92; }
+            QToolBar#routeMateToolbar QToolButton:disabled { background: #eef3f8; border-color: #d9e5ee; color: #90a4b5; }
         """)
         brand = QWidget()
         brand_row = QHBoxLayout(brand)
@@ -798,7 +804,7 @@ class RouteMateWindow(QMainWindow):
                                                 Qt.TransformationMode.SmoothTransformation))
         brand_row.addWidget(brand_logo)
         brand_title = QLabel("ROUTE-MATE")
-        brand_title.setStyleSheet("color: white; font-size: 16px; font-weight: 800;")
+        brand_title.setStyleSheet("color: #19334d; font-size: 16px; font-weight: 800;")
         brand_row.addWidget(brand_title)
         toolbar.addWidget(brand)
         toolbar.setMovable(False)
@@ -859,8 +865,9 @@ class RouteMateWindow(QMainWindow):
         self.log.setMaximumBlockCount(5000)
         self.log.setPlaceholderText("Checks, solve attempts and diagnostics appear here.")
         self.log.setStyleSheet(
-            "QPlainTextEdit { background: #0f1c2b; color: #dbe7f5;"
-            "border: 0; padding: 12px; font-size: 11px; }"
+            "QPlainTextEdit { background: #ffffff; color: #23435e;"
+            "border: 1px solid #cbddec; border-radius: 9px;"
+            "padding: 12px; font-size: 11px; }"
         )
         self.top_view = BoardView()
         split = QSplitter(Qt.Orientation.Horizontal)
@@ -885,7 +892,7 @@ class RouteMateWindow(QMainWindow):
         self.solve_activity = QLabel("100-point move check pending · STOP before Pass 1")
         self.solve_activity.setWordWrap(True)
         self.solve_activity.setStyleSheet(
-            "font-size: 13px; font-weight: 700; color: #173c66; padding: 4px;"
+            "font-size: 13px; font-weight: 700; color: #216896; padding: 4px;"
         )
         overview_layout.addWidget(self.solve_activity)
         self.solve_progress = QProgressBar()
@@ -947,28 +954,29 @@ class RouteMateWindow(QMainWindow):
         split.setSizes([295, 1265])
         self.setCentralWidget(split)
         self.setStyleSheet("""
-            QMainWindow { background: #eef2f7; }
-            QWidget#sidebarTabs { background: #f7f9fc; }
-            QTabWidget::pane { border: 1px solid #e0e7ef; border-radius: 9px;
-                                background: #f7f9fc; }
-            QTabBar::tab { color: #5b6c82; background: #e8eef5; padding: 9px 22px;
-                           margin-right: 3px; border-radius: 7px; font-weight: 600; }
-            QTabBar::tab:selected { background: white; color: #173c66; }
-            QLabel#projectSummary { background: #e8f0fa; color: #1c4268;
-                                    border-radius: 8px; padding: 12px;
-                                    font-size: 12px; font-weight: 600; }
-            QLabel#solveSummary { background: #edf3fa; color: #2e5274;
-                                  border-radius: 8px; padding: 12px;
+            QMainWindow { background: #edf6fd; }
+            QWidget#sidebarTabs { background: #f7fbff; }
+            QTabWidget::pane { border: 1px solid #cbddec; border-radius: 10px;
+                                background: #f7fbff; }
+            QTabBar::tab { color: #59758c; background: #e6f0f9; padding: 9px 22px;
+                           margin-right: 3px; border-radius: 7px; font-weight: 650; }
+            QTabBar::tab:selected { background: white; color: #2366a1;
+                                    border-bottom: 2px solid #257ac2; }
+            QLabel#projectSummary { background: #e6f3fc; color: #1d527a;
+                                    border-radius: 9px; padding: 12px;
+                                    font-size: 12px; font-weight: 650; }
+            QLabel#solveSummary { background: #eaf5fc; color: #285a7c;
+                                  border-radius: 9px; padding: 12px;
                                   font-size: 12px; }
-            QFrame#boardHeader { background: white; border: 1px solid #e0e7ef;
-                                  border-radius: 10px; }
-            QLabel#boardProjectLabel { color: #17324f; font-size: 15px; font-weight: 800; }
-            QLabel#boardResultLabel { color: #60738a; font-size: 11px; }
-            QPushButton#boardZoomButton { background: #eff4fa; color: #183956;
-                                         padding: 7px 11px; border: 1px solid #dbe5ef;
-                                         border-radius: 6px; font-weight: 700; }
-            QPushButton#boardZoomButton:hover { background: #dbe9f7; }
-            QStatusBar { background: #e7eef5; color: #3f5873; font-size: 11px; }
+            QFrame#boardHeader { background: white; border: 1px solid #cbddec;
+                                  border-radius: 11px; }
+            QLabel#boardProjectLabel { color: #193d60; font-size: 15px; font-weight: 800; }
+            QLabel#boardResultLabel { color: #55758d; font-size: 11px; }
+            QPushButton#boardZoomButton { background: #ffffff; color: #215778;
+                                         padding: 7px 11px; border: 1px solid #bcd4e8;
+                                         border-radius: 8px; font-weight: 700; }
+            QPushButton#boardZoomButton:hover { background: #e8f7ff; border-color: #50b5dc; }
+            QStatusBar { background: #e4f0fa; color: #365c7a; font-size: 11px; }
         """)
         self.statusBar().showMessage("Ready. Load a project JSON to begin.")
         self.log_line(f"Route-Mate {GUI_VERSION} — 100-point native move calibration only")
@@ -995,10 +1003,10 @@ class RouteMateWindow(QMainWindow):
         self.board_result_label.setText(message)
         self.solve_summary.setText(message)
         backgrounds = {
-            "neutral": ("#edf3fa", "#2e5274"),
-            "working": ("#e7f1ff", "#155aa0"),
-            "pass": ("#e2f4ed", "#176c51"),
-            "failed": ("#fdeaea", "#ac2f3c"),
+            "neutral": ("#eaf5fc", "#285a7c"),
+            "working": ("#e0f2ff", "#216896"),
+            "pass": ("#e1f6f3", "#127c81"),
+            "failed": ("#fff0f1", "#b33e55"),
         }
         bg, fg = backgrounds.get(level, backgrounds["neutral"])
         self.solve_summary.setStyleSheet(
@@ -1029,9 +1037,9 @@ class RouteMateWindow(QMainWindow):
     def _display_tool_splash(self, tool: str, revision: str):
         """Brief visible Qt splash; not a blocking dialog or a fake solver run."""
         pix = QPixmap(690, 156)
-        pix.fill(QColor("#17273b"))
+        pix.fill(QColor("#edf6fd"))
         painter = QPainter(pix)
-        painter.setPen(QColor("#ffffff"))
+        painter.setPen(QColor("#19334d"))
         font = painter.font()
         font.setPointSize(20)
         font.setBold(True)
@@ -1040,7 +1048,7 @@ class RouteMateWindow(QMainWindow):
         font.setPointSize(10)
         font.setBold(False)
         painter.setFont(font)
-        painter.setPen(QColor("#b8d7ef"))
+        painter.setPen(QColor("#536f88"))
         painter.drawText(24, 88, revision)
         painter.drawText(24, 123, f"GUI {GUI_VERSION}  ·  checked-out {GUI_GIT_REVISION}")
         painter.end()
@@ -2703,8 +2711,7 @@ class RouteMateWindow(QMainWindow):
 
 def main():
     app = QApplication(sys.argv)
-    # Use the platform-selected concrete font instead of Qt’s unresolved generic Sans-serif alias.
-    app.setFont(QFontDatabase.systemFont(QFontDatabase.SystemFont.GeneralFont))
+    apply_arctic_theme(app)
     app.setApplicationName("Route-Mate")
     window = RouteMateWindow()
     window.show()
