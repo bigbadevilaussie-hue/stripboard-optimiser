@@ -985,7 +985,7 @@ class RouteMateWindow(QMainWindow):
                 from solve.slide_fit import edge_slide_positions
                 positions = prod(len(item["positions"])
                                  for item in edge_slide_positions(source))
-            except (ValueError, KeyError, TypeError) as exc:
+            except (ValueError, KeyError, TypeError, ImportError) as exc:
                 self.log_line(f"[EDGE+SLIDE][WARNING] Cannot count positions: {exc}")
         self.checklist.set_lock_summary(fixed, edge, slide, positions=positions)
         return fixed, edge, slide, positions
@@ -1064,8 +1064,8 @@ class RouteMateWindow(QMainWindow):
         self._quick_source = copy.deepcopy(self.project)
         preview, _ = self._render_component_side(self.project)
         self._show_board(preview)
-        self.review_locks_action.setEnabled(False)
-        self.log_line("[LOCKS] Review recorded; optimisation remains disconnected.")
+        self.review_locks_action.setEnabled(True)
+        self.solve_board()
 
     def review_locks(self):
         """Review the *input* placement, not the last solved output."""
@@ -1738,102 +1738,157 @@ class RouteMateWindow(QMainWindow):
         self._record_pipeline_result(result, [])
 
     def load_json(self):
-        """Open a JSON using the Route-Mate picker and run input checks only."""
         start_dir = self.project_path.parent if self.project_path else default_project_directory()
         filename, _ = QFileDialog.getOpenFileName(
-            self, "Load Route-Mate JSON", str(start_dir),
+            self, "Load Route-Mate project", str(start_dir),
             "Project JSON (*.json);;All files (*)",
         )
-        if filename:
-            self.load_project_path(Path(filename))
-
-    def load_project_path(self, path: Path):
-        """Testable read-only input seam. DO NOT add a solver call here."""
-        from gui.preflight import sniff_json
-        path = Path(path)
+        if not filename:
+            return
+        path = Path(filename)
         self.log_line("")
-        self.log_line(f"--- JSON SNIFF: {path.name} ---")
-        self.solve_action.setEnabled(False)
-        self.stop_action.setEnabled(False)
-        self.review_locks_action.setEnabled(False)
-        self.save_solved_action.setEnabled(False)
-        self.pipeline_run = None
-        self._quick_source = None
-        self._solved_verified = False
-        self.checklist.reset()
-        self._last_preflight = None
+        self.log_line(f"--- LOAD PROJECT: {path.name} ---")
         try:
-            report = sniff_json(path)
-            self._last_preflight = report
-            board = report["board"]
-            self.project_path = path
-            self.log_line(
-                f"[JSON] {board['rows']} × {board['cols']} · "
-                f"{report['components']} components · {report['nets']} nets · "
-                f"{report['pin_assignments']} pin assignments"
-            )
-            self.log_line(
-                f"[BOARD] rows locked={board['lockedRows']} · cols locked={board['lockedCols']}"
-                f" · {report['cuts']} cuts · {report['wires']} wires"
-            )
-            self.log_line(
-                f"[PARTS] positioned={report['placed']} · "
-                f"off-board/excluded={report['off_board_or_excluded']} · "
-                f"locked={report['locked_components']} · "
-                f"edge={report['edge']} · slide={report['slide']}"
-            )
-            self.log_line("[INPUT] SHA-256 " + report["source_sha256"])
-            for missing in report["missing_footprints"]:
-                self.log_line("[FOOTPRINT][MISSING] " + missing)
-            for warning in report["warnings"]:
-                self.log_line("[SNIFF][WARN] " + warning)
-            for error in report["errors"]:
-                self.log_line("[SNIFF][ERROR] " + error)
-
-            if report["status"] != "PASS":
-                self.project = None
-                self.solve_activity.setText("INPUT FAILED · no optimiser started")
-                self._set_board_summary("JSON / electrical input preflight FAILED", level="failed")
-                self.sidebar_tabs.setCurrentIndex(1)
-                self.statusBar().showMessage("Preflight FAILED; no solver started. See Activity.")
-                return report
-
             source = json.loads(path.read_text(encoding="utf-8"))
-            self.project = source
+            if not isinstance(source, dict):
+                raise ValueError("Project JSON root must be an object.")
+
+            # Collector validation and explicit board-size collection.
+            from collect import validate_project
+            project = validate_project(copy.deepcopy(source))
+            collect_warnings = list(project.pop("_collectWarnings", []))
+            for warning in collect_warnings:
+                self.log_line("[COLLECT][WARN] " + warning)
+            board_dialog = BoardSizeDialog(project.get("board", {}), self)
+            if board_dialog.exec() != QDialog.DialogCode.Accepted:
+                self.log_line("[COLLECT] Board dimensions cancelled; project not advanced.")
+                return
+            dimensions = board_dialog.values()
+            spacing_dialog = SpacingDialog(self, selected=self._body_spacing_holes)
+            if spacing_dialog.exec() != QDialog.DialogCode.Accepted:
+                self.log_line("[SPACING] Cancelled; project not advanced.")
+                return
+            self._body_spacing_holes = spacing_dialog.value()
+            self.log_line(
+                f"[SPACING] Selected {('Off', 'Normal', 'Wider')[self._body_spacing_holes]} "
+                f"({self._body_spacing_holes} free hole(s))."
+            )
+            if dimensions["wantedRowsMode"] == "fixed" and dimensions["wantedRows"] > dimensions["actualRows"]:
+                raise ValueError("Fixed preferred rows cannot exceed actual physical rows.")
+            if dimensions["wantedColsMode"] == "fixed" and dimensions["wantedCols"] > dimensions["actualCols"]:
+                raise ValueError("Fixed preferred columns cannot exceed actual physical columns.")
+            project["board"].update(dimensions)
+            project["board"]["rows"] = dimensions["actualRows"]
+            project["board"]["cols"] = dimensions["actualCols"]
+            self.project_path = path
+            from pipeline import PipelineRun, project_import_stage_result
+            self.checklist.reset()
+            self.pipeline_run = PipelineRun.create(
+                path, source,
+                sources=[{"kind": "project_json", "path": str(path.resolve())}],
+            )
+            import_result, import_findings = project_import_stage_result(
+                source, project,
+                warnings=collect_warnings,
+                options={**dimensions, "body_spacing_holes": self._body_spacing_holes},
+            )
+            self._record_assumed_geometry(project, stage=import_result)
+            self._record_pipeline_result(import_result, import_findings)
+            self.log_line(
+                f"[COLLECT] Actual board {dimensions['actualRows']} x {dimensions['actualCols']}; "
+                f"preferred rows {dimensions['wantedRows']} ({dimensions['wantedRowsMode']}), "
+                f"columns {dimensions['wantedCols']} ({dimensions['wantedColsMode']})."
+            )
+            self.log_line(
+                f"[COLLECT] Components={len(project['components'])}, Nets={len(project['nets'])}, "
+                f"Assignments={len(project['netAssignments'])}"
+            )
+
+            from prepare.sanity.electrical import run_electrical_sanity
+            sanity_handoff = self.pipeline_run.handoff(project, "prepare.sanity.electrical")
+            self._log_handoff(sanity_handoff)
+            sanity_input = sanity_handoff["project"]
+            sanity = run_electrical_sanity(sanity_input)
+            from pipeline import electrical_sanity_stage_result
+            sanity_result, sanity_findings = electrical_sanity_stage_result(sanity_input, sanity)
+            sanity_result.options.update({
+                "from_stage": sanity_handoff["from_stage"],
+                "upstream_finding_ids": sanity_handoff["finding_ids"],
+            })
+            self._record_pipeline_result(sanity_result, sanity_findings)
+            self.log_line(f"[SANITY] Electrical integrity: {sanity['status']}")
+            for error in sanity["errors"]:
+                self.log_line("[SANITY][ERROR] " + error)
+            for warning in sanity["warnings"]:
+                self.log_line("[SANITY][WARN] " + warning)
+            if sanity["status"] != "PASS":
+                QMessageBox.warning(self, "Collector sanity checks failed",
+                                    "The project failed electrical sanity checks. See the log.")
+                return
+
+            # PRE-SOLVE is a read-only PREPARE report, persisted in the existing sidecar.
+            from pipeline import presolve_stage_result
+            presolve_handoff = self.pipeline_run.handoff(project, "prepare.presolve")
+            self._log_handoff(presolve_handoff)
+            presolve_result, presolve_findings = presolve_stage_result(presolve_handoff["project"])
+            presolve_result.options.update({
+                "from_stage": presolve_handoff["from_stage"],
+                "upstream_finding_ids": presolve_handoff["finding_ids"],
+            })
+            self._record_pipeline_result(presolve_result, presolve_findings)
+            candidate = presolve_result.report["board"]
+            self.log_line(
+                f"[PRE-SOLVE] {len(presolve_result.report['components'])} components; "
+                f"placement candidate={candidate['placement_candidate_rows']} x "
+                f"{candidate['placement_candidate_cols']} "
+                f"({candidate['placement_candidate_status']}); "
+                "physical fit NOT verified."
+            )
+
+            from placement_policy import is_off_board_component
+
+            # Preserve and display the positions already present in the imported project.
+            # Quick Fit works on a copy and must not overwrite the imported source JSON.
+            components = project["components"]
+            placed = [component for component in components
+                      if isinstance(component.get("boardPos"), dict)
+                      and not is_off_board_component(component)]
+            on_board = [component for component in components
+                        if not is_off_board_component(component)]
+            self.log_line(
+                f"[PLACEMENT] Existing layout: {len(placed)} positioned; "
+                f"{len(on_board)} on-board; "
+                f"{len(components) - len(on_board)} off-board/excluded."
+            )
+            for component in placed:
+                self.log_line(
+                    f"[PLACEMENT] {component.get('label') or component.get('id')}: "
+                    f"boardPos={component.get('boardPos')} rotation={component.get('rotation', 0)}"
+                )
+
+            self.project = project
+            self.project_path = path
+            self._solved_verified = False
+            self._quick_source = None
+            self.solve_action.setEnabled(True)
+            self.save_solved_action.setEnabled(False)
             self.project_summary.setText(
-                f"{path.name}\n"
-                f"{report['components']} components · {report['nets']} nets · "
-                f"{report['pin_assignments']} assigned pins"
+                f"{path.name}\n{len(project['components'])} components · "
+                f"{len(project['nets'])} nets"
             )
-            self.checklist.update_states({"COLLECT": "done", "SANITY": "done"})
-            self._set_board_summary(
-                "JSON + electrical input sanity PASS · STOPPED BEFORE PASS 1",
-                project=source, level="pass",
-            )
-            self.solve_activity.setText("✅ Input checks complete · Pass 1 NOT STARTED")
-            self.solve_worker_status.setText("Solver: existing native CLI, NOT CONNECTED")
-            self.solve_progress.setValue(0)
-            self.solve_eta.setText("Elapsed: —   No optimisation scheduled")
-            self.log_line("[SNIFF][PASS] Original JSON preserved; no sidecars saved.")
-            self.log_line("[PASS 1] DISABLED; no Python/native solver or speed probe.")
-            try:
-                top_svg, renderer_log = self._render_component_side(source)
-                self._show_board(top_svg)
-                self.log_line("[RENDER] Original component/copper side preview only.")
-                if renderer_log:
-                    self.log_line("[RENDER] " + renderer_log)
-            except Exception as render_error:
-                self.log_line(f"[RENDER][WARN] Optional preview unavailable: {render_error}")
-            self.statusBar().showMessage("JSON preflight PASS — STOPPED BEFORE PASS 1.")
-            return report
+            self._set_board_summary("Imported · reviewing placement constraints", project=project)
+            top_svg, renderer_log = self._render_component_side(project)
+            self._show_board(top_svg)
+            self.log_line("[RENDER] Existing component-side layout rendered with alternating row bands.")
+            if renderer_log:
+                self.log_line("[RENDER] " + renderer_log)
+
+            # Unit tests belong in CI, not on every user project import.
+            self._ask_lock_settings(placed)
         except Exception as exc:
-            self.project = None
-            self.solve_activity.setText("INPUT ERROR · no optimiser started")
-            self._set_board_summary("Could not load or validate JSON", level="failed")
-            self.log_line(f"[SNIFF][ERROR] {type(exc).__name__}: {exc}")
-            self.statusBar().showMessage("Could not load JSON; no optimiser started.")
-            QMessageBox.warning(self, "JSON preflight failed", str(exc))
-            return None
+            self.log_line(f"[ERROR] {type(exc).__name__}: {exc}")
+            self.log_line(traceback.format_exc())
+            QMessageBox.critical(self, "Could not load project", str(exc))
 
     def closeEvent(self, event):
         if self._solver_worker is not None and self._solver_worker.isRunning():

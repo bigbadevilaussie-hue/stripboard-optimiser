@@ -7,23 +7,34 @@ The original `gui/main.py`, `run_gui.py`, Qt workflow, board-viewer classes
 and source icon are transplanted into their donor path structure.
 Import/sanity/geometry/sidecar support is also directly reused.
 
-**FIRST CHECKPOINT: JSON SNIFF ONLY, then STOP.**
+**FIRST CHECKPOINT: original Route-Mate import workflow and lock dialogs,
+then STOP before Pass 1.**
 
-The GUI's **Load JSON** action now calls the non-mutating `gui.preflight`
-module, which performs the Route-Mate collector's JSON schema check and its
-electrical input sanity check. It reports dimensions, locks, placements,
-components, nets, pin assignments, missing footprint definitions, and
-warnings. The independent .net comparison is available via the CLI
-`--net` argument but is not yet exposed in the desktop picker.
+The GUI's **Load JSON** method and sequential `_ask_lock_settings()` method
+are copied verbatim from Route-Mate 1.44 at the pinned donor commit.
 
-The GUI may preview an already saved board using the *local* standalone Node
-renderer. This is not a solve or new routing pass. Preview failure is advisory
-and does not change the import result.
+Original sequence:
+1. Select a JSON file.
+2. Set **actual** and **preferred** board rows/columns in BoardSizeDialog.
+3. Choose component spacing with SpacingDialog.
+4. Validate with the donor collector, run electrical sanity, perform read-only
+   PRE-SOLVE footprint analysis and record the pipeline/geometry sidecars.
+5. Preview the selected board size through the local production SVG renderer.
+6. Show each positioned part with an individual highlighted board preview
+   and the original Fixed / Movable / Edge / Slide LockDialog.
+7. Record the reviewed locks and reach `solve_board()`, which has a hard
+   disabled-return guard. **No search or optimiser executes.**
 
-**There is no Python Quick Solve or Hell Mode engine in the destination.**
-The old solver worker, startup probe, lock-to-solve automatic transition and
-toolbar solve path are disabled. No speed probe, pass1, pass2, or native CLI
-solver starts from this checkpoint. No input or sidecar output is written.
+The fixture's 99×500 raw canvas is not the physical board: choose 24×56
+in BoardSizeDialog when testing MOTOEX. The source JSON is not overwritten.
+Donor pipeline and geometry sidecar files **are** saved beside the JSON.
+
+`gui.preflight` remains an **additional headless, read-only input diagnostic**
+tool; it does not replace the GUI's original collector and dialogs.
+
+**There is no Python Quick Solve or Hell Mode optimiser in this repository.**
+The former Python solver worker and startup probe remain disconnected.
+The actual future engine is the existing native C/TypeScript CLI.
 
 ## Launch from repository root
 
@@ -32,7 +43,7 @@ python3 -m pip install -r requirements-gui.txt
 python3 run_gui.py
 ```
 
-Without Qt, use the same preflight:
+Without Qt, use the separate read-only preflight:
 
 ```sh
 python3 -m gui.preflight test-fixtures/masters/moto/motoex.json
@@ -44,10 +55,10 @@ Build optional board preview from `src/frontend/` with
 
 ## Next integration seam
 
-`RouteMateWindow.load_project_path()` is the proven import/pause boundary.
-Connect a **new, tested Python subprocess adapter to the existing
-`src/frontend/tests/solver/v5Solve.js` CLI** later; do not reactivate
-donor Quick Solve methods, reuse an old 24-attempt backend or implement a
-second stripboard solver.
+`RouteMateWindow.load_json()` and `_ask_lock_settings()` are the original
+Route-Mate import/constraint boundary. The existing `solve_board()` is now
+a disabled hard stop. Later, connect a tested subprocess adapter to the existing
+`src/frontend/tests/solver/v5Solve.js` native CLI. Do not reactivate the
+donor Python Quick Solve/Hell Mode routing engines.
 
 The donor handover and native integration roadmap are in `docs/`.

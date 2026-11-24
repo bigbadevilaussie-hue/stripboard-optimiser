@@ -15,7 +15,7 @@ at the same `gui/` and `run_gui.py` paths, but **optimisation is disabled** unti
 the existing native CLI adapter has been implemented and independently tested.
 The GUI is not a second optimiser.
 
-## Current GUI milestone — JSON sniff + checks, then STOP
+## Current GUI milestone — Original Route-Mate import and lock review, then STOP
 
 The Route-Mate 1.44 PySide6 window has been copied into the repository,
 including its icons, source import support, electrical input sanity
@@ -27,15 +27,21 @@ python3 -m pip install -r requirements-gui.txt
 python3 run_gui.py
 ```
 
-Use **Load JSON**. The GUI checks the source JSON schema and board dimensions,
-counts components/nets/pins, identifies unresolved footprints, checks electrical
-**input metadata integrity** (not a solved-board electrical certification),
-displays existing placements and attempts a read-only preview via the included
-local SVG renderer. It then **STOPS BEFORE PASS 1**.
+Use **Load JSON**. This invokes the **original Route-Mate 1.44 GUI workflow**:
+choose actual/preferred board dimensions, choose the component-spacing setting,
+run the collector/electrical input sanity and read-only PRE-SOLVE checks, preview
+the board, and review each positioned component's Fixed / Movable / Edge / Slide
+status with an individual highlighted board view. After the last lock decision,
+**the solver remains disabled and the GUI stops before Pass 1**.
 
-No search, routing, worker calibration, speed probe, solver subprocess or
-Pass 1 is started. All solve controls remain disabled. No source JSON or
-pipeline sidecar is written.
+Board dimensions are supplied by the user in the dialog rather than blindly
+rendering the JSON's large original working canvas (MOTOEX's raw fixture is
+99×500). Choosing 24×56 displays 24×56, without overwriting the source file.
+
+As in the donor GUI, stage/assumed-geometry sidecar files are saved alongside
+the JSON. These are reports and provenance, **not optimiser output**.
+No routing, worker calibration, speed probe, Python Quick Solve, native CLI
+subprocess, or Pass 1 is started.
 
 The same checks can be run without PySide6:
 
@@ -44,7 +50,7 @@ python3 -m gui.preflight test-fixtures/masters/moto/motoex.json
 python3 -m unittest discover -s tests -p 'test_gui_*' -v
 ```
 
-If preview is unavailable, the JSON and input-sanity checks still complete.
+The donor workflow requires the local renderer for component/lock highlighting; if preview fails, the GUI displays an error and does not advance through lock review.
 To enable preview, compile the existing local renderers:
 
 ```sh

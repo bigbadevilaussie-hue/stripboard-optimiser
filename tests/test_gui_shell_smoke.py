@@ -1,55 +1,127 @@
-"""Optional Qt offscreen GUI startup and hard stop smoke tests."""
+"""Regression: original Route-Mate board-size → spacing → lock dialog sequence.
+
+This test uses the real GUI import pipeline and the repository MOTOEX fixture.
+Only user clicks and the external SVG renderer are mocked. No solver runs.
+"""
 import os
 import tempfile
 import unittest
 from pathlib import Path
-import json
+from unittest.mock import patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 try:
-    from PySide6.QtWidgets import QApplication
-    from gui.main import RouteMateWindow
+    from PySide6.QtWidgets import QApplication, QDialog, QMessageBox
+    from gui.main import (
+        BoardSizeDialog, LockDialog, RouteMateWindow, SpacingDialog,
+    )
 except ImportError:
     QApplication = None
+    QDialog = None
+    QMessageBox = None
+    BoardSizeDialog = None
+    LockDialog = None
     RouteMateWindow = None
+    SpacingDialog = None
 
 
-@unittest.skipIf(QApplication is None, "PySide6 not installed")
+@unittest.skipIf(QApplication is None, "PySide6 is not installed")
 class GuiShellSmoke(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.app = QApplication.instance() or QApplication([])
 
-    def test_gui_import_load_stops_before_pass_1(self):
-        data = {
-            "board": {"rows": 24, "cols": 56, "wires": [], "cuts": []},
-            "components": [{"id": "R1", "defId": "r",
-                            "boardPos": {"row": 0, "col": 0}}],
-            "componentDefs": [{"id": "r", "width": 2, "height": 1,
-                               "pins": [{"id": "1", "offsetRow": 0, "offsetCol": 0}]}],
-            "nets": [{"id": "N1"}],
-            "netAssignments": [{"componentId": "R1", "pinId": "1", "netId": "N1"}],
-            "lockedRows": True, "lockedCols": True,
+    def test_motoex_dialogs_highlight_locks_then_stop_before_pass1(self):
+        source_path = (
+            Path(__file__).resolve().parents[1] /
+            "test-fixtures" / "masters" / "moto" / "motoex.json"
+        )
+        source_bytes = source_path.read_bytes()
+        sizes = {
+            "actualRows": 24, "actualCols": 56,
+            "wantedRows": 24, "wantedCols": 56,
+            "wantedRowsMode": "fixed", "wantedColsMode": "fixed",
         }
+        lock = {"locked": True, "edge": False, "slide": False, "reposition": False}
+        svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100"/></svg>'
+
         with tempfile.TemporaryDirectory() as tmp:
-            p = Path(tmp) / "input.json"
-            payload = json.dumps(data).encode()
-            p.write_bytes(payload)
+            project_path = Path(tmp) / "motoex.json"
+            project_path.write_bytes(source_bytes)
             window = RouteMateWindow()
-            result = window.load_project_path(p)
-            self.assertEqual(result["status"], "PASS")
-            self.assertEqual(result["execution"], "STOPPED_BEFORE_PASS_1")
-            self.assertFalse(window.solve_action.isEnabled())
-            self.assertFalse(window.stop_action.isEnabled())
-            self.assertFalse(window.review_locks_action.isEnabled())
-            self.assertIsNone(window._solver_worker)
-            self.assertIsNone(window._speed_probe_worker)
-            window.solve_board()
-            self.assertFalse(window.solve_action.isEnabled())
-            self.assertEqual(p.read_bytes(), payload)
-            self.assertEqual({x.name for x in Path(tmp).iterdir()}, {"input.json"})
-            window.close()
+            try:
+                with (
+                    patch("gui.main.QFileDialog.getOpenFileName",
+                          return_value=(str(project_path), "")),
+                    patch.object(BoardSizeDialog, "exec",
+                                 return_value=QDialog.DialogCode.Accepted) as size_exec,
+                    patch.object(BoardSizeDialog, "values", return_value=sizes),
+                    patch.object(SpacingDialog, "exec",
+                                 return_value=QDialog.DialogCode.Accepted) as spacing_exec,
+                    patch.object(SpacingDialog, "value", return_value=1),
+                    patch.object(LockDialog, "exec",
+                                 return_value=QDialog.DialogCode.Accepted) as lock_exec,
+                    patch.object(LockDialog, "values", return_value=lock),
+                    patch.object(RouteMateWindow, "_render_component_side",
+                                 return_value=(svg, "")) as render,
+                    patch.object(QMessageBox, "critical",
+                                 side_effect=AssertionError("Original import failed")),
+                    patch.object(QMessageBox, "warning",
+                                 side_effect=AssertionError("Unexpected warning dialog")),
+                ):
+                    window.load_json()
+
+                size_exec.assert_called_once()
+                spacing_exec.assert_called_once()
+                # MOTOEX fixture has four existing on-board placements.
+                self.assertEqual(lock_exec.call_count, 4)
+                highlighted = [
+                    call.kwargs.get("highlight_component_id")
+                    for call in render.call_args_list
+                    if call.kwargs.get("highlight_component_id") is not None
+                ]
+                self.assertEqual(len(highlighted), 4)
+                self.assertEqual(window.project["board"]["rows"], 24)
+                self.assertEqual(window.project["board"]["cols"], 56)
+                self.assertFalse(window.solve_action.isEnabled())
+                self.assertFalse(window.stop_action.isEnabled())
+                self.assertIsNone(window._solver_worker)
+                self.assertIsNone(window._speed_probe_worker)
+                self.assertEqual(project_path.read_bytes(), source_bytes)
+                self.assertIn("STOPPED BEFORE PASS 1", window.statusBar().currentMessage())
+                # Legacy Route-Mate persists state/geometry next to the source;
+                # it never rewrites the original JSON.
+                self.assertTrue(window.presolve_constraints)
+            finally:
+                window.close()
+
+    def test_board_size_cancel_does_not_start_locks_or_solve(self):
+        source_path = (
+            Path(__file__).resolve().parents[1] /
+            "test-fixtures" / "masters" / "moto" / "motoex.json"
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            project_path = Path(tmp) / "motoex.json"
+            project_path.write_bytes(source_path.read_bytes())
+            window = RouteMateWindow()
+            try:
+                with (
+                    patch("gui.main.QFileDialog.getOpenFileName",
+                          return_value=(str(project_path), "")),
+                    patch.object(BoardSizeDialog, "exec",
+                                 return_value=QDialog.DialogCode.Rejected),
+                    patch.object(SpacingDialog, "exec") as spacing,
+                    patch.object(LockDialog, "exec") as locks,
+                ):
+                    window.load_json()
+                spacing.assert_not_called()
+                locks.assert_not_called()
+                self.assertFalse(window.solve_action.isEnabled())
+                self.assertIsNone(window._solver_worker)
+                self.assertEqual(project_path.read_bytes(), source_path.read_bytes())
+            finally:
+                window.close()
 
 
 if __name__ == "__main__":

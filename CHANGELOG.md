@@ -50,3 +50,15 @@ documentation together. A Git release tag is separate from the branch version.
   pauses immediately after the checks.
 - The existing C/TypeScript native CLI remains the sole future solver.
 - Both repository release version and GUI title remain **2.00**.
+
+### Version 2.00 — Restore donor GUI board sizing + sequential lock decisions
+
+- Restored the **unmodified Route-Mate 1.44** `load_json()` and
+  `_ask_lock_settings()` methods from commit `bb764a0`.
+- Board-size/spacing dialogs now run before the donor import checks.
+- Each positioned component is highlighted and presented with the original
+  Fixed/Movable/Edge/Slide lock dialog.
+- Selected board size drives both the on-screen preview and in-memory
+  prepared project; input JSON remains unchanged.
+- Donor pipeline/geometry sidecars are written as in Route-Mate.
+- Existing `solve_board()` guard still stops before Pass 1, no solver starts.

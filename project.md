@@ -11,8 +11,10 @@ This repository retains **one headless native optimisation engine**, verificatio
 research scripts, fixture inputs and standalone schematic/board SVG renderers.
 A new **Route-Mate PySide6 desktop GUI shell** is now included at the donor's
 original `gui/` and `run_gui.py` locations. The first GUI milestone is deliberately
-limited to JSON sniff + input integrity checks, with all solver entry points
-disabled. There is still no web UI, Django backend or deployment stack.
+limited to the original board-size dialog, collector/electrical sanity checks,
+component-spacing dialog and individually highlighted lock decisions. All
+solver entry points remain disabled. There is still no web UI, Django backend
+or deployment stack.
 
 ## Purpose
 
