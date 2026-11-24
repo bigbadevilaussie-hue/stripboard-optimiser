@@ -52,7 +52,7 @@ from PySide6.QtWidgets import (
     QApplication, QCheckBox, QDialog, QDialogButtonBox, QFileDialog,
     QFormLayout, QGraphicsScene, QGraphicsView, QGroupBox, QHBoxLayout,
     QLabel, QMainWindow, QMessageBox, QPlainTextEdit, QPushButton, QRadioButton, QComboBox,
-    QSpinBox, QSplitter, QToolBar, QVBoxLayout, QWidget, QProgressBar, QTabWidget, QFrame,
+    QSpinBox, QSplitter, QToolBar, QVBoxLayout, QWidget, QProgressBar, QTabWidget, QFrame, QSplashScreen,
 )
 
 
@@ -494,6 +494,7 @@ class RouteMateWindow(QMainWindow):
         self._schematic_png = None  # Old Tk GUI’s rsvg-convert preview bytes
         self._board_side = "top"
         self._tool_revisions_seen: set[str] = set()
+        self._active_tool_splash = None
         self._solver_worker = None
         self._speed_probe_worker = None
         self._stop_requested = False
@@ -757,6 +758,33 @@ class RouteMateWindow(QMainWindow):
         self.log_line(revision)
         self.log_line("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
         self.statusBar().showMessage(revision, 8000)
+        self._display_tool_splash(tool, revision)
+
+    def _display_tool_splash(self, tool: str, revision: str):
+        """Brief visible Qt splash; not a blocking dialog or a fake solver run."""
+        pix = QPixmap(690, 156)
+        pix.fill(QColor("#17273b"))
+        painter = QPainter(pix)
+        painter.setPen(QColor("#ffffff"))
+        font = painter.font()
+        font.setPointSize(20)
+        font.setBold(True)
+        painter.setFont(font)
+        painter.drawText(24, 48, f"STRIPBOARD · {tool}")
+        font.setPointSize(10)
+        font.setBold(False)
+        painter.setFont(font)
+        painter.setPen(QColor("#b8d7ef"))
+        painter.drawText(24, 88, revision)
+        painter.drawText(24, 123, f"GUI {GUI_VERSION}  ·  checked-out {GUI_GIT_REVISION}")
+        painter.end()
+        if self._active_tool_splash is not None:
+            self._active_tool_splash.close()
+        splash = QSplashScreen(self, pix, Qt.WindowType.WindowStaysOnTopHint)
+        self._active_tool_splash = splash
+        splash.show()
+        splash.repaint()
+        QTimer.singleShot(1800, splash.close)
 
     def _log_handoff(self, handoff: dict[str, Any]):
         self.log_line(

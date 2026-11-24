@@ -210,3 +210,13 @@ documentation together. A Git release tag is separate from the branch version.
 - Root VERSION stays 2.00. Native decoder, router, anneal and strict constraints
   are unchanged; this is diagnostic visibility, not a new solver release.
 - Headless rendering requires rebuilding compiled files: `cd src/frontend && npm run build:renderers`.
+
+### Route-Mate GUI 2.04 — visible Qt Render and Schematic splash (24 November 2026)
+
+- The first invocation of each distinct compiled Render/Schematic revision now
+  produces a **non-modal 1.8-second Qt splash screen** with its exact executable
+  revision, in addition to the persistent Activity log and GUI title identity.
+- Multiple component highlight renders do not repeatedly interrupt the operator;
+  a new compiled revision can generate a fresh splash. GUI-only visibility;
+  the native CLI and both headless renderer CLIs retain their stderr splashes.
+- No wiring, routing, strict acceptance, SVG content or saved project changes.

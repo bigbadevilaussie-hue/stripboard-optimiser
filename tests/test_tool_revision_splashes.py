@@ -34,7 +34,9 @@ class ToolRevisionSplashTests(unittest.TestCase):
         self.assertIn('self._show_tool_revision(_renderer_log, "RENDER")', code)
         self.assertIn('self._show_tool_revision(diagnostic, "SCHEMATIC")', code)
         self.assertIn('GUI_GIT_REVISION', code)
-        self.assertEqual((ROOT / "gui/VERSION").read_text().strip(), "2.03")
+        self.assertIn("QSplashScreen", code)
+        self.assertIn("self._display_tool_splash(tool, revision)", code)
+        self.assertEqual((ROOT / "gui/VERSION").read_text().strip(), "2.04")
 
 
 if __name__ == "__main__":
