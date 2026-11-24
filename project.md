@@ -1,4 +1,11 @@
-# Stripboard Optimiser — headless project contract
+# Stripboard Optimiser — Version 2.00 project contract
+
+**Milestone:** Consolidation of Two Repositories (24 November 2026).
+
+The current `main` branch is version 2.00. This is a repository-structure and
+version milestone; it is not a claim of a new solver algorithm or independently
+verified build on a fresh machine.
+
 
 This repository contains **only headless optimisation, verification, research
 scripts, fixture inputs and the existing standalone schematic/board SVG

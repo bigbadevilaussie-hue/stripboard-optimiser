@@ -1,4 +1,6 @@
-# Headless solver and standalone renderers
+# Headless solver and standalone renderers — Version 2.00
+
+Package version: `2.0.0` (repository release designation `v2.00`).
 
 Despite this directory's historical name (`src/frontend/`), **there is no
 frontend, web application or GUI here**. These are reusable headless modules
