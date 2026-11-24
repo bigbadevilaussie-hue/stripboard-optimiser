@@ -186,6 +186,10 @@ The passes-only runner `scripts/run_wr_audio_moto.py` executes 2,000 seeds at ea
 
 **Do not rerun casually:** each circuit/budget output directory under `~/Desktop/WR_Audio/` or `~/Desktop/WR_Moto/` is **deleted and recreated** at the start of that rung. There is **no resume support**. Latest user-reported completed runs: Audio 5k **113/2000** strict passes, Audio 10k **170/2000**, highest reported Audio score **74.14** at 10k seed **1171** (11 wires, 39 cuts). Audio 20k was in progress at last update. Moto figures have not yet been reported. See [active handoff](docs/ACTIVE_HANDOFF_2026-11-24.md) for provenance and next-chat instructions.
 
+### Static 100-check Audio/Moto input audit
+
+Run `node scripts/audit_100_audio_moto.js` to check **100 JSON/KiCad preflight conditions per circuit**, without altering inputs or running the optimiser. The 24 Nov source run found **Audio 99 PASS / 1 planning WARN**, **Moto 91 PASS / 9 planning WARN**, and **zero hard input FAILs**. Moto's greater pin and component pressure suggests a tougher move budget, but this is **not** a speed probe or a saved-board strict verdict. See [full audit + explicitly uncertain predictions](docs/AUDIO_MOTO_100_CHECK_PREFLIGHT_2026-11-24.md).
+
 ## Audit and test coverage
 
 The headless `npm run test:solver` and `npm run test:board` scripts run
