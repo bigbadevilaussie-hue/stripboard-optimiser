@@ -6,9 +6,9 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 try:
     from PySide6.QtCore import Qt
-    from PySide6.QtWidgets import QApplication, QDialogButtonBox, QLineEdit, QSpinBox
+    from PySide6.QtWidgets import QApplication, QDialogButtonBox, QLineEdit, QSpinBox, QMessageBox
     from gui.arctic_theme import apply_arctic_theme
-    from gui.main import BoardSizeDialog, RoutingRulesDialog, PassOneDialog, RouteMateWindow
+    from gui.main import BoardSizeDialog, RoutingRulesDialog, PassOneDialog, PassTwoDialog, LockDialog, RouteMateWindow
 except ImportError:
     QApplication = None
 
@@ -64,6 +64,8 @@ class CurvedDimensionTests(unittest.TestCase):
             BoardSizeDialog({"rows": 24, "cols": 56}),
             RoutingRulesDialog(),
             PassOneDialog({"ms_per_decode": 0.2}),
+            PassTwoDialog(__import__("pathlib").Path("/tmp/results.csv"), 170),
+            LockDialog({"id": "U1", "label": "Test"}, 1, 1),
             RouteMateWindow(),
         ]
         try:
@@ -74,6 +76,20 @@ class CurvedDimensionTests(unittest.TestCase):
         finally:
             for widget in widgets:
                 widget.close()
+
+    def test_standard_message_box_uses_the_same_rounded_chrome(self):
+        dialog = QMessageBox()
+        dialog.setWindowTitle("Test warning")
+        dialog.setText("This is only a presentation test.")
+        try:
+            dialog.show()
+            self.app.processEvents()
+            self.assertTrue(
+                bool(dialog.windowFlags() & Qt.WindowType.FramelessWindowHint)
+            )
+            self.assertIsNotNone(getattr(dialog, "_arctic_titlebar", None))
+        finally:
+            dialog.close()
 
     def test_shared_title_bar_is_added_on_show(self):
         dialog = BoardSizeDialog({"rows": 24, "cols": 56})
