@@ -110,3 +110,10 @@ Keep the native CLI and renderer buildable as standalone utilities.
 
 Historical solver notes live under `docs/`. They describe experiments and
 may mention the now-removed desktop and web applications.
+
+### Route-Mate GUI integration reference
+
+- [Route-Mate — Code Reuse & GUI Integration Handover](docs/Route-Mate_GUI_Code_Handover.md) documents the **donor Route-Mate 1.44** source modules, import, sidecars, checks, rendering, UI behaviour and tests, preserved unchanged from the source handover.
+- [Native CLI integration roadmap](docs/route-mate-native-solver-integration-roadmap.md) defines **this project's** selected integration: a new GUI launches the existing Node/native C/TypeScript CLI and reads its independent verification results.
+
+**Important:** The donor handover's references to `solve_for_display`, `solve_parallel_for_display`, and Hell Mode are historical descriptions of Route-Mate. They are **not** approval to use a second placement/router solver in Version 2.00. The new GUI must invoke the existing native solver CLI; Route-Mate is a source of reusable import, validation, rendering, provenance and UI ideas.
