@@ -31,6 +31,9 @@ node tests/solver/testWireColumnPolish.js
 
 ```sh
 node tests/solver/inspectSavedCuts.js /path/to/saved-project.json
+node tests/solver/inspectSavedPackageBounds.js /path/to/saved-project.json
+node tests/solver/testPackageBodyBoardBounds.js
+node tests/solver/testNativeBodyBoardBounds.js  # requires npm run build:native:edge
 node tests/solver/inspectNetCorridors.js /path/to/saved-project.json --net net6
 node tests/solver/polishSavedLayout.js /path/to/saved-project.json --out /path/to/new-polished-copy.json
 ```
