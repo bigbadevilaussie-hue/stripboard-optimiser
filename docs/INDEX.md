@@ -1,4 +1,4 @@
-# Documentation index — Version 2.00 / Route-Mate GUI 2.02
+# Documentation index — Version 2.00 / Route-Mate GUI 2.04
 
 ## Start here (current authority)
 

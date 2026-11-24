@@ -1,4 +1,4 @@
-# Route-Mate GUI 2.02 — direct PySide6 GUI import
+# Route-Mate GUI 2.04 — direct PySide6 GUI import
 
 Donor: `bigbadevilaussie-hue/Route-Mate`, audited commit
 `bb764a0b61cbf813d4abc687ef6c596243abc929` (Route-Mate GUI 1.44).
@@ -134,11 +134,30 @@ adapter exists yet.
 
 ## GUI version policy
 
-**GUI release: 2.02** (`gui/VERSION`). The Git repository's consolidated
+**GUI release: 2.04** (`gui/VERSION`). The Git repository's consolidated
 solver milestone remains **2.00** (`VERSION`). The window title and GUI
 Activity startup message read `gui/VERSION`, not the root file.
 
 **Every change to the GUI or its rendering/import integration must bump
-`gui/VERSION` in the same commit** (2.03, 2.04, etc.) and document the
+`gui/VERSION` in the same commit** (2.05, 2.06, etc.) and document the
 change in `CHANGELOG.md`. Changes only to the headless solver or tests do
 not require a GUI version bump.
+
+## Visible executable revisions (GUI 2.04)
+
+- Native solver CLI (`src/frontend/tests/solver/v5Solve.js`) prints a **SOLVER**
+  startup banner with the repository Git revision and CLI SHA-256 to **stderr**.
+  Its JSON stdout remains unchanged for strict-audit and batch scripts. The
+  desktop GUI's solver remains intentionally disconnected in this preflight
+  checkpoint; no dummy solver splash is presented as a real solve.
+- The compiled **RENDER** and **SCHEMATIC** CLIs each print their own banner
+  showing Git revision and a fingerprint of the **actual compiled dist tree**.
+  This helps identify stale builds instead of incorrectly labelling them as
+  current code.
+- The GUI shows a **non-blocking Qt splash** on first use of each renderer
+  revision, plus a permanent banner in Activity; repeated part highlights do
+  not raise repeated splashes. The GUI title includes its own 2.04 revision.
+- Compiled JavaScript is committed with the TypeScript source. A clean
+  `git pull --ff-only` is sufficient; rebuilding is optional unless sources
+  have subsequently changed. Regression check:
+  `python3 -m unittest tests.test_tool_revision_splashes tests.test_gui_version -v`.
