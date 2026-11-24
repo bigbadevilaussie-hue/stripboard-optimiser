@@ -7,7 +7,9 @@ the USB anchor among the selected legal slide columns, one column per seed.
 No early stop: archive every strict pass and every rejected result.
 
 Default policy: knives allowed (drilled-only OFF), wire stacking allowed,
-but strict electrical/physical board, vertical jumper and crossing rules ON.
+USB FIXED at its original source column (Slide OFF), and strict
+electrical/physical board, vertical jumper and crossing rules ON.
+Separate future Slide sweep requires explicitly setting --slide yes.
 """
 from __future__ import annotations
 
@@ -110,7 +112,7 @@ def capture_one(args, master, seed, column, output, source_sha):
     job = output / "jobs" / tag
     project = job / "input" / "projects" / "1.json"
     project.parent.mkdir(parents=True, exist_ok=True)
-    prepared = prepare_trial(master, True, True, column)
+    prepared = prepare_trial(master, True, args.slide, column)
     write_json(project, prepared)
     candidate = job / "candidate.json"
     stdout_path = job / "stdout.log"
@@ -248,6 +250,7 @@ def summarize(args, output, entries, source_hash, columns, started):
         "movesPerSeed": args.moves, "totalMovesRequested": args.seeds * args.moves,
         "policy": {"drilledCutsOnly": False, "noWireStacking": False,
                    "strictElectricalGeometryAndVerticalWires": True,
+                   "usbSlide": args.slide,
                    "rotationDomain": False, "wirePolish": args.wire_polish,
                    "ranking": [args.rank, "cuts" if args.rank == "wires" else "wires",
                                "wireLength", "price"], "columns": columns},
@@ -313,10 +316,20 @@ def run(args):
     source_bytes = contract.MASTER.read_bytes()
     original = json.loads(source_bytes)
     usb, definition, overhang = contract.usb_source(original)
-    allowed = slide_positions(usb, definition, 24, 56, True)
-    columns = columns_from_arg(args.columns, allowed)
-    if args.seeds > 1 and args.seed_start + args.seeds != len(set(range(args.seed_start, args.seed_start + args.seeds))) + args.seed_start:
-        raise ValueError("Invalid seed range")
+    # No slide in the normal sweep. Every seed has one identical, fully
+    # fixed USB anchor. Slide experiments are explicitly opted into separately.
+    if args.slide:
+        allowed = slide_positions(usb, definition, 24, 56, True)
+        columns = columns_from_arg(args.columns, allowed)
+        if args.column is not None:
+            raise ValueError("--column is for fixed mode; use --columns with --slide yes")
+    else:
+        if args.columns != "all":
+            raise ValueError("--columns only applies with --slide yes; use --column to fix one anchor")
+        fixed_column = usb["boardPos"]["col"] if args.column is None else args.column
+        if not 0 <= fixed_column <= 50:
+            raise ValueError("--column must be a legal fixed USB anchor 0..50")
+        columns = [fixed_column]
     for needed in (EDGE_LIB / "libv5decode.so", ROUTE_LIB, NATIVE_ADDON,
                    contract.CLI, FRONTEND / "tests/solver/out/components/stripboard/autoLayout5.js"):
         if not needed.is_file():
@@ -334,7 +347,7 @@ def run(args):
         "sourceSha256": checksum, "board": {"rows": 24, "cols": 56,
                                           "lockedRows": True, "lockedCols": True},
         "usb": {"sourceColumn": usb["boardPos"]["col"], "row": usb["boardPos"]["row"],
-                "overhangRows": overhang, "selectedColumns": columns},
+                "overhangRows": overhang, "slide": args.slide, "selectedColumns": columns},
         "seeds": args.seeds, "seedStart": args.seed_start,
         "moves": args.moves, "workers": args.workers, "timeout": args.timeout,
         "drilled": False, "nostack": False, "drillDomain": False,
@@ -372,11 +385,15 @@ def run(args):
                 raise ValueError("Saved candidate missing during resume: " + str(e["savedJson"]))
             entries[e["seed"]] = e
 
+    # Slide OFF: one identical USB position across every seed. Slide ON:
+    # deterministic round-robin anchors; still exactly one solve per seed.
     schedule = [(seed, columns[i % len(columns)])
                 for i, seed in enumerate(range(args.seed_start, args.seed_start + args.seeds))]
     pending = [(seed, col) for seed, col in schedule if seed not in entries]
-    log("🏁 NATIVE SWEEP | {} TOTAL seeds × {} moves | {} workers | {} legal USB columns".format(
-        args.seeds, args.moves, args.workers, len(columns)))
+    log("🏁 NATIVE SWEEP | {} TOTAL seeds × {} moves | {} workers | USB {}".format(
+        args.seeds, args.moves, args.workers,
+        "SLIDE ON across {} columns".format(len(columns)) if args.slide
+        else "FIXED row 13 col {}".format(columns[0])))
     log("🛡️ STRICT ELECTRICAL + GEOMETRY + VERTICAL + 24×56 | 🔪 DRILLED OFF (KNIVES OK) | 🧷 STACKS ON")
     log("🔬 independent result checks; timing + move histograms + finish trace; no early stop")
     log("💾 ALL strict passes -> solved/ | all rejected -> rejected/ | top 5 unique -> top5/")
@@ -434,8 +451,12 @@ def main():
     p.add_argument("--seeds", type=int, default=200)
     p.add_argument("--seed-start", type=int, default=1)
     p.add_argument("--moves", type=int, default=25000)
+    p.add_argument("--slide", type=bool_option, default=False, metavar="yes/no",
+                   help="USB sliding across columns is a SEPARATE sweep; default no (fixed)")
+    p.add_argument("--column", type=int, default=None,
+                   help="fixed USB column (default source 47); valid only with --slide no")
     p.add_argument("--columns", default="all",
-                   help="all legal USB slide columns (default) or e.g. 25,41; one column per seed")
+                   help="only with --slide yes: all legal columns or e.g. 25,41")
     p.add_argument("--workers", type=int, default=min(6, max(1, (os.cpu_count() or 4) // 2)))
     p.add_argument("--timeout", type=int, default=600)
     p.add_argument("--rank", choices=("wires", "cuts"), default="wires")
