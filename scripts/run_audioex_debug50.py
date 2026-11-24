@@ -17,7 +17,10 @@ from pathlib import Path
 import shutil
 import subprocess
 import time
+import sys
 
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path: sys.path.insert(0, str(ROOT))
 from scripts import run_audioex_native_ladder as core
 
 SEEDS = (3,8,56,92,119,149,155,156,283,291,334,355,505,514,597,722,870,
