@@ -42,7 +42,7 @@ function auditSavedStrict(saved, input, noStack = false) {
   for (const c of originalParts) {
     const s = savedById.get(c.id);
     if (!s) { failures.push("MISSING_COMPONENT_" + c.id); continue; }
-    for (const k of ["defId","offBoard","boardExcluded","value","package","footprintOverride"]) {
+    for (const k of ["defId","offBoard","boardExcluded","value","package","footprintOverride","locked","edge","slide"]) {
       if (asJson(c[k]) !== asJson(s[k]))
         failures.push("COMPONENT_DEFINITION_CHANGED_" + c.id + "_" + k);
     }

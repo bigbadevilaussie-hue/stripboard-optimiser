@@ -13,6 +13,11 @@ class RequalificationTests(unittest.TestCase):
         row={"strictFailures":["SOLVER_ISSUES"],
              "diagnostics":{"issues":["6 wires still run on top of another wire"]}}
         self.assertEqual(module.stack_only_reason(row),6)
+        row["errors"]=["STRICT_NOT_VALID: SOLVER_ISSUES","STRICT_EXIT_2"]
+        self.assertEqual(module.stack_only_reason(row),6)
+        row["errors"].append("USB_MOVED")
+        self.assertIsNone(module.stack_only_reason(row))
+        row["errors"].pop()
         row["diagnostics"]["issues"].append("1 strip conflict remains")
         self.assertIsNone(module.stack_only_reason(row))
         row["diagnostics"]["issues"]= ["5 wires still run on top of another wire"]

@@ -35,7 +35,14 @@ def stack_only_reason(record: dict) -> int | None:
     if len(problems) != 1 or not isinstance(problems[0], str):
         return None
     m = STACK_ONLY.fullmatch(problems[0])
-    return int(m.group(1)) if m else None
+    if not m:
+        return None
+    # The old controller may record the expected exit-2 / strict-false errors.
+    # Refuse requalification if it also observed any independent contract error.
+    expected = {"STRICT_NOT_VALID: SOLVER_ISSUES", "STRICT_EXIT_2"}
+    if any(error not in expected for error in (record.get("errors") or [])):
+        return None
+    return int(m.group(1))
 
 
 def audit_json(saved: Path, input_json: Path) -> dict:
