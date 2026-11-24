@@ -923,6 +923,8 @@ The tournament's observed intermediate results are not a replacement for this ba
 When implementation changes, update this section from the actual source and tests. Do not convert target requirements elsewhere in this specification into claims of implemented behaviour without evidence.
 
 
+> **Update after initial Mac replay (24 Nov 2026):** The new synthetic wire-polish test now **passes**, as do the rotation-domain and knife-cut tests. Actual pre-domain saved col25 500k improved from **7 to 4 knives** via 3 accepted wire moves (384 tried), with no changed electrical opens/shorts or geometry defects. Pre-domain col41 500k was unchanged after 119 attempts: **30W/46C, 0 knives, 2 nonvertical, 8 crossings, 1 stack**. GPS's 0° four adjacent incompatible pin gaps account for the four remaining col25 knives; moving wires alone cannot eliminate them. A **general-purpose bounded multiwire/placement-aware repair** is next. [Full results](docs/START_HERE_NATIVE_SOLVER_HANDOFF_2026-11-24.md#8a-user-verified-fixed-board-polish-replay--24-nov-2026-new). Earlier “not yet Mac-verified” references below are historical and superseded by this update.
+
 ## 27. Native hard-board, rotation-domain and local polish implementation — 24 November 2026
 
 **Current source/measurement handover:** [START HERE](docs/START_HERE_NATIVE_SOLVER_HANDOFF_2026-11-24.md). This implementation-status section supersedes Sections 4.2, 7, 25 and 26 **only where those sections describe older observed solver state**. It does not remove requirements, promise GUI integration, or rewrite historical benchmark measurements.
