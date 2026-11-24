@@ -1,5 +1,13 @@
 # Changelog
 
+### GUI 2.05 — original speed probe restored and 100-check solver audit (24 November 2026)
+- Restore original Route-Mate 1.44 synthetic CPU worker speed probe; 3/4 worker selection.
+- Existing board dimensions and locks feed exactly 100 native strict checks, paired 10k/20k with independent saved-board audit.
+- Approved eleven-stage Overview, existing progress bars, unwanted toolbar buttons removed.
+- Hard stop after solver audit; no optimisation passes or final electrical verification.
+- Bump gui/VERSION to 2.05 only; no solver algorithm changes.
+
+
 ## Version 2.00 — Consolidation of Two Repositories
 **Date:** 24 November 2026  
 **Branch:** `main`  

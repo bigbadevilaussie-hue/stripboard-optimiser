@@ -65,6 +65,7 @@ class GuiShellSmoke(unittest.TestCase):
                     patch.object(LockDialog, "values", return_value=lock),
                     patch.object(RouteMateWindow, "_render_component_side",
                                  return_value=(svg, "")) as render,
+                    patch.object(RouteMateWindow, "_start_speed_probe") as probe,
                     patch("render.schematic_bridge.render_schematic_data",
                           return_value=(svg, "Saved schematic.svg")) as schematic_render,
                     patch("render.schematic_bridge.rasterize_schematic_svg",
@@ -100,6 +101,7 @@ class GuiShellSmoke(unittest.TestCase):
                 raster_render.assert_called_once_with(svg)
                 # The import hard stop is the current status UNTIL a view is selected.
                 self.assertIn("STOPPED BEFORE PASS 1", window.statusBar().currentMessage())
+                probe.assert_called_once()
                 # Keep the PNG mock active while clicking the Qt action. The
                 # fixture bytes intentionally are not a valid PNG payload.
                 with patch.object(window.top_view, "show_png") as png_view:
@@ -114,7 +116,7 @@ class GuiShellSmoke(unittest.TestCase):
                 self.assertIn("Component side", window.statusBar().currentMessage())
                 self.assertEqual(window.project["board"]["rows"], 24)
                 self.assertEqual(window.project["board"]["cols"], 56)
-                self.assertFalse(window.solve_action.isEnabled())
+                self.assertFalse(hasattr(window, 'solve_action'))
                 self.assertFalse(window.stop_action.isEnabled())
                 self.assertIsNone(window._solver_worker)
                 self.assertIsNone(window._speed_probe_worker)
@@ -151,7 +153,7 @@ class GuiShellSmoke(unittest.TestCase):
                 schematic_render.assert_not_called()
                 raster_render.assert_not_called()
                 self.assertFalse(window.schematic_action.isEnabled())
-                self.assertFalse(window.solve_action.isEnabled())
+                self.assertFalse(hasattr(window, 'solve_action'))
                 self.assertIsNone(window._solver_worker)
                 self.assertEqual(project_path.read_bytes(), source_path.read_bytes())
             finally:

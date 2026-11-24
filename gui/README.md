@@ -1,4 +1,4 @@
-# Route-Mate GUI 2.04 — direct PySide6 GUI import
+# Route-Mate GUI 2.05 — direct PySide6 GUI import
 
 Donor: `bigbadevilaussie-hue/Route-Mate`, audited commit
 `bb764a0b61cbf813d4abc687ef6c596243abc929` (Route-Mate GUI 1.44).
@@ -161,3 +161,8 @@ not require a GUI version bump.
   `git pull --ff-only` is sufficient; rebuilding is optional unless sources
   have subsequently changed. Regression check:
   `python3 -m unittest tests.test_tool_revision_splashes tests.test_gui_version -v`.
+
+
+## GUI 2.05 — restored original speed probe and 100-check audit
+
+The original Route-Mate synthetic CPU worker speed probe is restored verbatim from the 1.44 donor commit. It chooses 3 or 4 workers using the original 15% near-tie policy. No Seed 69 experiment is run. The native strict solver audit uses exactly 100 trials: matching seeds 1–50 at 10k and 20k moves, independently verified using the saved-board auditor. The existing board dimensions and lock dialogs feed the audit. Original Overview styling and approved workflow stages are retained. Stops at Solver audit; Pass 1, Pass 2, Final Pass and final Electrical PASS remain unexecuted. Source JSON is not overwritten.

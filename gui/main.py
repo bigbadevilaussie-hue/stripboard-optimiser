@@ -360,9 +360,13 @@ class WorkflowChecklist(QWidget):
         ("COLLECT", "Project imported"),
         ("SANITY", "Electrical input checked"),
         ("PRE-SOLVE", "Footprints analysed"),
+        ("BOARD", "Board dimensions"),
         ("CONSTRAINTS", "Placement locks"),
-        ("QUICK FIT", "Components placed"),
-        ("ROUTING", "Copper routed"),
+        ("SPEED", "Speed probe (3 or 4 workers)"),
+        ("CALIBRATION", "Solver audit (100 checks)"),
+        ("PASS1", "1st Pass"),
+        ("PASS2", "2nd Pass"),
+        ("FINAL", "Final Pass"),
         ("VERIFY", "Electrical PASS"),
     )
 
@@ -418,7 +422,7 @@ class WorkflowChecklist(QWidget):
         )
         self.lock_warning.hide()
         layout.addWidget(self.lock_warning)
-        note = QLabel("Input sanity only · routing and physical verification NOT run")
+        note = QLabel("Stops after calibration · no passes or final electrical check run")
         note.setWordWrap(True)
         note.setStyleSheet("font-size: 10px; color: #697586;")
         layout.addWidget(note)
@@ -476,7 +480,41 @@ class WorkflowChecklist(QWidget):
         self.percent.setText(f"{round(100 * complete / len(self.STAGES))}%")
 
 
-# The old Python Quick Solve worker and startup solver probe are removed.
+class StartupSpeedProbe(QThread):
+    """Original Route-Mate synthetic CPU scaling probe."""
+    completed = Signal(object)
+    crashed = Signal(str)
+
+    def run(self):
+        try:
+            from speed_probe import probe_worker_scaling
+            self.completed.emit(probe_worker_scaling(seconds=1.0))
+        except Exception as exc:
+            self.crashed.emit(str(exc))
+
+
+class NativeCalibrationWorker(QThread):
+    tick = Signal(dict)
+    completed = Signal(dict)
+    failed = Signal(str)
+    cancelled = Signal()
+
+    def __init__(self, project, workers, parent=None):
+        super().__init__(parent)
+        self.project = copy.deepcopy(project)
+        self.workers = workers
+
+    def run(self):
+        from gui.native_calibration import calibrate, Cancelled
+        try:
+            result = calibrate(self.project, self.workers,
+                               self.tick.emit, self.isInterruptionRequested)
+            self.completed.emit(result)
+        except Cancelled:
+            self.cancelled.emit()
+        except Exception as exc:
+            self.failed.emit(f"{type(exc).__name__}: {exc}")
+
 
 class RouteMateWindow(QMainWindow):
     def __init__(self):
@@ -497,9 +535,10 @@ class RouteMateWindow(QMainWindow):
         self._active_tool_splash = None
         self._solver_worker = None
         self._speed_probe_worker = None
+        self._calibration_worker = None
         self._stop_requested = False
         self._close_when_idle = False
-        self._recommended_workers = 1  # Native CLI not connected; no worker probe
+        self._recommended_workers = None  # Original CPU probe chooses 3 or 4
         self._body_spacing_holes = 1
         self._solve_attempt_seconds = []
         self._solve_started = None
@@ -513,6 +552,7 @@ class RouteMateWindow(QMainWindow):
         self._solve_input = None
         self._solved_verified = False
         self._quick_source = None  # Locked pre-route project; never a previously solved layout.
+        self._calibration_stages = {}
         self._assumed_geometry = None  # Collector's advisory package profile; not 2.5D PASS.
 
         logo_path = REPO_ROOT / "icon" / "icon_128x128.png"
@@ -546,28 +586,16 @@ class RouteMateWindow(QMainWindow):
         self.load_action = QAction("Load JSON", self)
         self.load_action.triggered.connect(self.load_json)
         toolbar.addAction(self.load_action)
-        self.solve_action = QAction("Pass 1 (disabled)", self)
-        self.solve_action.setToolTip("Native CLI not connected. This version stops after input checks.")
-        self.solve_action.setEnabled(False)
-        self.solve_action.triggered.connect(self.solve_board)
-        toolbar.addAction(self.solve_action)
+
+
         self.stop_action = QAction("Stop Solve", self)
         self.stop_action.setToolTip("Cancel the running solve safely; keep the original board")
         self.stop_action.setEnabled(False)
         self.stop_action.triggered.connect(self.stop_solve)
         toolbar.addAction(self.stop_action)
-        self.review_locks_action = QAction("Review Locks", self)
-        self.review_locks_action.setEnabled(False)
-        self.review_locks_action.setToolTip("Choose fixed and edge constraints for positioned parts")
-        self.review_locks_action.triggered.connect(self.review_locks)
-        toolbar.addAction(self.review_locks_action)
-        self.save_solved_action = QAction("Save Solved JSON", self)
-        self.save_solved_action.setEnabled(False)
-        self.save_solved_action.triggered.connect(self.save_solved_json)
-        toolbar.addAction(self.save_solved_action)
-        pipeline_action = QAction("Pipeline State", self)
-        pipeline_action.triggered.connect(self.show_pipeline_state)
-        toolbar.addAction(pipeline_action)
+
+
+
         toolbar.addSeparator()
         self.top_action = QAction("Component side", self)
         self.top_action.setCheckable(True)
@@ -623,18 +651,18 @@ class RouteMateWindow(QMainWindow):
         overview_layout.addWidget(self.project_summary)
         overview_layout.addWidget(self.checklist)
         overview_layout.addWidget(self.solve_summary)
-        self.solve_activity = QLabel("JSON sniff · STOP before Pass 1")
+        self.solve_activity = QLabel("Solver audit pending · STOP before Pass 1")
         self.solve_activity.setWordWrap(True)
         self.solve_activity.setStyleSheet(
             "font-size: 13px; font-weight: 700; color: #173c66; padding: 4px;"
         )
         overview_layout.addWidget(self.solve_activity)
         self.solve_progress = QProgressBar()
-        self.solve_progress.setRange(0, 24)
+        self.solve_progress.setRange(0, 100)
         self.solve_progress.setValue(0)
-        self.solve_progress.setFormat("Pass 1 not started")
+        self.solve_progress.setFormat("Solver audit: %v/%m checks")
         overview_layout.addWidget(self.solve_progress)
-        self.solve_worker_status = QLabel("Native CLI not connected")
+        self.solve_worker_status = QLabel("Original CPU speed probe pending")
         self.solve_worker_status.setWordWrap(True)
         overview_layout.addWidget(self.solve_worker_status)
         self.solve_eta = QLabel("Elapsed: —   Estimated remaining: —")
@@ -714,9 +742,9 @@ class RouteMateWindow(QMainWindow):
         self.statusBar().showMessage("Ready. Load a project JSON to begin.")
         self.log_line(f"Route-Mate {GUI_VERSION} — JSON import preflight only")
         self.log_line(f"[GUI][REVISION] git={GUI_GIT_REVISION}")
-        self.log_line("Workflow: JSON sniff → geometry/footprint inventory → electrical input sanity → STOP.")
-        self.log_line("[SOLVER] DISCONNECTED. No Quick Solve, Hell Mode, native CLI or speed probe.")
-        self.statusBar().showMessage("Ready. Load JSON to check; Pass 1 remains disabled.")
+        self.log_line("Workflow: import → sanity → footprints → dimensions → locks → speed probe → 100-point calibration → STOP.")
+        self.log_line("[SOLVER] 100-check native audit only; no optimisation passes.")
+        self.statusBar().showMessage("Ready. Load JSON to calibrate. Pass 1 remains disabled.")
 
     def _set_board_summary(self, message: str, *, project: dict | None = None,
                            level: str = "neutral"):
@@ -1161,7 +1189,7 @@ class RouteMateWindow(QMainWindow):
                 if dialog.exec() != QDialog.DialogCode.Accepted:
                     preview, _ = self._render_component_side(self.project)
                     self._show_board(preview)
-                    self.log_line("[LOCKS] Review cancelled; Quick Solve not started.")
+                    self.log_line("[LOCKS] Review cancelled; calibration not started.")
                     return
 
                 values = dialog.values()
@@ -1211,8 +1239,9 @@ class RouteMateWindow(QMainWindow):
         self._quick_source = copy.deepcopy(self.project)
         preview, _ = self._render_component_side(self.project)
         self._show_board(preview)
-        self.review_locks_action.setEnabled(True)
-        self.solve_board()
+
+        self.statusBar().showMessage("STOPPED BEFORE PASS 1 — running speed probe and solver audit.")
+        self._start_speed_probe()
 
     def review_locks(self):
         """Review the *input* placement, not the last solved output."""
@@ -1246,7 +1275,7 @@ class RouteMateWindow(QMainWindow):
             return
         self.project = source
         self._solved_verified = False
-        self.save_solved_action.setEnabled(False)
+
         if self.project_path is not None:
             # Recompute input milestones for the newly reviewed source.
             self._restart_quick_pipeline(source, include_constraints=False)
@@ -1282,9 +1311,145 @@ class RouteMateWindow(QMainWindow):
                 snapshot=source,
             )
 
+
+    def _start_speed_probe(self):
+        """Run donor CPU probe, then invoke native audit only if successful."""
+        if self.project is None or self._speed_probe_worker is not None:
+            return
+        self._calibration_stages = {"SPEED": "running"}
+        self._refresh_checklist()
+        self.solve_activity.setText("Speed probe · checking 3 or 4 workers")
+        self.log_line("[SPEED] Original Route-Mate synthetic worker-scaling probe.")
+        if QApplication.platformName() == "offscreen":
+            self.log_line("[SPEED] Offscreen GUI test: automatic probe skipped.")
+            return
+        self.load_action.setEnabled(False)
+        worker = StartupSpeedProbe(self)
+        self._speed_probe_worker = worker
+        worker.completed.connect(self._speed_probe_completed)
+        worker.crashed.connect(self._speed_probe_failed)
+        worker.finished.connect(self._speed_probe_finished)
+        worker.start()
+
+    def _speed_probe_completed(self, result):
+        timings = {int(n): float(t) for n,t in result["timings"].items()}
+        cpus = int(result.get("logical_cpus") or os.cpu_count() or 1)
+        if cpus < 3 or 3 not in timings or timings[3] <= 0:
+            self._speed_probe_failed("Three CPU workers unavailable.")
+            return
+        three, four = timings[3], timings.get(4)
+        # Exact donor policy: choose 4 if its time is within 15% of 3.
+        self._recommended_workers = (4 if cpus >= 4 and four is not None
+                                     and four <= three * 1.15 else 3)
+        self._calibration_stages["SPEED"] = "done"
+        self._refresh_checklist()
+        self.solve_worker_status.setText(f"{self._recommended_workers} CPU workers selected")
+        self.log_line("[SPEED] " + ", ".join(
+            f"{n} workers={t:.3f}s" for n,t in sorted(timings.items())))
+        self._start_calibration()
+
+    def _speed_probe_failed(self, error):
+        self._calibration_stages["SPEED"] = "failed"
+        self._refresh_checklist()
+        self.solve_activity.setText("Speed probe failed; see Activity")
+        self.solve_worker_status.setText(str(error))
+        self.log_line("[SPEED][FAILED] "+str(error))
+
+    def _speed_probe_finished(self):
+        self._speed_probe_worker = None
+        if self._calibration_worker is None:
+            self.load_action.setEnabled(True)
+        if self._close_when_idle:
+            self.close()
+
+    def _start_calibration(self):
+        """Audit exactly 100 native strict trials, never run Pass 1."""
+        if self.project is None or self._calibration_worker is not None:
+            return
+        workers = self._recommended_workers
+        if workers not in (3, 4):
+            self._speed_probe_failed("Worker probe did not select 3 or 4.")
+            return
+        self.load_action.setEnabled(False)
+        self.stop_action.setEnabled(True)
+        self._solve_started = perf_counter()
+        self._solve_done = 0
+        self._solve_budget = 100
+        self._worker_time_stats = {}
+        self.solve_progress.setRange(0,100)
+        self.solve_progress.setValue(0)
+        self.solve_activity.setText("Solver audit · 0/100 checks")
+        self._calibration_stages["CALIBRATION"] = "running"
+        self._refresh_checklist()
+        self._solve_clock.start()
+        self.log_line(f"[AUDIT] 100 checks: seeds 1–50 at both 10k/20k; "
+                      f"native strict and independent audit; {workers} workers.")
+        worker = NativeCalibrationWorker(self.project, workers, self)
+        self._calibration_worker = worker
+        worker.tick.connect(self._calibration_tick)
+        worker.completed.connect(self._calibration_completed)
+        worker.failed.connect(self._calibration_failed)
+        worker.cancelled.connect(self._calibration_cancelled)
+        worker.finished.connect(self._calibration_finished)
+        worker.start()
+
+    def _calibration_tick(self, event):
+        self._solve_done = event["done"]
+        self.solve_progress.setValue(self._solve_done)
+        r = event["last"]
+        counts = event["passes"]
+        self.solve_activity.setText(f"Solver audit · {self._solve_done}/100 checks")
+        self.solve_worker_status.setText(
+            f"{self._recommended_workers} workers; 10k {counts[10000]} strict; "
+            f"20k {counts[20000]} strict")
+        if r["valid"] or self._solve_done % 10 == 0:
+            self.log_line(f"[AUDIT] {self._solve_done}/100; seed={r['seed']} "
+                          f"moves={r['moves']}; strict={r['valid']} "
+                          f"{r['wires']}W/{r['cuts']}C")
+        self._update_solve_clock()
+
+    def _calibration_completed(self, result):
+        self._calibration_stages["CALIBRATION"] = "done"
+        self._refresh_checklist()
+        self._solve_done = 100
+        self.solve_progress.setValue(100)
+        self.solve_activity.setText("SOLVER AUDIT COMPLETE · STOP BEFORE PASS 1")
+        a,b=result["reports"][10000],result["reports"][20000]
+        self.solve_worker_status.setText(
+            f"10k {a['passed']}/50 strict; 20k {b['passed']}/50 strict")
+        for budget, stats in result["reports"].items():
+            best = stats["best"]
+            self.log_line(f"[AUDIT] {budget} moves, {stats['passed']}/50 strict; " +
+                          (f"best {best['wires']}W/{best['cuts']}C" if best else
+                           "no strict solution; inconclusive"))
+        self.log_line("[AUDIT][STOP] No 1st Pass, 2nd Pass, Final Pass or final Electrical PASS.")
+        self.statusBar().showMessage("SOLVER AUDIT COMPLETE — STOP BEFORE PASS 1.")
+        self._set_board_summary("Audit complete; no final routed board produced", level="neutral")
+
+    def _calibration_failed(self, error):
+        self._calibration_stages["CALIBRATION"] = "failed"
+        self._refresh_checklist()
+        self.solve_activity.setText("Solver audit failed; see Activity")
+        self.solve_worker_status.setText(str(error))
+        self.log_line("[AUDIT][ERROR] "+str(error))
+
+    def _calibration_cancelled(self):
+        self.solve_activity.setText("Solver audit cancelled; STOP BEFORE PASS 1")
+        self.log_line("[AUDIT][CANCELLED] No optimisation pass started.")
+
+    def _calibration_finished(self):
+        self._solve_clock.stop()
+        self._update_solve_clock()
+        self._solve_started = None
+        self._calibration_worker = None
+        self.load_action.setEnabled(True)
+        self.stop_action.setEnabled(False)
+        if self._close_when_idle:
+            self.close()
+
     def solve_board(self):
         """Hard stop even if invoked programmatically."""
-        self.solve_action.setEnabled(False)
+
         self.stop_action.setEnabled(False)
         self.log_line("[SOLVER][DISABLED] Native CLI adapter pending; nothing was started.")
         self.statusBar().showMessage("STOPPED BEFORE PASS 1 — no optimiser started.")
@@ -1292,6 +1457,11 @@ class RouteMateWindow(QMainWindow):
 
     def stop_solve(self):
         """Cooperatively stop the active worker; never force-kill a QThread."""
+        if self._calibration_worker is not None and self._calibration_worker.isRunning():
+            self._calibration_worker.requestInterruption()
+            self.stop_action.setEnabled(False)
+            self.log_line("[AUDIT][STOP] Cancellation requested.")
+            return
         worker = self._solver_worker
         if worker is None or not worker.isRunning() or self._stop_requested:
             return
@@ -1508,7 +1678,7 @@ class RouteMateWindow(QMainWindow):
             status = "CANCELLED"
         if status == "CANCELLED":
             self._solved_verified = False
-            self.save_solved_action.setEnabled(False)
+
             self._set_board_summary(
                 "Quick Solve stopped · original board retained", level="neutral",
             )
@@ -1746,7 +1916,7 @@ class RouteMateWindow(QMainWindow):
             top_svg, renderer_log = self._render_component_side(solved)
             self._show_board(top_svg)
             self._solved_verified = True
-            self.save_solved_action.setEnabled(True)
+
             if renderer_log:
                 self.log_line("[RENDER] " + renderer_log)
             self.log_line("[RENDER] Solved component and mirrored copper sides are ready.")
@@ -1784,8 +1954,8 @@ class RouteMateWindow(QMainWindow):
         self.stop_action.setEnabled(False)
         self.load_action.setEnabled(True)
         self.render_action.setEnabled(False)  # Import-only milestone
-        self.solve_action.setEnabled(False)  # Import-only milestone; never arm solver
-        self.review_locks_action.setEnabled(False)
+
+
         if self._close_when_idle:
             self.close()
 
@@ -1839,7 +2009,7 @@ class RouteMateWindow(QMainWindow):
             "SOLVE.route": "ROUTING",
             "VERIFY.independent": "VERIFY",
         }
-        states = {}
+        states = dict(self._calibration_stages)
         for result in self.pipeline_run.context.stages.values():
             key = stage_keys.get(result.stage)
             if key is None:
@@ -1853,6 +2023,8 @@ class RouteMateWindow(QMainWindow):
                     states[key] = "done" if report.get("status") == "PASS" else "failed"
                 else:
                     states[key] = "done"
+                if key == "COLLECT":
+                    states["BOARD"] = "done"
         self.checklist.update_states(states)
 
     def _record_pipeline_result(self, result, findings):
@@ -1929,7 +2101,10 @@ class RouteMateWindow(QMainWindow):
             project["board"]["cols"] = dimensions["actualCols"]
             self.project_path = path
             from pipeline import PipelineRun, project_import_stage_result
+            self._calibration_stages = {}
             self.checklist.reset()
+            self.solve_progress.setValue(0)
+            self.solve_activity.setText("Calibration pending · STOP before Pass 1")
             self.pipeline_run = PipelineRun.create(
                 path, source,
                 sources=[{"kind": "project_json", "path": str(path.resolve())}],
@@ -2017,9 +2192,9 @@ class RouteMateWindow(QMainWindow):
             self.project_path = path
             self._solved_verified = False
             self._quick_source = None
-            self.solve_action.setEnabled(False)
+
             self._cache_schematic_preview(project)
-            self.save_solved_action.setEnabled(False)
+
             self.project_summary.setText(
                 f"{path.name}\n{len(project['components'])} components · "
                 f"{len(project['nets'])} nets"
@@ -2047,13 +2222,16 @@ class RouteMateWindow(QMainWindow):
                 "Exit requested — stopping active solve safely before closing."
             )
             return
+        if self._calibration_worker is not None and self._calibration_worker.isRunning():
+            self._close_when_idle = True
+            self._calibration_worker.requestInterruption()
+            event.ignore()
+            self.statusBar().showMessage("Exit requested — cancelling solver audit.")
+            return
         if self._speed_probe_worker is not None and self._speed_probe_worker.isRunning():
-            # Do not destroy a live QThread; retry close when calibration ends.
             self._close_when_idle = True
             event.ignore()
-            self.statusBar().showMessage(
-                "Exit requested — startup speed calibration is finishing."
-            )
+            self.statusBar().showMessage("Exit requested — original CPU probe finishing.")
             return
         event.accept()
 
