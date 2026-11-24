@@ -15,6 +15,10 @@
 
 - [Results, detailed coverage and search-outcome prediction](AUDIO_MOTO_100_CHECK_PREFLIGHT_2026-11-24.md) — 100 checks per circuit using `scripts/audit_100_audio_moto.js`; Audio 99 PASS / 1 planning WARN, Moto 91 PASS / 9 planning WARN, **zero input-contract FAILs**. Pre-solve only; not strict saved-board certification.
 
+## Nick's Fantastic Ideas Basket
+
+- [🧺 Seed 69 GUI calibration + optometrist board comparisons](NICKS_FANTASTIC_IDEAS_BASKET.md) — ideas only, **not implemented**.
+
 ## Active WR experiment — Audio and Moto
 
 - [WR 12k discovery + native call chain + last reported results + safe-use warning](ACTIVE_HANDOFF_2026-11-24.md). This **passes-only runner wipes output directories on rerun**, has no resume, and is separate from AUDIOEX's resumable forensic ladder.
