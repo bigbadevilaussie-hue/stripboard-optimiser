@@ -231,9 +231,12 @@ def run(args: argparse.Namespace) -> int:
         score = f"{result.get('wires', '?')}W/{result.get('cuts', '?')}C"
         leader = f"{champion['wires']}W/{champion['cuts']}C" if champion else "none"
         better = result.get("strictPass") and key_of(result, "wires") < key_of(baseline, "wires")
-        print(f"{'🏆' if better else status} {move_count//1000:>3}k | {score} | "
-              f"best {leader} | {len(rows)}/{len(args.moves_schedule)} "
-              f"| {(result.get('elapsedWallMs') or 0)/1000:.2f}s", flush=True)
+        line = (f"{'🏆' if better else status} {move_count//1000:>3}k | {score} | "
+                f"best {leader} | {len(rows)}/{len(args.moves_schedule)} "
+                f"| {(result.get('elapsedWallMs') or 0)/1000:.2f}s")
+        print(line, flush=True)
+        with (out / "progress.log").open("a", encoding="utf8") as log:
+            log.write(line + "\n")
         if not result.get("strictPass"):
             reason = result.get("strictFailures") or result.get("errors") or []
             if reason:
