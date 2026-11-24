@@ -71,3 +71,12 @@ documentation together. A Git release tag is separate from the branch version.
 - Kept existing board renderer, highlighted lock review and board-size dialogs intact.
 - Did not add an alternative routing/optimisation engine or start Pass 1.
 - Added headless CLI-bridge unit tests and Qt offscreen view-switch checks.
+
+### Version 2.00 — Qt schematic text legibility
+
+- Fixed washed-out schematic labels in Route-Mate's PySide6 SVG viewport:
+  QtSvg cannot reliably honour the standalone SVG's white text halo
+  `paint-order`. Strip the halo for the **Qt schematic preview only**.
+- Kept the original schematic SVG generator, board/copper renderers, lock
+  dialogs, input JSON and disabled solver unchanged.
+- Added three targeted, headless text-renderer regression tests.

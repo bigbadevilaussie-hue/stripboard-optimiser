@@ -80,3 +80,15 @@ in the Activity log but does not prevent board sizing or lock review.
 
 Build using the existing `cd src/frontend && npm run build:renderers` command.
 The compiled CLI is at `src/frontend/standalone-renderer/dist/standalone-renderer/schematic/cli.js`.
+
+## Qt schematic label contrast
+
+The standalone schematic renderer draws dark labels with a white text outline
+behind each glyph using SVG `paint-order="stroke"`. On some macOS QtSvg builds,
+the outline is painted **on top**, making component labels and pin text almost
+invisible. `render/qt_schematic_svg.py` removes that white halo from **text
+elements only**, solely in the in-memory Qt schematic preview.
+
+The compiled standalone schematic renderer and the original `schematic.svg`
+output are unchanged. This is not applied to the component/copper board views.
+Regression tests: `python3 -m unittest tests.test_qt_schematic_svg -v`
