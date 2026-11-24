@@ -50,9 +50,11 @@ def main():
         verify_netlist(project, source.with_suffix(".net").read_text(encoding="utf8"))
         for moves in BUDGETS:
             folder = Path.home() / "Desktop" / f"WR_{name}" / f"{moves//1000}k"
+            # Fresh WR run: clear only this circuit/budget output directory.
+            if folder.exists():
+                shutil.rmtree(folder)
             folder.mkdir(parents=True, exist_ok=True)
-            if any(folder.iterdir()):
-                ap.error(f"Output folder not empty: {folder} (won't overwrite existing passes)")
+            print(f"🧹 Cleared {folder}", flush=True)
             print(f"🚀 {name} {moves//1000}k | seeds 1–2000", flush=True)
             count = 0
             with ThreadPoolExecutor(max_workers=args.jobs) as pool:
