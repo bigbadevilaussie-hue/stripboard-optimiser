@@ -132,6 +132,7 @@ class BoardSizeDialog(QDialog):
 
     def __init__(self, board: dict[str, Any], parent=None):
         super().__init__(parent)
+        self.setWindowFlag(Qt.WindowType.FramelessWindowHint, True)
         self.setWindowTitle("Board dimensions")
         self.setModal(True)
         layout = QVBoxLayout(self)
@@ -231,6 +232,7 @@ class RoutingRulesDialog(QDialog):
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.setWindowFlag(Qt.WindowType.FramelessWindowHint, True)
         self.setWindowTitle("Routing rules — confirm cuts and wire stacking")
         self.setModal(True)
         self.setMinimumWidth(530)
@@ -298,6 +300,7 @@ class PassOneDialog(QDialog):
 
     def __init__(self, probe_result=None, parent=None, *, drilled_only=None, stacking_allowed=None):
         super().__init__(parent)
+        self.setWindowFlag(Qt.WindowType.FramelessWindowHint, True)
         self.setWindowTitle("Pass One — Move Budget")
         self.setModal(True)
         self.setMinimumWidth(450)
@@ -377,6 +380,7 @@ class PassTwoDialog(QDialog):
 
     def __init__(self, csv_path: Path, candidate_count: int, parent=None):
         super().__init__(parent)
+        self.setWindowFlag(Qt.WindowType.FramelessWindowHint, True)
         self.setWindowTitle("Pass Two — Load Pass One Results")
         self.setModal(True)
         self.setMinimumWidth(470)
@@ -412,6 +416,7 @@ class LockDialog(QDialog):
     """Collect PRE-SOLVE constraints for one already-placed component."""
     def __init__(self, component: dict[str, Any], index: int, total: int, parent=None):
         super().__init__(parent)
+        self.setWindowFlag(Qt.WindowType.FramelessWindowHint, True)
         label = str(component.get("label") or component.get("name") or component.get("id"))
         self.setWindowTitle(f"PRE-SOLVE constraints ({index}/{total})")
         self.setMinimumWidth(340)
@@ -822,6 +827,7 @@ class PassOneWorker(QThread):
 class RouteMateWindow(QMainWindow):
     def __init__(self):
         super().__init__()
+        self.setWindowFlag(Qt.WindowType.FramelessWindowHint, True)
         self.setWindowTitle(f"Route-Mate {GUI_VERSION} · rev {GUI_GIT_REVISION} — Pass Control")
         self.resize(1560, 900)
         self.setMinimumSize(950, 600)
@@ -1203,6 +1209,7 @@ class RouteMateWindow(QMainWindow):
                 f"{finding.code}: {finding.message}"
             )
         dialog = QDialog(self)
+        dialog.setWindowFlag(Qt.WindowType.FramelessWindowHint, True)
         dialog.setWindowTitle("Pipeline State — Handoff Proof")
         dialog.resize(900, 650)
         layout = QVBoxLayout(dialog)
