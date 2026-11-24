@@ -212,6 +212,7 @@ def capture_one(args, master, seed, column, output, source_sha):
             "rows": result.get("rows"), "cols": result.get("cols"),
             "strictValid": result.get("strictValid", False),
             "strictFailures": result.get("strictFailures", []),
+            "bodyOverhangWarnings": result.get("bodyOverhangWarnings", []),
             "firstFeasibleMove": result.get("firstFeasibleMove"),
             "firstFeasibleMs": result.get("firstFeasibleMs"),
             "unsolvedReason": result.get("unsolvedReason"),
