@@ -1,6 +1,6 @@
 # Stripboard Optimiser — Version 2.00 project contract
 
-**Milestone:** Consolidation of Two Repositories (24 November 2026). GUI version **2.01** is independently tracked in `gui/VERSION`.
+**Milestone:** Consolidation of Two Repositories (24 November 2026). GUI version **2.02** is independently tracked in `gui/VERSION`.
 
 **Current audit:** [Repository integrity and integration audit](docs/REPOSITORY_AUDIT_2026-11-24.md). Historical handovers remain useful but their future-phase language may now be outdated.
 

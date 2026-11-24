@@ -124,3 +124,16 @@ documentation together. A Git release tag is separate from the branch version.
   Route-Mate sidecars from Git tracking.
 - **No GUI/solver/renderer behaviour changes.** GUI stays at 2.01,
   repository version stays 2.00. Target-Mac runtime tests remain pending.
+
+### Route-Mate GUI 2.02 — fix GUI smoke regression (24 November 2026)
+
+- Fixed `tests/test_gui_shell_smoke.py`: the schematic PNG viewer mock
+  was removed before `QAction.trigger()`, so it incorrectly reported zero
+  PNG calls even though the interactive schematic was working.
+- Keep the mock active during the action click; check the **STOPPED BEFORE
+  PASS 1** status immediately after import, before view switching legitimately
+  updates the status bar.
+- Update GUI version metadata to **2.02** per project change policy.
+- **No changes** to `gui/main.py`, Qt drawing, standalone SVG/PNG renderer,
+  component locks, circuit inputs, native CLI, or the pre-Pass-1 hard stop.
+- Actual PySide6 regression suite must be rerun on the user's Mac.

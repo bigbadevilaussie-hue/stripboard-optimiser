@@ -1,4 +1,4 @@
-# Route-Mate GUI 2.01 — direct PySide6 GUI import
+# Route-Mate GUI 2.02 — direct PySide6 GUI import
 
 Donor: `bigbadevilaussie-hue/Route-Mate`, audited commit
 `bb764a0b61cbf813d4abc687ef6c596243abc929` (Route-Mate GUI 1.44).
@@ -134,11 +134,11 @@ adapter exists yet.
 
 ## GUI version policy
 
-**GUI release: 2.01** (`gui/VERSION`). The Git repository's consolidated
+**GUI release: 2.02** (`gui/VERSION`). The Git repository's consolidated
 solver milestone remains **2.00** (`VERSION`). The window title and GUI
 Activity startup message read `gui/VERSION`, not the root file.
 
 **Every change to the GUI or its rendering/import integration must bump
-`gui/VERSION` in the same commit** (2.02, 2.03, etc.) and document the
+`gui/VERSION` in the same commit** (2.03, 2.04, etc.) and document the
 change in `CHANGELOG.md`. Changes only to the headless solver or tests do
 not require a GUI version bump.

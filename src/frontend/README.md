@@ -1,6 +1,6 @@
 # Headless solver and standalone renderers — Version 2.00
 
-Package version: `2.0.0` (repository consolidation designation `2.00`; no Git tag published). GUI is tracked separately at `../../gui/VERSION` (currently `2.01`).
+Package version: `2.0.0` (repository consolidation designation `2.00`; no Git tag published). GUI is tracked separately at `../../gui/VERSION` (currently `2.02`).
 
 Despite this directory's historical name (`src/frontend/`), **there is no
 frontend, web application or GUI here**. These are reusable headless modules

@@ -69,7 +69,6 @@ class GuiShellSmoke(unittest.TestCase):
                           return_value=(svg, "Saved schematic.svg")) as schematic_render,
                     patch("render.schematic_bridge.rasterize_schematic_svg",
                           return_value=b"test schematic PNG") as raster_render,
-                    patch.object(window.top_view, "show_png") as png_view,
                     patch.object(QMessageBox, "critical",
                                  side_effect=AssertionError("Original import failed")),
                     patch.object(QMessageBox, "warning",
@@ -99,14 +98,20 @@ class GuiShellSmoke(unittest.TestCase):
                 self.assertEqual(window._schematic_svg, svg)
                 self.assertEqual(window._schematic_png, b"test schematic PNG")
                 raster_render.assert_called_once_with(svg)
-                window.schematic_action.trigger()
-                png_view.assert_called_once_with(b"test schematic PNG")
+                # The import hard stop is the current status UNTIL a view is selected.
+                self.assertIn("STOPPED BEFORE PASS 1", window.statusBar().currentMessage())
+                # Keep the PNG mock active while clicking the Qt action. The
+                # fixture bytes intentionally are not a valid PNG payload.
+                with patch.object(window.top_view, "show_png") as png_view:
+                    window.schematic_action.trigger()
+                    png_view.assert_called_once_with(b"test schematic PNG")
                 self.assertEqual(window._board_side, "schematic")
                 self.assertTrue(window.schematic_action.isChecked())
                 self.assertFalse(window.top_action.isChecked())
                 window.top_action.trigger()
                 self.assertEqual(window._board_side, "top")
                 self.assertTrue(window.top_action.isChecked())
+                self.assertIn("Component side", window.statusBar().currentMessage())
                 self.assertEqual(window.project["board"]["rows"], 24)
                 self.assertEqual(window.project["board"]["cols"], 56)
                 self.assertFalse(window.solve_action.isEnabled())
@@ -114,7 +119,6 @@ class GuiShellSmoke(unittest.TestCase):
                 self.assertIsNone(window._solver_worker)
                 self.assertIsNone(window._speed_probe_worker)
                 self.assertEqual(project_path.read_bytes(), source_bytes)
-                self.assertIn("STOPPED BEFORE PASS 1", window.statusBar().currentMessage())
                 # Legacy Route-Mate persists state/geometry next to the source;
                 # it never rewrites the original JSON.
                 self.assertTrue(window.presolve_constraints)
