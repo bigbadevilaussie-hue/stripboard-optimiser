@@ -2088,9 +2088,19 @@ class RouteMateWindow(QMainWindow):
             return
         elapsed = max(0.0, perf_counter() - self._solve_started)
         if self._pass_one_worker is not None:
+            # Completed count includes strict rejects; CSV has survivors ONLY.
+            # Derive wall-clock throughput from actual completed solver jobs,
+            # including all 4 workers and native solver startup/finishing.
+            remaining_seeds = max(0, self._solve_budget - self._solve_done)
+            if self._solve_done > 0 and elapsed > 0:
+                eta_seconds = elapsed * remaining_seeds / self._solve_done
+                remaining = f"~{self._clock_text(eta_seconds)} (observed throughput)"
+            else:
+                remaining = "measuring first completed seed"
             self.solve_eta.setText(
-                f"Elapsed: {self._clock_text(elapsed)} · {self._solve_done:,}/"
-                f"{self._solve_budget:,} seeds; remaining unknown"
+                f"Elapsed: {self._clock_text(elapsed)} · "
+                f"{self._solve_done:,}/{self._solve_budget:,} seeds · "
+                f"ETA: {remaining}"
             )
             return
         if self._calibration_worker is not None:
