@@ -6,6 +6,7 @@
 import * as fs from "fs";
 import * as path from "path";
 import { renderStripboard } from "./render";
+import { printRendererSplash } from "./toolSplash";
 
 function usage(): never {
   console.error("Usage: node dist/cli.js <project.json> [--output <dir>]");
@@ -13,6 +14,7 @@ function usage(): never {
 }
 
 function main(): void {
+  printRendererSplash("RENDER");
   const args = process.argv.slice(2);
   if (args.length === 0) usage();
 
