@@ -120,15 +120,19 @@ class PassControlTests(unittest.TestCase):
     def test_pass_one_explicit_go_only_clears_pass_one(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td) / "Work"
-            from gui.work_directory import ensure_work
-            ensure_work(root)
-            (root / "pass 1" / "old.csv").write_text("old")
-            (root / "pass 2" / "keep.csv").write_text("preserve")
-            (root / "jsons" / "keep.json").write_text("preserve")
+            from gui.work_directory import project_workspace
+            source = Path(td) / "audio.json"
+            source.write_text('{"board": {"rows":24,"cols":56}}')
+            workspace = project_workspace(source, root, create=True)
+            (workspace / "pass 1" / "old.csv").write_text("old")
+            (workspace / "pass 2" / "keep.csv").write_text("preserve")
+            (workspace / "jsons" / "keep.json").write_text("preserve")
             window = RouteMateWindow()
             try:
                 window.work_root = root
                 window.project = {"board": {"rows":24,"cols":56}}
+                window.project_path = source
+                window.active_workspace = workspace
                 window._calibration_stages["CALIBRATION"] = "done"
                 window._probe_cut_drilled_only = False
                 window._probe_stacking_allowed = True
@@ -141,9 +145,9 @@ class PassControlTests(unittest.TestCase):
                      patch.object(PassOneWorker, "start") as starter:
                     window.start_pass_one()
                     starter.assert_called_once()
-                self.assertFalse((root / "pass 1" / "old.csv").exists())
-                self.assertTrue((root / "pass 2" / "keep.csv").exists())
-                self.assertTrue((root / "jsons" / "keep.json").exists())
+                self.assertFalse((workspace / "pass 1" / "old.csv").exists())
+                self.assertTrue((workspace / "pass 2" / "keep.csv").exists())
+                self.assertTrue((workspace / "jsons" / "keep.json").exists())
             finally:
                 window._solve_clock.stop()
                 window._pass_one_worker = None
@@ -152,15 +156,17 @@ class PassControlTests(unittest.TestCase):
     def test_pass_two_from_cold_gui_without_project(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td) / "Work"
-            from gui.work_directory import ensure_work, CSV_FIELDS
-            ensure_work(root)
-            with (root / "pass 1" / "results.csv").open(
+            from gui.work_directory import project_workspace, CSV_FIELDS
+            source_file = Path(td) / "audio.json"
+            source_file.write_text("{}")
+            workspace = project_workspace(source_file, root, create=True)
+            with (workspace / "pass 1" / "results.csv").open(
                     "w", newline="", encoding="utf-8") as f:
                 writer = csv.DictWriter(f, fieldnames=CSV_FIELDS)
                 writer.writeheader()
                 writer.writerow({"seed":"0002","cut":44,"w":29,
                                  "q":"78.24","time_taken":"3.200"})
-            (root / "pass 2" / "old.txt").write_text("old")
+            (workspace / "pass 2" / "old.txt").write_text("old")
             window = RouteMateWindow()
             try:
                 window.work_root = root
@@ -168,9 +174,9 @@ class PassControlTests(unittest.TestCase):
                 with patch.object(PassTwoDialog, "exec",
                                   return_value=QDialog.DialogCode.Accepted):
                     window.start_pass_two()
-                self.assertTrue((root / "pass 1" / "results.csv").exists())
-                self.assertFalse((root / "pass 2" / "old.txt").exists())
-                self.assertTrue((root / "pass 2" / "candidates.csv").exists())
+                self.assertTrue((workspace / "pass 1" / "results.csv").exists())
+                self.assertFalse((workspace / "pass 2" / "old.txt").exists())
+                self.assertTrue((workspace / "pass 2" / "candidates.csv").exists())
                 self.assertIn("search not started", window.solve_activity.text())
                 self.assertNotEqual(
                     window._calibration_stages.get("PASS2"), "done")
@@ -180,14 +186,19 @@ class PassControlTests(unittest.TestCase):
 
     def test_cancel_pass_one_keeps_old_results(self):
         with tempfile.TemporaryDirectory() as td:
-            from gui.work_directory import ensure_work
-            root = ensure_work(Path(td) / "Work")
-            previous = root / "pass 1" / "results.csv"
+            from gui.work_directory import project_workspace
+            root = Path(td) / "Work"
+            source = Path(td) / "audio.json"
+            source.write_text("{}")
+            workspace = project_workspace(source, root, create=True)
+            previous = workspace / "pass 1" / "results.csv"
             previous.write_text("DO NOT ERASE")
             w = RouteMateWindow()
             try:
                 w.work_root = root
                 w.project = {"board": {"rows": 24, "cols": 56}}
+                w.project_path = source
+                w.active_workspace = workspace
                 w._calibration_stages["CALIBRATION"] = "done"
                 w._probe_cut_drilled_only = False
                 w._probe_stacking_allowed = True
@@ -201,15 +212,18 @@ class PassControlTests(unittest.TestCase):
 
     def test_cancel_pass_two_keeps_old_results(self):
         with tempfile.TemporaryDirectory() as td:
-            from gui.work_directory import ensure_work, CSV_FIELDS
-            root = ensure_work(Path(td) / "Work")
-            with (root / "pass 1" / "results.csv").open(
+            from gui.work_directory import project_workspace, CSV_FIELDS
+            root = Path(td) / "Work"
+            source = Path(td) / "moto.json"
+            source.write_text("{}")
+            workspace = project_workspace(source, root, create=True)
+            with (workspace / "pass 1" / "results.csv").open(
                     "w", newline="", encoding="utf-8") as f:
                 writer = csv.DictWriter(f, fieldnames=CSV_FIELDS)
                 writer.writeheader()
                 writer.writerow({"seed": "0010", "cut": 4, "w": 3,
                                  "q": "91.20", "time_taken": "1.100"})
-            previous = root / "pass 2" / "keep.txt"
+            previous = workspace / "pass 2" / "keep.txt"
             previous.write_text("PRESERVE")
             w = RouteMateWindow()
             try:
