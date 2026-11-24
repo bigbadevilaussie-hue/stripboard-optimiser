@@ -161,7 +161,7 @@ def last_json(stdout: str) -> dict | None:
 
 
 def run_one(folder: Path, prepared: dict, moves: int, seed: int,
-            timeout: int) -> dict:
+            timeout: int, drilled: bool = False) -> dict:
     """Each worker owns one disjoint folder; never touches fixture or peers."""
     tag = f"moves_{moves:06d}_seed_{seed:03d}"
     job = folder / "jobs" / tag
@@ -171,7 +171,7 @@ def run_one(folder: Path, prepared: dict, moves: int, seed: int,
     stdout_path, stderr_path = job / "stdout.log", job / "stderr.log"
     command = ["node", str(CLI), "--data", str(job / "input"),
                "--id", "1", "--seed", str(seed), "--moves", str(moves),
-               "--native", "1", "--strict", "1", "--drilled", "0",
+               "--native", "1", "--strict", "1", "--drilled", "1" if drilled else "0",
                "--nostack", "0", "--drill-domain", "0", "--wire-polish", "0",
                "--routing-preference", "wires", "--save", str(candidate)]
     env = os.environ.copy()
