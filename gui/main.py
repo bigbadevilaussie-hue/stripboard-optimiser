@@ -1013,7 +1013,7 @@ class RouteMateWindow(QMainWindow):
 
         self.pass_one_action = QAction("Pass One", self)
         self.pass_one_action.setToolTip(
-            "Choose 10k/20k and GO; keep only audited seed metrics CSV/log"
+            "Choose 10k/20k; record all seed statuses; replay and render the winner"
         )
         self.pass_one_action.triggered.connect(self.start_pass_one)
         toolbar.addAction(self.pass_one_action)
@@ -2139,7 +2139,7 @@ class RouteMateWindow(QMainWindow):
             elif result.get("winner_json"):
                 try:
                     self._display_pass_one_champion(result)
-                except (OSError, ValueError, RuntimeError, TypeError) as exc:
+                except Exception as exc:
                     self.log_line(f"[PASS1][WINNER][RENDER ERROR] {exc}")
                     self._set_board_summary(
                         "Pass One complete · winner JSON verified, SVG unavailable",
@@ -2151,8 +2151,9 @@ class RouteMateWindow(QMainWindow):
                     )
             else:
                 self._set_board_summary(
-                    "Pass One complete · no strict survivors",
-                    level="neutral",
+                    "Pass One complete · winner output missing"
+                    if result["qualified"] else "Pass One complete · no strict survivors",
+                    level="failed" if result["qualified"] else "neutral",
                 )
         else:
             self._set_board_summary(
