@@ -2,8 +2,9 @@
 """Reproducible MOTOEX native Edge 200-seed tournament with full archive.
 
 This is a benchmark controller, NOT solver logic. The actual solver remains
-general-purpose. 200 seeds means 200 solver invocations TOTAL: distribute
-the USB anchor among the selected legal slide columns, one column per seed.
+general-purpose. 200 seeds means 200 solver invocations TOTAL. By default
+USB stays at a single fixed anchor for all seeds; only --slide yes performs
+a distinct rotating-column experiment (one column per seed).
 No early stop: archive every strict pass and every rejected result.
 
 Default policy: knives allowed (drilled-only OFF), wire stacking allowed,
@@ -68,12 +69,13 @@ def wire_length(saved):
                      for w in saved["board"]["wires"]), 3)
 
 def key_of(entry, preference):
+    def val(key):
+        v = entry.get(key)
+        return v if isinstance(v, (int, float)) else float("inf")
     if preference == "cuts":
-        return (entry.get("cuts", 1e9), entry.get("wires", 1e9),
-                entry.get("wireLength", 1e9), entry.get("price", 1e9),
+        return (val("cuts"), val("wires"), val("wireLength"), val("price"),
                 entry["seed"], entry["column"])
-    return (entry.get("wires", 1e9), entry.get("cuts", 1e9),
-            entry.get("wireLength", 1e9), entry.get("price", 1e9),
+    return (val("wires"), val("cuts"), val("wireLength"), val("price"),
             entry["seed"], entry["column"])
 
 def percentile(values, percentage):
@@ -362,6 +364,8 @@ def run(args):
                          for p in (EDGE_LIB / "libv5decode.so", ROUTE_LIB, NATIVE_ADDON)},
     }
     manifest_path = output / "manifest.json"
+    if args.resume and not manifest_path.is_file() and any(output.iterdir()):
+        raise ValueError("Cannot resume a nonempty folder without its manifest.json")
     if args.resume and manifest_path.is_file():
         previous = json.loads(manifest_path.read_text(encoding="utf-8"))
         for field in ("sourceSha256", "seeds", "seedStart", "moves", "drilled",
