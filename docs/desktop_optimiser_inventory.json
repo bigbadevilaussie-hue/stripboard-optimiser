@@ -1,0 +1,708 @@
+{
+  "archive": "~/Documents/Stripboard-Experiment-Archive",
+  "entries": [
+    {
+      "action": "ELIGIBLE_TO_MOVE",
+      "bytes": 696778,
+      "extensions": {
+        ".png": 1
+      },
+      "files": 1,
+      "kind": "file",
+      "name": "MOTOEX_CHAMPION_27W_43C-copper.png",
+      "protected": false
+    },
+    {
+      "action": "ELIGIBLE_TO_MOVE",
+      "bytes": 261533,
+      "extensions": {
+        ".png": 1
+      },
+      "files": 1,
+      "kind": "file",
+      "name": "MOTOEX_CHAMPION_27W_43C-schematic.png",
+      "protected": false
+    },
+    {
+      "action": "ELIGIBLE_TO_MOVE",
+      "bytes": 721642,
+      "extensions": {
+        ".png": 1
+      },
+      "files": 1,
+      "kind": "file",
+      "name": "MOTOEX_CHAMPION_27W_43C-top.png",
+      "protected": false
+    },
+    {
+      "action": "ELIGIBLE_TO_MOVE",
+      "bytes": 70398,
+      "extensions": {
+        ".json": 1
+      },
+      "files": 1,
+      "kind": "file",
+      "name": "MOTOEX_CHAMPION_27W_43C.json",
+      "protected": false
+    },
+    {
+      "action": "ELIGIBLE_TO_MOVE",
+      "bytes": 88059,
+      "extensions": {
+        ".json": 1
+      },
+      "files": 1,
+      "kind": "file",
+      "name": "MOTOEX_CHAMPION_27W_43C.routemate-geometry.json",
+      "protected": false
+    },
+    {
+      "action": "ELIGIBLE_TO_MOVE",
+      "bytes": 885220,
+      "extensions": {
+        ".json": 1
+      },
+      "files": 1,
+      "kind": "file",
+      "name": "MOTOEX_CHAMPION_27W_43C.routemate-state.json",
+      "protected": false
+    },
+    {
+      "action": "ELIGIBLE_TO_MOVE",
+      "bytes": 716999,
+      "extensions": {
+        ".png": 1
+      },
+      "files": 1,
+      "kind": "file",
+      "name": "MOTOEX_STRICT_44W_60C-copper.png",
+      "protected": false
+    },
+    {
+      "action": "ELIGIBLE_TO_MOVE",
+      "bytes": 261533,
+      "extensions": {
+        ".png": 1
+      },
+      "files": 1,
+      "kind": "file",
+      "name": "MOTOEX_STRICT_44W_60C-schematic.png",
+      "protected": false
+    },
+    {
+      "action": "ELIGIBLE_TO_MOVE",
+      "bytes": 727948,
+      "extensions": {
+        ".png": 1
+      },
+      "files": 1,
+      "kind": "file",
+      "name": "MOTOEX_STRICT_44W_60C-top.png",
+      "protected": false
+    },
+    {
+      "action": "ELIGIBLE_TO_MOVE",
+      "bytes": 71875,
+      "extensions": {
+        ".json": 1
+      },
+      "files": 1,
+      "kind": "file",
+      "name": "MOTOEX_STRICT_44W_60C.json",
+      "protected": false
+    },
+    {
+      "action": "ELIGIBLE_TO_MOVE",
+      "bytes": 88059,
+      "extensions": {
+        ".json": 1
+      },
+      "files": 1,
+      "kind": "file",
+      "name": "MOTOEX_STRICT_44W_60C.routemate-geometry.json",
+      "protected": false
+    },
+    {
+      "action": "ELIGIBLE_TO_MOVE",
+      "bytes": 881774,
+      "extensions": {
+        ".json": 1
+      },
+      "files": 1,
+      "kind": "file",
+      "name": "MOTOEX_STRICT_44W_60C.routemate-state.json",
+      "protected": false
+    },
+    {
+      "action": "ELIGIBLE_TO_MOVE",
+      "bytes": 9238,
+      "extensions": {
+        ".log": 1
+      },
+      "files": 1,
+      "kind": "file",
+      "name": "audio_ladder_v163.log",
+      "protected": false
+    },
+    {
+      "action": "ELIGIBLE_TO_MOVE",
+      "bytes": 10176295,
+      "extensions": {
+        ".csv": 1,
+        ".json": 108,
+        ".jsonl": 2,
+        ".log": 200
+      },
+      "files": 311,
+      "kind": "directory",
+      "name": "audioex_bms_50k_100k_25seeds",
+      "protected": false
+    },
+    {
+      "action": "ELIGIBLE_TO_MOVE",
+      "bytes": 440066,
+      "extensions": {
+        ".csv": 1,
+        ".json": 6,
+        ".jsonl": 2,
+        ".log": 4
+      },
+      "files": 13,
+      "kind": "directory",
+      "name": "audioex_bms_edgefix2_smoke",
+      "protected": false
+    },
+    {
+      "action": "ELIGIBLE_TO_MOVE",
+      "bytes": 440196,
+      "extensions": {
+        ".csv": 1,
+        ".json": 6,
+        ".jsonl": 2,
+        ".log": 4
+      },
+      "files": 13,
+      "kind": "directory",
+      "name": "audioex_bms_edgefix3_smoke",
+      "protected": false
+    },
+    {
+      "action": "ELIGIBLE_TO_MOVE",
+      "bytes": 429137,
+      "extensions": {
+        ".csv": 1,
+        ".json": 6,
+        ".jsonl": 2,
+        ".log": 4
+      },
+      "files": 13,
+      "kind": "directory",
+      "name": "audioex_bms_edgefix_smoke",
+      "protected": false
+    },
+    {
+      "action": "ELIGIBLE_TO_MOVE",
+      "bytes": 49667064,
+      "extensions": {
+        ".csv": 1,
+        ".json": 544,
+        ".jsonl": 2,
+        ".log": 1080
+      },
+      "files": 1627,
+      "kind": "directory",
+      "name": "audioex_bms_fixed_native_ladder",
+      "protected": false
+    },
+    {
+      "action": "ELIGIBLE_TO_MOVE",
+      "bytes": 11969170,
+      "extensions": {
+        ".csv": 1,
+        ".json": 153,
+        ".jsonl": 1,
+        ".log": 200,
+        ".md": 1,
+        ".txt": 1
+      },
+      "files": 357,
+      "kind": "directory",
+      "name": "audioex_debug50_git",
+      "protected": false
+    },
+    {
+      "action": "PROTECTED_ACTIVE_RUN",
+      "bytes": 2838927,
+      "extensions": {
+        ".csv": 1,
+        ".json": 26,
+        ".jsonl": 1,
+        ".log": 2,
+        ".txt": 1
+      },
+      "files": 31,
+      "kind": "directory",
+      "name": "audioex_pass1_2000_25k_top20",
+      "protected": true
+    },
+    {
+      "action": "ELIGIBLE_TO_MOVE",
+      "bytes": 10248639,
+      "extensions": {
+        ".csv": 1,
+        ".json": 108,
+        ".jsonl": 2,
+        ".log": 200,
+        ".txt": 1
+      },
+      "files": 312,
+      "kind": "directory",
+      "name": "audioex_random50_50k",
+      "protected": false
+    },
+    {
+      "action": "ELIGIBLE_TO_MOVE",
+      "bytes": 460802,
+      "extensions": {
+        ".csv": 1,
+        ".json": 6,
+        ".jsonl": 1,
+        ".txt": 1
+      },
+      "files": 9,
+      "kind": "directory",
+      "name": "audioex_top5_1_to_200_50k",
+      "protected": false
+    },
+    {
+      "action": "ELIGIBLE_TO_MOVE",
+      "bytes": 13057042,
+      "extensions": {
+        ".json": 184
+      },
+      "files": 184,
+      "kind": "directory",
+      "name": "effort_sweep",
+      "protected": false
+    },
+    {
+      "action": "ELIGIBLE_TO_MOVE",
+      "bytes": 145053,
+      "extensions": {
+        ".json": 3,
+        ".txt": 2
+      },
+      "files": 5,
+      "kind": "directory",
+      "name": "motoex_col25_500k",
+      "protected": false
+    },
+    {
+      "action": "ELIGIBLE_TO_MOVE",
+      "bytes": 139517,
+      "extensions": {
+        ".json": 3,
+        ".txt": 2
+      },
+      "files": 5,
+      "kind": "directory",
+      "name": "motoex_col25_domain_off_v1",
+      "protected": false
+    },
+    {
+      "action": "ELIGIBLE_TO_MOVE",
+      "bytes": 140819,
+      "extensions": {
+        ".json": 1
+      },
+      "files": 1,
+      "kind": "file",
+      "name": "motoex_col25_domain_on_polished.json",
+      "protected": false
+    },
+    {
+      "action": "ELIGIBLE_TO_MOVE",
+      "bytes": 139367,
+      "extensions": {
+        ".json": 3,
+        ".txt": 2
+      },
+      "files": 5,
+      "kind": "directory",
+      "name": "motoex_col25_hardlock_v2",
+      "protected": false
+    },
+    {
+      "action": "ELIGIBLE_TO_MOVE",
+      "bytes": 138259,
+      "extensions": {
+        ".json": 1
+      },
+      "files": 1,
+      "kind": "file",
+      "name": "motoex_col25_polished.json",
+      "protected": false
+    },
+    {
+      "action": "ELIGIBLE_TO_MOVE",
+      "bytes": 150221,
+      "extensions": {
+        ".json": 3,
+        ".txt": 2
+      },
+      "files": 5,
+      "kind": "directory",
+      "name": "motoex_col25_rotation_domain_500k",
+      "protected": false
+    },
+    {
+      "action": "ELIGIBLE_TO_MOVE",
+      "bytes": 158061,
+      "extensions": {
+        ".json": 3,
+        ".txt": 2
+      },
+      "files": 5,
+      "kind": "directory",
+      "name": "motoex_col25_rotation_domain_v2",
+      "protected": false
+    },
+    {
+      "action": "ELIGIBLE_TO_MOVE",
+      "bytes": 144950,
+      "extensions": {
+        ".json": 3,
+        ".txt": 2
+      },
+      "files": 5,
+      "kind": "directory",
+      "name": "motoex_col41_500k",
+      "protected": false
+    },
+    {
+      "action": "ELIGIBLE_TO_MOVE",
+      "bytes": 149926,
+      "extensions": {
+        ".json": 3,
+        ".txt": 2
+      },
+      "files": 5,
+      "kind": "directory",
+      "name": "motoex_col41_diagnostics_v1",
+      "protected": false
+    },
+    {
+      "action": "ELIGIBLE_TO_MOVE",
+      "bytes": 136940,
+      "extensions": {
+        ".json": 1
+      },
+      "files": 1,
+      "kind": "file",
+      "name": "motoex_col41_domain_on_polished.json",
+      "protected": false
+    },
+    {
+      "action": "ELIGIBLE_TO_MOVE",
+      "bytes": 138359,
+      "extensions": {
+        ".json": 1
+      },
+      "files": 1,
+      "kind": "file",
+      "name": "motoex_col41_polished.json",
+      "protected": false
+    },
+    {
+      "action": "ELIGIBLE_TO_MOVE",
+      "bytes": 147016,
+      "extensions": {
+        ".json": 3,
+        ".txt": 2
+      },
+      "files": 5,
+      "kind": "directory",
+      "name": "motoex_col41_rotation_domain_500k",
+      "protected": false
+    },
+    {
+      "action": "ELIGIBLE_TO_MOVE",
+      "bytes": 343134,
+      "extensions": {
+        ".json": 5,
+        ".txt": 4
+      },
+      "files": 9,
+      "kind": "directory",
+      "name": "motoex_locked_usb_24x56_v1",
+      "protected": false
+    },
+    {
+      "action": "ELIGIBLE_TO_MOVE",
+      "bytes": 146344,
+      "extensions": {
+        ".json": 3,
+        ".txt": 2
+      },
+      "files": 5,
+      "kind": "directory",
+      "name": "motoex_native_edge_fixed_v1",
+      "protected": false
+    },
+    {
+      "action": "ELIGIBLE_TO_MOVE",
+      "bytes": 3784073,
+      "extensions": {
+        ".json": 53,
+        ".txt": 52
+      },
+      "files": 105,
+      "kind": "directory",
+      "name": "motoex_native_edge_slide_v1",
+      "protected": false
+    },
+    {
+      "action": "ELIGIBLE_TO_MOVE",
+      "bytes": 52776829,
+      "extensions": {
+        ".csv": 1,
+        ".json": 403,
+        ".jsonl": 2,
+        ".log": 401,
+        ".md": 1
+      },
+      "files": 808,
+      "kind": "directory",
+      "name": "motoex_native_fixed_200x25k_v1",
+      "protected": false
+    },
+    {
+      "action": "ELIGIBLE_TO_MOVE",
+      "bytes": 708848588,
+      "extensions": {
+        ".json": 6239,
+        ".jsonl": 1,
+        ".log": 6243
+      },
+      "files": 12483,
+      "kind": "directory",
+      "name": "motoex_native_full_slide_200x25k_v1",
+      "protected": false
+    },
+    {
+      "action": "ELIGIBLE_TO_MOVE",
+      "bytes": 11424013,
+      "extensions": {
+        ".csv": 1,
+        ".json": 98,
+        ".jsonl": 1,
+        ".log": 87
+      },
+      "files": 187,
+      "kind": "directory",
+      "name": "motoex_seed37_col23_ladder",
+      "protected": false
+    },
+    {
+      "action": "ELIGIBLE_TO_MOVE",
+      "bytes": 5883202,
+      "extensions": {
+        ".csv": 2,
+        ".json": 83,
+        ".txt": 1
+      },
+      "files": 86,
+      "kind": "directory",
+      "name": "stripboard_baseline_80_full",
+      "protected": false
+    },
+    {
+      "action": "ELIGIBLE_TO_MOVE",
+      "bytes": 2551615,
+      "extensions": {
+        ".json": 21,
+        ".net": 13
+      },
+      "files": 34,
+      "kind": "directory",
+      "name": "stripboard_c1_originals",
+      "protected": false
+    },
+    {
+      "action": "ELIGIBLE_TO_MOVE",
+      "bytes": 5998,
+      "extensions": {
+        ".log": 1
+      },
+      "files": 1,
+      "kind": "file",
+      "name": "stripboard_diagnostics.log",
+      "protected": false
+    },
+    {
+      "action": "ELIGIBLE_TO_MOVE",
+      "bytes": 10876,
+      "extensions": {
+        ".log": 1
+      },
+      "files": 1,
+      "kind": "file",
+      "name": "stripboard_moto_c1_v162.log",
+      "protected": false
+    },
+    {
+      "action": "ELIGIBLE_TO_MOVE",
+      "bytes": 26603,
+      "extensions": {
+        ".log": 1
+      },
+      "files": 1,
+      "kind": "file",
+      "name": "stripboard_speedlab_v164.log",
+      "protected": false
+    },
+    {
+      "action": "ELIGIBLE_TO_MOVE",
+      "bytes": 22410095,
+      "extensions": {
+        ".csv": 2,
+        ".json": 315,
+        ".so": 11,
+        ".txt": 323
+      },
+      "files": 651,
+      "kind": "directory",
+      "name": "stripboard_speedlab_v164_decoder",
+      "protected": false
+    },
+    {
+      "action": "ELIGIBLE_TO_MOVE",
+      "bytes": 15017866,
+      "extensions": {
+        ".csv": 2,
+        ".json": 219,
+        ".so": 7,
+        ".txt": 223
+      },
+      "files": 451,
+      "kind": "directory",
+      "name": "stripboard_speedlab_v164_router",
+      "protected": false
+    },
+    {
+      "action": "ELIGIBLE_TO_MOVE",
+      "bytes": 26114613,
+      "extensions": {
+        ".csv": 3,
+        ".json": 387,
+        ".so": 2,
+        ".txt": 386
+      },
+      "files": 778,
+      "kind": "directory",
+      "name": "stripboard_speedlab_v165_50k",
+      "protected": false
+    },
+    {
+      "action": "ELIGIBLE_TO_MOVE",
+      "bytes": 26356768,
+      "extensions": {
+        ".csv": 3,
+        ".json": 387,
+        ".so": 2,
+        ".txt": 386
+      },
+      "files": 778,
+      "kind": "directory",
+      "name": "stripboard_speedlab_v165_5k",
+      "protected": false
+    },
+    {
+      "action": "ELIGIBLE_TO_MOVE",
+      "bytes": 27074,
+      "extensions": {
+        ".log": 1
+      },
+      "files": 1,
+      "kind": "file",
+      "name": "stripboard_speedlab_v165_budget_gate.log",
+      "protected": false
+    },
+    {
+      "action": "ELIGIBLE_TO_MOVE",
+      "bytes": 86848254,
+      "extensions": {
+        ".csv": 3,
+        ".json": 1283,
+        ".so": 6,
+        ".txt": 1286
+      },
+      "files": 2578,
+      "kind": "directory",
+      "name": "stripboard_speedlab_v165_decoder_holdout",
+      "protected": false
+    },
+    {
+      "action": "ELIGIBLE_TO_MOVE",
+      "bytes": 55109,
+      "extensions": {
+        ".log": 1
+      },
+      "files": 1,
+      "kind": "file",
+      "name": "stripboard_speedlab_v165_holdout.log",
+      "protected": false
+    },
+    {
+      "action": "ELIGIBLE_TO_MOVE",
+      "bytes": 11815,
+      "extensions": {
+        ".log": 1
+      },
+      "files": 1,
+      "kind": "file",
+      "name": "stripboard_v160_full80.log",
+      "protected": false
+    },
+    {
+      "action": "ELIGIBLE_TO_MOVE",
+      "bytes": 14583,
+      "extensions": {
+        ".log": 1
+      },
+      "files": 1,
+      "kind": "file",
+      "name": "stripboard_v161_cli_sweep.log",
+      "protected": false
+    },
+    {
+      "action": "ELIGIBLE_TO_MOVE",
+      "bytes": 1601579,
+      "extensions": {
+        ".json": 23
+      },
+      "files": 23,
+      "kind": "directory",
+      "name": "sweep_850k",
+      "protected": false
+    },
+    {
+      "action": "ELIGIBLE_TO_MOVE",
+      "bytes": 3550403,
+      "extensions": {
+        ".json": 51
+      },
+      "files": 51,
+      "kind": "directory",
+      "name": "sweep_850k_full",
+      "protected": false
+    }
+  ],
+  "moved": false,
+  "private_recursive_listing": "~/Documents/stripboard_desktop_recursive_listing.txt (DO NOT COMMIT)",
+  "schema": "desktop-optimiser-inventory/v1",
+  "scope": "Allowlisted optimiser output only; excludes private files, apps, source repos, symlinks",
+  "timestamp_utc": "2026-11-24T07:42:09.383597+00:00",
+  "total_bytes": 1074746316,
+  "total_files": 21961
+}
