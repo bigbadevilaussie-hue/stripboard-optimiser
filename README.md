@@ -4,6 +4,8 @@
 
 **Consolidation designation:** `2.00` (no Git tag published) · **npm/package version:** `2.0.0` · **Route-Mate GUI:** `2.04` (`gui/VERSION`).
 
+**START HERE IF CONTINUING IN A NEW CHAT:** [Active handoff — WR Audio/Moto discovery, multipass plans and current GUI boundary](docs/ACTIVE_HANDOFF_2026-11-24.md). It records the native solver call chain, completed 5k/10k Audio results, unfinished work, reference WRs, and the **destructive rerun warning**.
+
 **Current engineering reference:** [Full repository audit (24 Nov 2026)](docs/REPOSITORY_AUDIT_2026-11-24.md) · [Documentation index](docs/INDEX.md) · [CHANGELOG.md](CHANGELOG.md).
 
 The audit records verified source checks and outstanding target-Mac tests; it does **not** claim the native solver or all tests passed on this machine.
@@ -177,6 +179,12 @@ fixture JSON, or native solver code changes are needed. The existing four
 manual source cuts are preserved in the original fixture, but the native
 solver **always starts with blank cuts/wires**. See
 [exact procedure and qualification](docs/audioex-fixed-bms-native-ladder-2026-11-24.md).
+
+## Active WR Audio + Moto 12,000-trial discovery
+
+The passes-only runner `scripts/run_wr_audio_moto.py` executes 2,000 seeds at each of 5k/10k/20k moves for Audio and Moto. It is **Python orchestration of the same native V5 CLI and strict saved-board auditor**, not the donor Route-Mate Python solver. Current settings: locked 24×56, **drill OFF (knife allowed), stacking ON**, wire preference, no wire polish. Every audited strict pass is saved and scored; unsuccessful trials are silent and discarded.
+
+**Do not rerun casually:** each circuit/budget output directory under `~/Desktop/WR_Audio/` or `~/Desktop/WR_Moto/` is **deleted and recreated** at the start of that rung. There is **no resume support**. Latest user-reported completed runs: Audio 5k **113/2000** strict passes, Audio 10k **170/2000**, highest reported Audio score **74.14** at 10k seed **1171** (11 wires, 39 cuts). Audio 20k was in progress at last update. Moto figures have not yet been reported. See [active handoff](docs/ACTIVE_HANDOFF_2026-11-24.md) for provenance and next-chat instructions.
 
 ## Audit and test coverage
 
