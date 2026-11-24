@@ -1,0 +1,41 @@
+# Documentation index — Version 2.00 / Route-Mate GUI 2.01
+
+## Start here (current authority)
+
+1. [README](../README.md) — install, current architecture and commands
+2. [Project contract](../project.md) — accepted native pipeline and rules
+3. [Full repository audit, 24 Nov 2026](REPOSITORY_AUDIT_2026-11-24.md) — verified static findings, known gaps, target-Mac test matrix
+4. [Route-Mate GUI integration](../gui/README.md) — current import/locks/schematic hard-stop workflow
+5. [Standalone renderers](../src/frontend/standalone-renderer/README.md) — Node SVG CLI usage
+6. [Headless solver](../src/frontend/README.md) — builds and strict CLI verification
+
+## Source / architecture references
+
+- [Route-Mate code reuse & GUI handover](Route-Mate_GUI_Code_Handover.md):
+  **donor historical reference**, not approval to run a Python solver
+- [Native solver / Route-Mate roadmap](route-mate-native-solver-integration-roadmap.md):
+  original architecture decision; the GUI import-only transplant has since occurred
+- [Native solver handoff](START_HERE_NATIVE_SOLVER_HANDOFF_2026-11-24.md):
+  historical solver research checkpoint, not an always-current release status
+
+## Immutable research notes (historical as dated)
+
+- [Native CLI audit (23 Nov)](cli-audit-2026-11-23.md)
+- [Native benchmark](native-solver-benchmark-2026-11-23.md)
+- [Native budget sweep](native-cli-budget-sweep-v161.md)
+- [MOTO C1 correction](moto-c1-correction-v162.md)
+- [Native AUDIO ladder](native-audio-ladder-v163.md)
+- [Native speed lab v1.64](native-speed-lab-v164.md)
+- [Native speed lab v1.65](native-speed-lab-v165-results-and-followup.md)
+- [MOTOEX locked USB regression](motoex-locked-usb-24x56-regression.md)
+- [Native Edge + Slide](native-edge-slide-motoex.md)
+- [Native fixed USB sweep](native-fixed-usb-200x25k-sweep.md)
+- [Native full-slide sweep](native-full-slide-200x25k-sweep.md)
+- [MOTOEX seed-37 winner ladder](motoex-seed37-winner-ladder-2026-11-24.md)
+- [Conflict-directed slide and routing research](research-conflict-directed-slide-and-routing-2026-11-24.md)
+
+Research notes record results, hypotheses and status **at the time written**.
+Do not use a historical “next step” or version number as the current GUI
+integration status. Current authority is this index, the latest audit,
+`gui/VERSION` and the checked-in source. GUI features that have not been
+wired to the native CLI remain disabled.

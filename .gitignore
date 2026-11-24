@@ -13,3 +13,8 @@ CLAUDE.md
 .claude/
 tools/
 .DS_Store
+
+# Route-Mate import/preflight provenance is intentionally local to the JSON.
+# Ignore automatic sidecars, not the original source or verified solver outputs.
+*.routemate-state.json
+*.routemate-geometry.json

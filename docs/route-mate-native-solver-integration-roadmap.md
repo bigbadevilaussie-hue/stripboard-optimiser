@@ -1,5 +1,13 @@
 # Integration roadmap: Route-Mate GUI + Stripboard Optimiser native solver
 
+> **Historical architecture decision (24 Nov 2026).** The import-only
+> Route-Mate GUI **has since been transplanted** as GUI 2.01; original board
+> sizing, spacing/lock review and schematic SVG/PNG rendering work, but
+> **Pass 1/Pass 2 native CLI adapter remains disconnected**.
+> The “transplant later” phase descriptions below record the original plan,
+> not the current repository status. Read
+> [the current audit](REPOSITORY_AUDIT_2026-11-24.md) first.
+
 **Decision date:** 24 November 2026  
 **Status:** architecture and sequencing decision, **not** authorization to migrate the GUI yet  
 **Primary repository:** `bigbadevilaussie-hue/stripboard-optimiser`  

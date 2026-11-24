@@ -105,3 +105,22 @@ documentation together. A Git release tag is separate from the branch version.
   increment `gui/VERSION` and update this changelog in the same commit.
 - No changes to the native solver, SVG drawing code, original lock workflow
   or hard stop before Pass 1.
+
+### Version 2.00 / GUI 2.01 — repository-wide static audit (24 November 2026)
+
+- Inspected tracked structure, native CLI and verifier, GUI/pipeline and
+  standalone renderer boundaries, tests, dependencies and source imports.
+- Restored fixture hash integrity: refreshed current MOTO JSON/net digests,
+  added MOTOEX to SHA256SUMS, preserved the old values in the audit report,
+  and **did not change circuit files**.
+- Added read-only `scripts/audit_repo_integrity.py` with a targeted test.
+  This checks tracked paths, versions, manifest, JSON references, local
+  TypeScript imports, Python syntax and disabled GUI solve guard.
+- Added [full repository audit](docs/REPOSITORY_AUDIT_2026-11-24.md) and
+  [documentation index](docs/INDEX.md). Updated README, project, GUI,
+  headless and renderer documentation. Flagged older roadmap/handoff
+  documents as historical rather than silently rewriting them.
+- Corrected MacPorts librsvg setup instructions and excluded generated
+  Route-Mate sidecars from Git tracking.
+- **No GUI/solver/renderer behaviour changes.** GUI stays at 2.01,
+  repository version stays 2.00. Target-Mac runtime tests remain pending.

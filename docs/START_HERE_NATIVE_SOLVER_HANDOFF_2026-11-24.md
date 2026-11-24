@@ -1,3 +1,10 @@
+> **Historical research handoff.** This file records the solver's
+> state at its authoring date. The current consolidated repository is
+> **Version 2.00 / Route-Mate GUI 2.01** with the GUI imported but the
+> native solver still disconnected from it. For authoritative current
+> source-audit findings and unrun Mac tests, see
+> [Repository audit](REPOSITORY_AUDIT_2026-11-24.md).
+>
 # START HERE — Native stripboard solver handover (24 November 2026)
 
 > **This is the current engineering handover for the next chat or developer.** Read this file, [README.md](../README.md), [project.md](../project.md), and [native Edge/Slide technical notes](native-edge-slide-motoex.md) **before changing code**. Do not infer that a command or test has passed merely because it is committed. Work originated on a feature branch; it was fast-forwarded intact to `main` on 24 November 2026. Continue all development on `main`.

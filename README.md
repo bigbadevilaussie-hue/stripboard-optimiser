@@ -2,9 +2,11 @@
 
 **Release milestone:** Version 2.00 — Consolidation of Two Repositories (24 November 2026).
 
-**Git version:** `v2.00` · **npm/package version:** `2.0.0` · **Route-Mate GUI version:** `2.01` (see `gui/VERSION`).
+**Consolidation designation:** `2.00` (no Git tag published) · **npm/package version:** `2.0.0` · **Route-Mate GUI:** `2.01` (`gui/VERSION`).
 
-See [CHANGELOG.md](CHANGELOG.md) for release scope.
+**Current engineering reference:** [Full repository audit (24 Nov 2026)](docs/REPOSITORY_AUDIT_2026-11-24.md) · [Documentation index](docs/INDEX.md) · [CHANGELOG.md](CHANGELOG.md).
+
+The audit records verified source checks and outstanding target-Mac tests; it does **not** claim the native solver or all tests passed on this machine.
 
 ## Headless solver
 
@@ -24,7 +26,9 @@ The old Python Quick Solve/Hell Mode routing engines are **not included**.
 
 ```sh
 python3 -m pip install -r requirements-gui.txt
-python3 run_gui.py
+# MacPorts is used for the original Tk-compatible schematic PNG preview:
+sudo port install librsvg
+PATH="/opt/local/bin:$PATH" python3 run_gui.py
 ```
 
 Use **Load JSON**. This invokes the **original Route-Mate 1.44 GUI workflow**:
@@ -47,7 +51,8 @@ The same checks can be run without PySide6:
 
 ```sh
 python3 -m gui.preflight test-fixtures/masters/moto/motoex.json
-python3 -m unittest discover -s tests -p 'test_gui_*' -v
+python3 scripts/audit_repo_integrity.py
+python3 -m unittest discover -s tests -p 'test_*.py' -v
 ```
 
 The donor workflow requires the local renderer for component/lock highlighting; if preview fails, the GUI displays an error and does not advance through lock review.
@@ -140,7 +145,7 @@ user's iMac at **27 wires / 43 cuts**, 24×56 board, with six explicitly permitt
 stacked jumpers and no reported body-overhang warnings. The output remains
 on the user's Desktop; **saved sweep outputs are not stored in Git**.
 
-To independently requalify archived candidates without another anneal:
+To independently requalify archived candidates without another anneal **on the Mac with the original prepared input and archived files**:
 
 ```sh
 python3 scripts/requalify_motoex_winner_ladder.py
@@ -148,6 +153,18 @@ python3 scripts/requalify_motoex_winner_ladder.py
 
 See `docs/motoex-seed37-winner-ladder-2026-11-24.md` for the exact original
 reproducible experiment and archive locations.
+
+## Audit and test coverage
+
+The headless `npm run test:solver` and `npm run test:board` scripts run
+only their respective `*.test.js` suites. Important additional standalone
+tests, including `testAuditSavedStrict.js` and native geometry regressions,
+need explicit invocation. The complete current Mac command sequence is in
+[the audit](docs/REPOSITORY_AUDIT_2026-11-24.md#target-mac-verification-matrix-not-run-in-this-github-only-audit).
+
+The immutable fixture files remain unchanged; their 12-entry SHA-256 manifest
+was corrected during the audit. Root GUI-import sidecars are local, not routed
+layouts. **Electrical JSON sanity does not certify a solved board.**
 
 ## Standalone SVG renderers
 

@@ -40,7 +40,7 @@ The actual future engine is the existing native C/TypeScript CLI.
 
 ```sh
 python3 -m pip install -r requirements-gui.txt
-python3 run_gui.py
+PATH="/opt/local/bin:$PATH" python3 run_gui.py
 ```
 
 Without Qt, use the separate read-only preflight:
@@ -103,7 +103,7 @@ on the already-generated schematic SVG, then shows that PNG in the existing
 right-side Qt graphics view. The PNG is cached for instant view switching.
 
 Requires `rsvg-convert` on your Mac, exactly as the old Tk GUI did.
-If missing, install with `brew install librsvg`. The Activity tab
+If missing on the user's **MacPorts** installation, run `sudo port install librsvg` and check `/opt/local/bin/rsvg-convert --version`. The Activity tab
 reports a clear warning and uses the old QtSvg fallback if this dependency
 is not present.
 
@@ -111,6 +111,23 @@ Neither the compiled schematic generator, original project/sidecars nor
 the original component-side/copper SVG board viewer is altered. Component
 locks, board dimensions and the disabled native CLI remain untouched.
 Regression test: `python3 -m unittest discover -s tests -p 'test_schematic_tk_raster.py' -v`.
+
+## Current audit and preflight/strict distinction
+
+See [the full source audit](../docs/REPOSITORY_AUDIT_2026-11-24.md) and
+[documentation index](../docs/INDEX.md).
+
+The electrical **input sanity** check validates JSON-side connection
+references. It does not run routing, certify a saved board, or substitute for
+`tests/solver/auditSavedStrict.js`. GUI control actions labelled Pass 1 remain
+disabled. The original 0/1/2 spacing choices are still donor metadata and
+are **not mapped to the native CLI**. Edge+Slide remains a specialist control;
+its old Python position estimator references an intentionally absent module
+and catches that ImportError.
+
+The physical board size and locks selected in the dialog must be carried into
+a new immutable prepared input before the native solver can run. No GUI/native
+adapter exists yet.
 
 ## GUI version policy
 

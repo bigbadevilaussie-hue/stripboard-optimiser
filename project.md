@@ -1,6 +1,8 @@
 # Stripboard Optimiser — Version 2.00 project contract
 
-**Milestone:** Consolidation of Two Repositories (24 November 2026).
+**Milestone:** Consolidation of Two Repositories (24 November 2026). GUI version **2.01** is independently tracked in `gui/VERSION`.
+
+**Current audit:** [Repository integrity and integration audit](docs/REPOSITORY_AUDIT_2026-11-24.md). Historical handovers remain useful but their future-phase language may now be outdated.
 
 The current `main` branch is version 2.00. This is a repository-structure and
 version milestone; it is not a claim of a new solver algorithm or independently
@@ -50,6 +52,27 @@ see `test-fixtures/`, `scripts/` and the `docs/` research records.
 Retain `src/frontend/standalone-renderer/` for board component-side,
 board copper-side and schematic SVG generation from saved JSON.
 Do not add React/web editor dependencies to the headless renderer runtime.
+
+## GUI/native adapter release gate
+
+The GUI performs the original board-size, spacing and individually highlighted
+lock review, then stops. The **CLI integration is not yet present**.
+
+When the adapter is implemented, it must transfer the exact prepared board
+(`rows=24`, `cols=56`, `lockedRows=true`, `lockedCols=true` for the
+locked MOTOEX test), preserved nets/pins and Fixed/Edge/Slide decisions into
+the *existing* native CLI. The original MOTOEX fixture is 99×500 with columns
+not locked; its raw JSON is not a valid substitute for the prepared 24×56 input.
+
+Default research policy remains drill-only OFF, stacking ON, board rows and
+columns locked, ranking valid outputs by wires before cuts. The imported
+Route-Mate spacing control (0/1/2) is *not yet wired* to native solver
+`partSpacing`. A JSON sanity PASS is not a saved-layout strict PASS.
+
+Never add another Python placement/routing solver. Before enabling Pass 1:
+exercise direct-CLI parity, exit 2 handling, saved-board independent audit,
+speed probe, campaign persistence, cancel/resume and Pass 1→Pass 2 survivor
+qualification on MOTOEX, MOTO and AUDIO.
 
 ## Source entry points
 
