@@ -120,6 +120,42 @@ export function rigidGeometry(
   };
 }
 
+/**
+ * True if a placed component's actual rendered package protrudes beyond the
+ * physical PCB. Board edges are half a hole pitch outside the outer hole
+ * centres. A flexible capsule is already in hole-centre coordinates; rigid
+ * rectangles use inclusive hole-cell coordinates.
+ *
+ * Only a rigid, explicitly locked Edge mount may extend its body off-board.
+ * Pins, wires and cuts are checked separately and never inherit that exemption.
+ */
+export function packageBodyOutsideBoard(
+  board: { rows: number; cols: number },
+  component: Component,
+  def: ComponentDef,
+): boolean {
+  if (!component.boardPos || component.boardExcluded) return false;
+  const epsilon = 1e-6;
+  const outsideCapsule = (cap: Capsule): boolean =>
+    Math.min(cap.a.row, cap.b.row) - cap.r < -0.5 - epsilon ||
+    Math.max(cap.a.row, cap.b.row) + cap.r > board.rows - 0.5 + epsilon ||
+    Math.min(cap.a.col, cap.b.col) - cap.r < -0.5 - epsilon ||
+    Math.max(cap.a.col, cap.b.col) + cap.r > board.cols - 0.5 + epsilon;
+
+  if (def.flexible) {
+    const [a, b] = getFlexiblePinPositions(component, def);
+    if (!a || !b) return true;
+    return outsideCapsule(flexBody(flexProfile(def, component), a, b));
+  }
+  if (component.locked && component.edge === true) return false;
+  const geometry = rigidGeometry(def, component.boardPos, component.rotation, component);
+  const outsideRect = (r: FootprintRect): boolean =>
+    r.minRow < -epsilon || r.maxRow > board.rows - 1 + epsilon ||
+    r.minCol < -epsilon || r.maxCol > board.cols - 1 + epsilon;
+  return outsideRect(geometry.body) ||
+    (geometry.reach !== undefined && outsideRect(geometry.reach));
+}
+
 export function rigidBody(
   def: ComponentDef,
   boardPos: Pt,

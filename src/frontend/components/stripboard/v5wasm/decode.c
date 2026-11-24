@@ -486,7 +486,8 @@ static int flexCellBad(i32 r, i32 c, int modeV) {
 
 // A body wider than the line between its legs (a can) lies over holes of its
 // own: nothing else may use them, and a link through them runs under the
-// part. Off the board's edge it simply hangs over.
+// part. Off-board covered holes are clipped from routing occupancy, but the
+// exact capsule boundary is independently penalised in geoBad below.
 static void claimBody(i32 pi, i32 r1, i32 c1, i32 r2, i32 c2) {
   if (!pFat[pi]) return;
   double cap[5];
@@ -1283,6 +1284,31 @@ static i32 decode(void) {
       cb[0] = dmin(cp[0], cp[2]); cb[1] = dmax(cp[0], cp[2]); cb[2] = dmin(cp[1], cp[3]); cb[3] = dmax(cp[1], cp[3]);
       pb[0] = dmin(p[0], p[2]); pb[1] = dmax(p[0], p[2]); pb[2] = dmin(p[1], p[3]); pb[3] = dmax(p[1], p[3]);
       rcMinR[pi] = yI[pi]; rcMaxR[pi] = r2; rcMinC[pi] = xI[pi]; rcMaxC[pi] = c2;
+    }
+  }
+  // Physical board boundaries lie half a pitch outside the outer hole
+  // centres. A flexible can may have both pins within the PCB while its
+  // actual round body hangs over the edge. Charge the same exact package
+  // geometry used for routing/collisions, not just the two lead positions.
+  // An explicitly locked rigid Edge mount alone may overhang its body.
+  for (i32 pi = 0; pi < nP; pi++) {
+#ifdef V5_EXPERIMENT_EDGE_MOUNT
+    if (pKind[pi] == 0 && pLocked[pi] && pSides[pi] == -2) continue;
+#endif
+    if (pKind[pi] == 1) {
+      double *cp = rcCap + 5 * pi, r = cp[4];
+      if (dmin(cp[0], cp[2]) + mRow - r < -0.5 - 1e-6 ||
+          dmax(cp[0], cp[2]) + mRow + r > GH - 0.5 + 1e-6 ||
+          dmin(cp[1], cp[3]) + mCol - r < -0.5 - 1e-6 ||
+          dmax(cp[1], cp[3]) + mCol + r > GW - 0.5 + 1e-6) geoBad++;
+    } else {
+      double *bd = rcBody + 4 * pi, *reach = rcReach + 4 * pi;
+      int outside = bd[0] + mRow < -1e-6 || bd[1] + mRow > GH - 1 + 1e-6 ||
+                    bd[2] + mCol < -1e-6 || bd[3] + mCol > GW - 1 + 1e-6;
+      if (rcHasReach[pi]) outside |=
+        reach[0] + mRow < -1e-6 || reach[1] + mRow > GH - 1 + 1e-6 ||
+        reach[2] + mCol < -1e-6 || reach[3] + mCol > GW - 1 + 1e-6;
+      if (outside) geoBad++;
     }
   }
   // stable merge sort of part indices by minRow (Array.prototype.sort is stable)
