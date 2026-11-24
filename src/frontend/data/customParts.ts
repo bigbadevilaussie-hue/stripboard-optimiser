@@ -2,7 +2,8 @@
 // library. A project never points at the library; it holds a copy, linked by
 // `library: { id, rev }` until that copy is edited on its own.
 import type { ComponentDef } from "@/types";
-import type { LibraryPart } from "@/lib/api";
+// Only the portable part-library data contract is needed; no web API.
+type LibraryPart = { id: string; part: ComponentDef; rev: number; updated_at: string; used_in?: number };
 import { createFootprintSymbol, registerCustomSymbol } from "./symbolDefs";
 
 const FOOTPRINT_PREFIX = "custom-footprint-";

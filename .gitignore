@@ -1,12 +1,15 @@
+# Local environments and generated files
 venv/
+.venv/
 .env
-db.sqlite3
+.env.*
 __pycache__/
 *.pyc
+*.pyo
 node_modules/
-.next/
 *.sqlite3
 auto-layouter-data/
 CLAUDE.md
 .claude/
 tools/
+.DS_Store

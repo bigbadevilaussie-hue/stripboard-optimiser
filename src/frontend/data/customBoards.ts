@@ -2,7 +2,9 @@
 // in the user's library. Like a custom part, a project never points at the
 // library; it holds a copy, linked by `library: { id, rev }`.
 import type { BoardPattern } from "@/types";
-import type { BoardDesign, LibraryBoard } from "@/lib/api";
+// Portable board-library file contracts, no server/API dependency.
+type BoardDesign = { name: string; map: string[] };
+type LibraryBoard = { id: string; board: BoardDesign; rev: number; updated_at: string; used_in?: number };
 import { mapError } from "@/components/stripboard/boardPattern";
 
 /** A library board as a project's board. */
