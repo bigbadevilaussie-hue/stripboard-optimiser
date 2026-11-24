@@ -1292,6 +1292,7 @@ class RouteMateWindow(QMainWindow):
         filename, _ = QFileDialog.getSaveFileName(
             self, "Export component-side SVG", str(suggested),
             "SVG image (*.svg)",
+            options=QFileDialog.Option.DontUseNativeDialog,
         )
         if not filename:
             return
@@ -2439,6 +2440,7 @@ class RouteMateWindow(QMainWindow):
             self, "Save verified routed board",
             str(folder / f"{stem}-autorouted.json"),
             "Project JSON (*.json)",
+            options=QFileDialog.Option.DontUseNativeDialog,
         )
         if not filename:
             return
@@ -2530,6 +2532,7 @@ class RouteMateWindow(QMainWindow):
         filename, _ = QFileDialog.getOpenFileName(
             self, "Load Route-Mate project", str(start_dir),
             "Project JSON (*.json);;All files (*)",
+            options=QFileDialog.Option.DontUseNativeDialog,
         )
         if not filename:
             return
