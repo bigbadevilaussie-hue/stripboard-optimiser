@@ -38,9 +38,11 @@ function decode(row){
 }
 const top=decode(0),inside=decode(2),bottom=decode(6);
 assert.equal(top.status,2,"top-edge layout decodes so geometry is measurable");
-assert.ok(top.geoBad > 0,"offboard can at top must incur native geoBad");
+assert.equal(top.geoBad,0,"a body-only overhang is not a hard geometry fault");
 assert.equal(inside.status,2);
 assert.equal(inside.geoBad,0,"same capacitor fits when moved inward");
 assert.equal(bottom.status,2);
-assert.ok(bottom.geoBad > 0,"bottom-edge can must incur native geoBad");
+assert.equal(bottom.geoBad,0,"bottom overhang is advisory too");
+assert.ok(top.eBase > inside.eBase && bottom.eBase > inside.eBase,
+  "native annealer must still prefer an inside placement via soft penalty");
 console.log("✅ Native C board-envelope 10mm capacitor regression");

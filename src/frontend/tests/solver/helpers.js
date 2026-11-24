@@ -172,9 +172,6 @@ function checkGeometry(b, components, defs) {
       }
       pinHoles.add(holeKey(pin.row, pin.col));
     }
-    if (partGeometry.packageBodyOutsideBoard(b, comp, def)) {
-      problems.push(`${comp.label}: package body off-board`);
-    }
     if (def.flexible) {
       const [p1, p2] = boardLayout.getFlexiblePinPositions(comp, def);
       if (p1 && p2) {

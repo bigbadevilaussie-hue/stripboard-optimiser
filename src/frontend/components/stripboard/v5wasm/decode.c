@@ -1256,7 +1256,7 @@ static i32 decode(void) {
   // blanket gaps approximated), sorted by top row; a pair is skipped as soon as
   // B starts below A's reach. A rigid part's box takes in its reach, or a part
   // under a shaft is never even compared with it.
-  i32 geoBad = 0;
+  i32 geoBad = 0, bodyOverhang = 0;
   for (i32 pi = 0; pi < nP; pi++) {
     rcPi[pi] = pi;
     if (pKind[pi] == 0) {
@@ -1304,7 +1304,7 @@ static i32 decode(void) {
       if (dmin(cp[0], cp[2]) + mRow - r < -0.5 - 1e-6 ||
           dmax(cp[0], cp[2]) + mRow + r > borderRows - 0.5 + 1e-6 ||
           dmin(cp[1], cp[3]) + mCol - r < -0.5 - 1e-6 ||
-          dmax(cp[1], cp[3]) + mCol + r > borderCols - 0.5 + 1e-6) geoBad++;
+          dmax(cp[1], cp[3]) + mCol + r > borderCols - 0.5 + 1e-6) bodyOverhang++;
     } else {
       double *bd = rcBody + 4 * pi, *reach = rcReach + 4 * pi;
       int outside = bd[0] + mRow < -1e-6 || bd[1] + mRow > borderRows - 1 + 1e-6 ||
@@ -1312,7 +1312,7 @@ static i32 decode(void) {
       if (rcHasReach[pi]) outside |=
         reach[0] + mRow < -1e-6 || reach[1] + mRow > borderRows - 1 + 1e-6 ||
         reach[2] + mCol < -1e-6 || reach[3] + mCol > borderCols - 1 + 1e-6;
-      if (outside) geoBad++;
+      if (outside) bodyOverhang++;
     }
   }
   // stable merge sort of part indices by minRow (Array.prototype.sort is stable)
@@ -1406,7 +1406,10 @@ static i32 decode(void) {
   double price =
     W_AREA * (physH * physW + aspectOver) + wWire * wires + W_WLEN * wireLen +
     wCut * cuts + wBCut * bCuts + W_LOCKOVER * lockOver + connEdge + shaftIn + sibling;
-  double eBase = price + overlapBad * 500 + geoBad * 450 + ringBad * 120 + spanBad * 60 + starved * 20 + starvedHard * 450;
+  // Physical package overhang is an advisory build warning: keep its full
+  // size for collisions and penalise the placement, but do not make it
+  // electrically or geometrically infeasible. Copper/pins outside still fail.
+  double eBase = price + bodyOverhang * 60 + overlapBad * 500 + geoBad * 450 + ringBad * 120 + spanBad * 60 + starved * 20 + starvedHard * 450;
   double hardPen = overlapBad * 500 + geoBad * 450 + starvedHard * 450;
 
   outI[0] = 2; outI[2] = H; outI[3] = W; outI[4] = wires; outI[5] = wireLen; outI[6] = relays; outI[7] = cuts; outI[8] = bCuts;

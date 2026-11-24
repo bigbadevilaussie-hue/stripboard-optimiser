@@ -5,7 +5,7 @@ import { AutoLayoutProgress, AutoLayoutResult, effortMoves } from "./layoutTypes
 import { Rot, allowedDrows } from "./layout2/tileModel";
 import { FootprintRect, coveredHoles, wireStackDepth } from "./flexGeometry";
 import { avoidableBetweenCuts, wireMessScore } from "./layout2/tidyScore";
-import { flexBody, flexProfile, rigidGeometry, packageBodyOutsideBoard } from "./partGeometry";
+import { flexBody, flexProfile, rigidGeometry } from "./partGeometry";
 import { expandOffBoard, leadSiblings } from "./offBoard";
 import { MM_PER_HOLE, bodyWidth, resolvePackage } from "./packageBodies";
 import { V5WasmDecoder, WasmDecodeOut, WasmExport, WasmModel } from "./v5wasm/v5Wasm";
@@ -469,9 +469,6 @@ export function computeAutoLayout5(
         rotation: placement.rotation ?? original.rotation, flexibleEndPos: placement.flexibleEndPos };
       for (const pin of getComponentPinPositions(positioned, def))
         if (!onPurchasedBoard(pin)) return false;
-      // Never accept a body protruding off the purchased board: pins alone
-      // do not describe the physical size of radial cans or other packages.
-      if (packageBodyOutsideBoard(result.boardSize, positioned, def)) return false;
       if (!def.flexible && !(original.locked && original.edge)) {
         const bounds = getComponentBounds(def, placement.boardPos, positioned.rotation);
         if (!onPurchasedBoard({ row: bounds.minRow, col: bounds.minCol }) ||

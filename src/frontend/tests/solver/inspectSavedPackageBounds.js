@@ -30,15 +30,15 @@ for (const filename of filenames) {
   console.log("🔬 " + path.basename(filename) + " | board " +
     data.board.rows + "×" + data.board.cols);
   for (const c of faults) {
-    console.log("❌ BODY OFF BOARD " + (c.label || c.id) +
+    console.log("⚠️ BODY OVERHANG " + (c.label || c.id) +
       (c.value ? " ("+c.value+")" : "") + " @ row " + c.boardPos.row +
       ", col " + c.boardPos.col +
       (c.flexibleEndPos ? " → row "+c.flexibleEndPos.row+", col "+c.flexibleEndPos.col : ""));
   }
   const all = checkGeometry(data.board,view.components,defs);
-  console.log(faults.length ? "❌ " + faults.length + " unauthorised off-board packages" :
-    "✅ No unauthorised package-body overhang found");
+  console.log(faults.length ? "⚠️ " + faults.length + " build warnings for package-body overhang" :
+    "✅ No package-body overhang warnings");
   console.log("Geometry findings: " + all.length);
   if (all.length) for (const s of all.slice(0,25)) console.log("  - " + s);
-  if (faults.length || all.length) process.exitCode = 2;
+  if (all.length) process.exitCode = 2; // warnings alone are nonfatal
 }

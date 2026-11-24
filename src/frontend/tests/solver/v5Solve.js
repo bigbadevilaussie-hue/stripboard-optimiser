@@ -432,6 +432,14 @@ const { wireStackDepth } = require(path.join(OUT, "components/stripboard/flexGeo
 const stacked = res.wires.filter((w, i) => wireStackDepth(w.from, w.to, res.wires.slice(0, i)) > 0).length;
 const v = verify(solvedBoard, boardComps, nets, view.netAssignments, defs);
 const geo = checkGeometry(solvedBoard, boardComps, defs).length;
+// Real body overhangs are build warnings, never silent: the package remains
+// a full-sized obstacle for component/wire collisions, and pins remain strict.
+const bodyOverhangWarnings = boardComps.filter((c) => {
+  if (!c.boardPos || c.boardExcluded) return false;
+  const d = resolveComponentDef(c, defs);
+  return d && partGeometry.packageBodyOutsideBoard(solvedBoard, c, d);
+}).map((c) => ({ component: c.label || c.id, value: c.value ?? null,
+  row: c.boardPos.row, col: c.boardPos.col }));
 // Do not report a deliberately EMPTY fallback board as if the solver built
 // 35 badly connected nets. It is an explicit failure to find/finish placement.
 const unsolvedText = (res.issues || []).find((i) => typeof i === "string" && i.startsWith("UNSOLVED: "));
@@ -595,7 +603,7 @@ console.log(JSON.stringify({
   rows: solvedBoard.rows, cols: solvedBoard.cols, area: solvedBoard.rows * solvedBoard.cols,
   wires: m.wires, offAxis: m.offAxisWires, crossings: m.crossings, stacked, cuts: m.cuts, knife, connOff, connIn,
   conflicts: v.conflicts, incomplete: v.incomplete.length ?? v.incomplete, geo,
-  issues: res.issues,
+  bodyOverhangWarnings, issues: res.issues,
   ...(strict ? { cliVersion: CLI_AUDIT_VERSION, strictValid: strictFailures.length === 0, strictFailures,
     diagonalsActual, slantedWires, horizontalWires } : {}),
   ...(moveSummary ? { moveSummary: { ...moveSummary, percent: {
