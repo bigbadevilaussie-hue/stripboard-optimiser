@@ -1,10 +1,12 @@
-"""Native strict 100-check pre-optimisation audit. Stop before Pass 1."""
+"""Native V5 100-point decoder-speed measurement. No optimisation solves."""
 from __future__ import annotations
 import copy
+import hashlib
 import json
+import math
 import os
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import tempfile
@@ -13,164 +15,132 @@ from time import perf_counter
 ROOT = Path(__file__).resolve().parents[1]
 FRONTEND = ROOT / "src/frontend"
 CLI = FRONTEND / "tests/solver/v5Solve.js"
-AUDITOR = FRONTEND / "tests/solver/auditSavedStrict.js"
-BUILD = FRONTEND / "tests/solver/native/build"
-PAIR_BUDGETS = (10000, 20000)
-SEEDS = tuple(range(1, 51))
-TOTAL = 100
+NATIVE = FRONTEND / "tests/solver/native/build"
+POINTS = 100
 
 
 class Cancelled(Exception):
     pass
 
 
-def prereqs():
+def prerequisites():
     if not shutil.which("node"):
-        raise RuntimeError("Node.js is required for native V5 calibration.")
-    files = [CLI, AUDITOR, BUILD / "v5native.node",
-             BUILD / "libv5decode.so", BUILD / "libv5route.so",
-             FRONTEND / "tests/solver/out/components/stripboard/autoLayout5.js"]
-    for path in files:
-        if not path.is_file():
-            raise RuntimeError(f"Missing native calibration dependency: {path}")
+        raise RuntimeError("Node.js is required for the native decoder probe.")
+    for item in (
+        CLI, NATIVE / "v5native.node", NATIVE / "libv5decode.so",
+        NATIVE / "libv5route.so",
+        FRONTEND / "tests/solver/out/components/stripboard/autoLayout5.js",
+    ):
+        if not item.is_file():
+            raise RuntimeError(f"Missing native probe dependency: {item}")
 
 
-def parse_json(output):
-    for line in reversed(output.splitlines()):
-        if line.startswith("{"):
-            try:
-                return json.loads(line)
-            except ValueError:
-                pass
-    return None
-
-
-def execute(cmd, env, cancelled):
+def run_process(command, env, cancelled):
     if cancelled():
         raise Cancelled()
-    p = subprocess.Popen(cmd, cwd=FRONTEND, env=env,
-                         stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    process = subprocess.Popen(
+        command, cwd=FRONTEND, env=env,
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     try:
         while True:
             try:
-                out, err = p.communicate(timeout=0.3)
-                return p.returncode, out, err
+                stdout, stderr = process.communicate(timeout=0.25)
+                return process.returncode, stdout, stderr
             except subprocess.TimeoutExpired:
                 if cancelled():
-                    p.terminate()
+                    process.terminate()
                     try:
-                        p.communicate(timeout=3)
+                        process.communicate(timeout=3)
                     except subprocess.TimeoutExpired:
-                        p.kill()
-                        p.communicate()
+                        process.kill()
+                        process.communicate()
                     raise Cancelled()
     finally:
-        if p.poll() is None:
-            p.kill()
-            p.communicate()
+        if process.poll() is None:
+            process.kill()
+            process.communicate()
 
 
-def trial(project, moves, seed, scratch, cancelled):
-    if cancelled():
-        raise Cancelled()
-    job = scratch / f"{moves}_{seed}"
-    inp = job / "input/projects/1.json"
-    inp.parent.mkdir(parents=True)
-    inp.write_text(json.dumps(project), encoding="utf-8")
-    saved = job / "candidate.json"
-    env = os.environ.copy()
-    env["V5_NATIVE_LIB_DIR"] = str(BUILD)
-    env.pop("V5_NATIVE_ROUTE_LIB_DIR", None)
-    env["STRIPBOARD_TIMING"] = "1"
-    cmd = ["node", str(CLI), "--data", str(job / "input"), "--id", "1",
-           "--seed", str(seed), "--moves", str(moves), "--native", "1",
-           "--strict", "1", "--drilled", "0", "--nostack", "0",
-           "--drill-domain", "0", "--wire-polish", "0",
-           "--routing-preference", "wires", "--save", str(saved)]
-    start = perf_counter()
-    code, out, err = execute(cmd, env, cancelled)
-    result = parse_json(out)
-    if code not in (0, 2) or not isinstance(result, dict):
-        raise RuntimeError(f"Native solver failed at {moves}/{seed} ({code}): {err[-350:]}")
-    if (result.get("strictValid") is True) != (code == 0):
-        raise RuntimeError(f"Inconsistent native strict verdict at {moves}/{seed}")
-    record = dict(moves=moves, seed=seed, seconds=round(perf_counter()-start, 3),
-                  valid=False, wires=result.get("wires"), cuts=result.get("cuts"),
-                  wireLength=None)
-    if code == 0:
-        if not saved.is_file():
-            raise RuntimeError(f"Strict PASS missing saved board at {moves}/{seed}")
-        solved = json.loads(saved.read_text(encoding="utf-8"))
-        before, after = project["board"], solved["board"]
-        for key in ("rows", "cols", "lockedRows", "lockedCols"):
-            if before.get(key) != after.get(key):
-                raise RuntimeError(f"Native probe changed board {key}")
-        for c in project.get("components", []):
-            if c.get("locked") and isinstance(c.get("boardPos"), dict):
-                match = next((x for x in solved.get("components", [])
-                              if x.get("id") == c.get("id")), None)
-                if match is None or match.get("boardPos") != c.get("boardPos"):
-                    raise RuntimeError(f"Native probe moved locked part {c.get('id')}")
-        acode, aout, aerr = execute(
-            ["node", str(AUDITOR), str(saved), str(inp)], env, cancelled)
-        audited = parse_json(aout)
-        if acode not in (0, 2) or not isinstance(audited, dict):
-            raise RuntimeError(f"Independent audit failed: {aerr[-350:]}")
-        if acode != 0 or audited.get("valid") is not True:
-            raise RuntimeError(f"Native PASS failed independent audit: {audited.get('failures', [])[:3]}")
-        if (audited.get("wires"), audited.get("cuts")) != (record["wires"], record["cuts"]):
-            raise RuntimeError("Native and independent audit counts differ")
-        record["valid"] = True
-        record["wireLength"] = audited.get("wireLength")
-    return record
+def calibrate(project, workers, drilled_only, stacking_allowed, progress, diagnostic, cancelled):
+    """Use native --speedprobe 100 once, without annealing or board routing.
 
-
-def summarise(rows):
-    good = [x for x in rows if x["valid"]]
-    best = min(good, key=lambda x: (
-        x["wires"], x["cuts"],
-        x["wireLength"] if isinstance(x["wireLength"], (int, float)) else float("inf")
-    )) if good else None
-    return {"checked": len(rows), "passed": len(good),
-            "best": {k: best[k] for k in ("seed", "wires", "cuts", "wireLength")}
-                    if best else None}
-
-
-def calibrate(project, workers, callback, cancelled):
+    Cut policy changes decoder constraints. Stacking is a future router/finish
+    constraint, not measurable with this decoder-only instrument.
+    """
     if workers not in (3, 4):
-        raise ValueError("Workers must be 3 or 4")
-    prereqs()
-    snapshot = copy.deepcopy(project)
-    # The board-size dialog supplies the actual physical board. Its original
-    # lockedRows/lockedCols flags may still be False from the imported JSON.
-    # Lock BOTH physical dimensions in the audit's private input snapshot so
-    # V5's strict mode measures exactly the board selected in the GUI.
-    # Never modify the source JSON, the on-screen project or the V5 solver.
-    board = snapshot["board"]
-    if not isinstance(board.get("rows"), int) or not isinstance(board.get("cols"), int) or board["rows"] <= 0 or board["cols"] <= 0:
-        raise ValueError("The actual physical board must have positive row and column counts.")
+        raise ValueError("CPU probe must select 3 or 4 workers first.")
+    if type(drilled_only) is not bool or type(stacking_allowed) is not bool:
+        raise ValueError("Cuts and stacking selections must be Boolean.")
+    prerequisites()
+    prepared = copy.deepcopy(project)
+    board = prepared.get("board")
+    if (not isinstance(board, dict)
+        or type(board.get("rows")) is not int or board["rows"] <= 0
+        or type(board.get("cols")) is not int or board["cols"] <= 0):
+        raise ValueError("The selected physical board must have positive dimensions.")
     board["lockedRows"] = True
     board["lockedCols"] = True
-    with tempfile.TemporaryDirectory(prefix="stripboard_calibration_") as td:
-        scratch = Path(td)
-        trials = {moves: [] for moves in PAIR_BUDGETS}
-        with ThreadPoolExecutor(max_workers=workers) as executor:
-            futures = [executor.submit(trial, snapshot, m, seed, scratch, cancelled)
-                       for seed in SEEDS for m in PAIR_BUDGETS]
-            try:
-                for future in as_completed(futures):
-                    if cancelled():
-                        raise Cancelled()
-                    row = future.result()
-                    trials[row["moves"]].append(row)
-                    done = sum(len(v) for v in trials.values())
-                    callback({"stage": "CALIBRATION", "done": done, "last": row,
-                              "passes": {m: sum(x["valid"] for x in v)
-                                         for m, v in trials.items()}})
-            except BaseException:
-                for future in futures:
-                    future.cancel()
-                raise
-    reports = {m: summarise(v) for m, v in trials.items()}
-    return {"reports": reports, "workers": workers,
-            "seeds": len(SEEDS), "checks": TOTAL}
+    payload = json.dumps(prepared, ensure_ascii=False, sort_keys=True).encode("utf-8")
+    sha = hashlib.sha256(payload).hexdigest()
+    parts = prepared.get("components", [])
+    anchors = [p for p in parts if p.get("locked") and isinstance(p.get("boardPos"), dict)]
+    diagnostic(f"[MOVE100][INPUT] sha256={sha}; actual={board['rows']}x{board['cols']}; "
+               f"physical_lock=True/True; preferred={board.get('wantedRows')} "
+               f"({board.get('wantedRowsMode')}) x {board.get('wantedCols')} "
+               f"({board.get('wantedColsMode')})")
+    diagnostic(f"[MOVE100][INPUT] components={len(parts)} nets={len(prepared.get('nets', []))} "
+               f"assignments={len(prepared.get('netAssignments', []))} anchors={len(anchors)}")
+    for p in anchors:
+        diagnostic(f"[MOVE100][LOCK] {p.get('label') or p.get('id')}: "
+                   f"boardPos={p['boardPos']} edge={p.get('edge')} slide={p.get('slide')} "
+                   f"rotation={p.get('rotation', 0)}")
+    diagnostic(f"[MOVE100][POLICY] drilled_only={drilled_only} "
+               f"knife_allowed={not drilled_only} stacking_allowed={stacking_allowed} "
+               f"future_workers={workers}")
+    diagnostic("[MOVE100][NOTE] Drill-domain changes decoder constraints; stacking affects "
+               "the router, which this 100-decoder speed probe does NOT exercise.")
+    with tempfile.TemporaryDirectory(prefix="stripboard_move100_") as scratch:
+        path = Path(scratch) / "projects/1.json"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(payload)
+        command = [
+            "node", str(CLI), "--data", scratch, "--id", "1",
+            "--native", "1", "--speedprobe", str(POINTS),
+            "--drilled", "1" if drilled_only else "0",
+            "--drill-domain", "1" if drilled_only else "0",
+            "--nostack", "0" if stacking_allowed else "1",
+            "--routing-preference", "wires",
+        ]
+        env = os.environ.copy()
+        env["V5_NATIVE_LIB_DIR"] = str(NATIVE)
+        env.pop("V5_NATIVE_ROUTE_LIB_DIR", None)
+        env["STRIPBOARD_TIMING"] = "1"
+        diagnostic("[MOVE100][COMMAND] " + " ".join(command))
+        diagnostic(f"[MOVE100][ENV] V5_NATIVE_LIB_DIR={NATIVE}; STRIPBOARD_TIMING=1")
+        progress({"phase": "running", "completed": 0})
+        started = perf_counter()
+        code, stdout, stderr = run_process(command, env, cancelled)
+        elapsed = perf_counter() - started
+        diagnostic(f"[MOVE100][EXIT] code={code}; wall={elapsed:.3f}s")
+        for line in stderr.splitlines():
+            diagnostic("[MOVE100][stderr] " + line)
+        for line in stdout.splitlines():
+            diagnostic("[MOVE100][stdout] " + line)
+        if code != 0:
+            raise RuntimeError(f"Native decoder probe exited {code}. See Activity diagnostics.")
+        matches = re.findall(r"(?m)^probeMs\s+([0-9]+(?:\.[0-9]+)?)\s*$", stderr)
+        if len(matches) != 1:
+            raise RuntimeError("No unique probeMs timing was emitted. See Activity.")
+        ms = float(matches[0])
+        if not math.isfinite(ms) or ms <= 0:
+            raise RuntimeError(f"Native decoder returned invalid probeMs {ms}")
+    speed = 1000.0 / ms
+    diagnostic(f"[MOVE100][RESULT] {POINTS} random genome decodes, "
+               f"mean={ms:.6f} ms/decode, {speed:,.2f} decodes/s.")
+    diagnostic("[MOVE100][CAVEAT] Decoder throughput is NOT optimiser move throughput; "
+               "no quality-optimal move budget or full runtime is inferred.")
+    diagnostic("[MOVE100][STOP] 0 solve attempts; no placement, routing or final electrical audit.")
+    progress({"phase": "done", "completed": POINTS})
+    return {"points": POINTS, "ms_per_decode": ms, "decodes_per_second": speed,
+            "seconds": elapsed, "drilled_only": drilled_only,
+            "stacking_allowed": stacking_allowed, "workers": workers}

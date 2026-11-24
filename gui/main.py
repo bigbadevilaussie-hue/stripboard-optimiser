@@ -136,44 +136,6 @@ class BoardSizeDialog(QDialog):
 
 
 
-class SpacingDialog(QDialog):
-    """Select an advisory body-gap preference without changing circuit data."""
-
-    def __init__(self, parent=None, selected: int = 1):
-        super().__init__(parent)
-        self.setWindowTitle("Quick Solve — component spacing")
-        self.setMinimumWidth(420)
-        layout = QVBoxLayout(self)
-        heading = QLabel("How much space should Quick Solve leave between parts?")
-        heading.setWordWrap(True)
-        heading.setStyleSheet("font-size: 14px; font-weight: 700;")
-        layout.addWidget(heading)
-        self.choice = QComboBox()
-        self.choice.addItem("Off — compact placement (0 free holes)", 0)
-        self.choice.addItem("Normal — 1 free hole (2.54 mm nominal)", 1)
-        self.choice.addItem("Wider — 2 free holes (5.08 mm nominal)", 2)
-        self.choice.setCurrentIndex(max(0, min(2, int(selected))))
-        layout.addWidget(self.choice)
-        note = QLabel(
-            "This is a preference, not guaranteed physical clearance. "
-            "Exact component locks and the purchased board size remain hard "
-            "constraints. A reported compact fallback can be used if the "
-            "preferred spacing cannot be routed."
-        )
-        note.setWordWrap(True)
-        layout.addWidget(note)
-        buttons = QDialogButtonBox(
-            QDialogButtonBox.StandardButton.Ok |
-            QDialogButtonBox.StandardButton.Cancel
-        )
-        buttons.accepted.connect(self.accept)
-        buttons.rejected.connect(self.reject)
-        layout.addWidget(buttons)
-
-    def value(self) -> int:
-        return int(self.choice.currentData())
-
-
 class LockDialog(QDialog):
     """Collect PRE-SOLVE constraints for one already-placed component."""
     def __init__(self, component: dict[str, Any], index: int, total: int, parent=None):
@@ -362,8 +324,10 @@ class WorkflowChecklist(QWidget):
         ("PRE-SOLVE", "Footprints analysed"),
         ("BOARD", "Board dimensions"),
         ("CONSTRAINTS", "Placement locks"),
+        ("CUTS", "Cuts"),
+        ("STACK", "Wire stacking"),
         ("SPEED", "Speed probe (3 or 4 workers)"),
-        ("CALIBRATION", "Solver audit (100 checks)"),
+        ("CALIBRATION", "100-point move calibration"),
         ("PASS1", "1st Pass"),
         ("PASS2", "2nd Pass"),
         ("FINAL", "Final Pass"),
@@ -407,6 +371,22 @@ class WorkflowChecklist(QWidget):
             label.setStyleSheet("font-size: 12px; color: #475569;")
             row.addWidget(mark)
             row.addWidget(label, 1)
+            if key == "CUTS":
+                self.cuts_choice = QComboBox()
+                self.cuts_choice.addItem("Drilled only", True)
+                self.cuts_choice.addItem("Knife allowed", False)
+                self.cuts_choice.setFixedWidth(112)
+                self.cuts_choice.setToolTip(
+                    "Drilled only prohibits knife cuts; Knife allowed permits both.")
+                row.addWidget(self.cuts_choice)
+            elif key == "STACK":
+                self.stacking_choice = QComboBox()
+                self.stacking_choice.addItem("Allowed", True)
+                self.stacking_choice.addItem("Off", False)
+                self.stacking_choice.setFixedWidth(83)
+                self.stacking_choice.setToolTip(
+                    "Permit or forbid overlapping/stacked jumper wires.")
+                row.addWidget(self.stacking_choice)
             layout.addLayout(row)
             self.rows[key] = mark
         self.lock_summary = QLabel("Fixed locked: 0   |   Edge locked: 0   |   Edge+Slide: 0")
@@ -422,7 +402,7 @@ class WorkflowChecklist(QWidget):
         )
         self.lock_warning.hide()
         layout.addWidget(self.lock_warning)
-        note = QLabel("Stops after calibration · no passes or final electrical check run")
+        note = QLabel("100 decoder samples only · no solver passes or final electrical check")
         note.setWordWrap(True)
         note.setStyleSheet("font-size: 10px; color: #697586;")
         layout.addWidget(note)
@@ -445,14 +425,14 @@ class WorkflowChecklist(QWidget):
                 f"up to {attempts} solves per legal edge position"
             )
             self.lock_warning.setText(
-                f"Edge+Slide detected — Quick Solve will take much longer. "
-                f"{detail}. Stops at first verified route."
+                f"Edge+Slide selected; future routing may take longer. "
+                f"{detail}. Move calibration performs no routing."
             )
             self.lock_warning.show()
         elif edge:
             self.lock_warning.setText(
-                "Edge lock detected — Quick Solve may take longer because "
-                "placement is constrained to the board edge."
+                "Edge lock selected; future routing will be edge constrained. "
+                "Move calibration performs no routing."
             )
             self.lock_warning.show()
         else:
@@ -495,20 +475,25 @@ class StartupSpeedProbe(QThread):
 
 class NativeCalibrationWorker(QThread):
     tick = Signal(dict)
+    diagnostic = Signal(str)
     completed = Signal(dict)
     failed = Signal(str)
     cancelled = Signal()
 
-    def __init__(self, project, workers, parent=None):
+    def __init__(self, project, workers, drilled_only, stacking_allowed, parent=None):
         super().__init__(parent)
         self.project = copy.deepcopy(project)
         self.workers = workers
+        self.drilled_only = drilled_only
+        self.stacking_allowed = stacking_allowed
 
     def run(self):
         from gui.native_calibration import calibrate, Cancelled
         try:
-            result = calibrate(self.project, self.workers,
-                               self.tick.emit, self.isInterruptionRequested)
+            result = calibrate(
+                self.project, self.workers,
+                self.drilled_only, self.stacking_allowed,
+                self.tick.emit, self.diagnostic.emit, self.isInterruptionRequested)
             self.completed.emit(result)
         except Cancelled:
             self.cancelled.emit()
@@ -519,7 +504,7 @@ class NativeCalibrationWorker(QThread):
 class RouteMateWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle(f"Route-Mate {GUI_VERSION} · rev {GUI_GIT_REVISION} — JSON Preflight")
+        self.setWindowTitle(f"Route-Mate {GUI_VERSION} · rev {GUI_GIT_REVISION} — Move Calibration")
         self.resize(1560, 900)
         self.setMinimumSize(950, 600)
         self.project: dict[str, Any] | None = None
@@ -553,6 +538,8 @@ class RouteMateWindow(QMainWindow):
         self._solved_verified = False
         self._quick_source = None  # Locked pre-route project; never a previously solved layout.
         self._calibration_stages = {}
+        self._probe_cut_drilled_only = None
+        self._probe_stacking_allowed = None
         self._assumed_geometry = None  # Collector's advisory package profile; not 2.5D PASS.
 
         logo_path = REPO_ROOT / "icon" / "icon_128x128.png"
@@ -638,6 +625,8 @@ class RouteMateWindow(QMainWindow):
 
         # Left: meaningful overview without a wall of test output.
         self.checklist = WorkflowChecklist()
+        self.checklist.cuts_choice.currentIndexChanged.connect(self._on_policy_changed)
+        self.checklist.stacking_choice.currentIndexChanged.connect(self._on_policy_changed)
         self.project_summary = QLabel("Open a circuit to begin")
         self.project_summary.setWordWrap(True)
         self.project_summary.setObjectName("projectSummary")
@@ -651,7 +640,7 @@ class RouteMateWindow(QMainWindow):
         overview_layout.addWidget(self.project_summary)
         overview_layout.addWidget(self.checklist)
         overview_layout.addWidget(self.solve_summary)
-        self.solve_activity = QLabel("Solver audit pending · STOP before Pass 1")
+        self.solve_activity = QLabel("100-point move check pending · STOP before Pass 1")
         self.solve_activity.setWordWrap(True)
         self.solve_activity.setStyleSheet(
             "font-size: 13px; font-weight: 700; color: #173c66; padding: 4px;"
@@ -660,7 +649,7 @@ class RouteMateWindow(QMainWindow):
         self.solve_progress = QProgressBar()
         self.solve_progress.setRange(0, 100)
         self.solve_progress.setValue(0)
-        self.solve_progress.setFormat("Solver audit: %v/%m checks")
+        self.solve_progress.setFormat("100-point move check: %v/%m")
         overview_layout.addWidget(self.solve_progress)
         self.solve_worker_status = QLabel("Original CPU speed probe pending")
         self.solve_worker_status.setWordWrap(True)
@@ -740,11 +729,11 @@ class RouteMateWindow(QMainWindow):
             QStatusBar { background: #e7eef5; color: #3f5873; font-size: 11px; }
         """)
         self.statusBar().showMessage("Ready. Load a project JSON to begin.")
-        self.log_line(f"Route-Mate {GUI_VERSION} — JSON import preflight only")
+        self.log_line(f"Route-Mate {GUI_VERSION} — 100-point native move calibration only")
         self.log_line(f"[GUI][REVISION] git={GUI_GIT_REVISION}")
-        self.log_line("Workflow: import → sanity → footprints → dimensions → locks → speed probe → 100-point calibration → STOP.")
-        self.log_line("[SOLVER] 100-check native audit only; no optimisation passes.")
-        self.statusBar().showMessage("Ready. Load JSON to calibrate. Pass 1 remains disabled.")
+        self.log_line("Workflow: import → input sanity → footprints → dimensions → locks → cuts → stacking → CPU probe → 100-point move check → STOP.")
+        self.log_line("[SOLVER] Decoder-only speed calibration; no 100-solve campaign, no Pass 1/2/Final.")
+        self.statusBar().showMessage("Ready. Load JSON; 100-point move check only.")
 
     def _set_board_summary(self, message: str, *, project: dict | None = None,
                            level: str = "neutral"):
@@ -1241,7 +1230,7 @@ class RouteMateWindow(QMainWindow):
         preview, _ = self._render_component_side(self.project)
         self._show_board(preview)
 
-        self.statusBar().showMessage("STOPPED BEFORE PASS 1 — running speed probe and solver audit.")
+        self.statusBar().showMessage("STOPPED BEFORE PASS 1 — CPU probe then 100-point move check.")
         self._start_speed_probe()
 
     def review_locks(self):
@@ -1313,14 +1302,38 @@ class RouteMateWindow(QMainWindow):
             )
 
 
+    def _on_policy_changed(self, *_):
+        """An earlier measurement must not remain green after rules change."""
+        if self._calibration_worker is not None or self._speed_probe_worker is not None:
+            return
+        if self._calibration_stages.get("CALIBRATION") not in ("done", "failed"):
+            return
+        for stage in ("CALIBRATION", "CUTS", "STACK"):
+            self._calibration_stages.pop(stage, None)
+        self._refresh_checklist()
+        self.solve_progress.setRange(0, 100)
+        self.solve_progress.setValue(0)
+        self.solve_activity.setText("Cuts or stacking changed · reload JSON to recalibrate")
+        self.solve_worker_status.setText("Previous decoder measurement invalid for new policy")
+        self.log_line("[MOVE100][INVALIDATED] Cuts/stacking changed after measurement; "
+                      "reload JSON for a fresh 100-point check.")
+        self.statusBar().showMessage("Calibration invalidated by policy change. Reload JSON.")
+
     def _start_speed_probe(self):
-        """Run donor CPU probe, then invoke native audit only if successful."""
+        """Run original donor CPU probe before the 100-point move check."""
         if self.project is None or self._speed_probe_worker is not None:
             return
-        self._calibration_stages = {"SPEED": "running"}
+        self._probe_cut_drilled_only = bool(self.checklist.cuts_choice.currentData())
+        self._probe_stacking_allowed = bool(self.checklist.stacking_choice.currentData())
+        self.checklist.cuts_choice.setEnabled(False)
+        self.checklist.stacking_choice.setEnabled(False)
+        self._calibration_stages = {"CUTS": "done", "STACK": "done", "SPEED": "running"}
         self._refresh_checklist()
-        self.solve_activity.setText("Speed probe · checking 3 or 4 workers")
-        self.log_line("[SPEED] Original Route-Mate synthetic worker-scaling probe.")
+        self.log_line(f"[RULES] Cuts={'DRILLED ONLY' if self._probe_cut_drilled_only else 'KNIFE ALLOWED'}; "
+                      f"wire stacking={'ALLOWED' if self._probe_stacking_allowed else 'OFF'}.")
+        self.solve_activity.setText("CPU speed probe · comparing 3 or 4 workers")
+        self.log_line("[SPEED] Original Route-Mate CPU worker-scaling probe; "
+                      "separate from the native 100-decoder measurement.")
         if QApplication.platformName() == "offscreen":
             self.log_line("[SPEED] Offscreen GUI test: automatic probe skipped.")
             return
@@ -1345,8 +1358,10 @@ class RouteMateWindow(QMainWindow):
         self._calibration_stages["SPEED"] = "done"
         self._refresh_checklist()
         self.solve_worker_status.setText(f"{self._recommended_workers} CPU workers selected")
-        self.log_line("[SPEED] " + ", ".join(
+        self.log_line("[SPEED][TIMINGS] " + ", ".join(
             f"{n} workers={t:.3f}s" for n,t in sorted(timings.items())))
+        self.log_line(f"[SPEED][POLICY] selected={self._recommended_workers}; "
+                      "4 preferred if within 15% of 3.")
         self._start_calibration()
 
     def _speed_probe_failed(self, error):
@@ -1355,6 +1370,8 @@ class RouteMateWindow(QMainWindow):
         self.solve_activity.setText("Speed probe failed; see Activity")
         self.solve_worker_status.setText(str(error))
         self.log_line("[SPEED][FAILED] "+str(error))
+        self.checklist.cuts_choice.setEnabled(True)
+        self.checklist.stacking_choice.setEnabled(True)
 
     def _speed_probe_finished(self):
         self._speed_probe_worker = None
@@ -1364,12 +1381,12 @@ class RouteMateWindow(QMainWindow):
             self.close()
 
     def _start_calibration(self):
-        """Audit exactly 100 native strict trials, never run Pass 1."""
+        """Exactly 100 native decoder samples, not a solver campaign."""
         if self.project is None or self._calibration_worker is not None:
             return
         workers = self._recommended_workers
         if workers not in (3, 4):
-            self._speed_probe_failed("Worker probe did not select 3 or 4.")
+            self._speed_probe_failed("CPU probe did not select 3 or 4 workers.")
             return
         self.load_action.setEnabled(False)
         self.stop_action.setEnabled(True)
@@ -1377,17 +1394,19 @@ class RouteMateWindow(QMainWindow):
         self._solve_done = 0
         self._solve_budget = 100
         self._worker_time_stats = {}
-        self.solve_progress.setRange(0,100)
-        self.solve_progress.setValue(0)
-        self.solve_activity.setText("Solver audit · 0/100 checks")
+        self.solve_progress.setRange(0, 0)  # no invented per-decode progress
+        self.solve_activity.setText("100-point move check · measuring decoder speed")
         self._calibration_stages["CALIBRATION"] = "running"
         self._refresh_checklist()
         self._solve_clock.start()
-        self.log_line(f"[AUDIT] 100 checks: seeds 1–50 at both 10k/20k; "
-                      f"native strict and independent audit; {workers} workers.")
-        worker = NativeCalibrationWorker(self.project, workers, self)
+        self.log_line("[MOVE100][START] ONE --speedprobe 100 native call; "
+                      "100 random-genome decodes, ZERO full solver runs.")
+        worker = NativeCalibrationWorker(
+            self.project, workers,
+            self._probe_cut_drilled_only, self._probe_stacking_allowed, self)
         self._calibration_worker = worker
         worker.tick.connect(self._calibration_tick)
+        worker.diagnostic.connect(self.log_line)
         worker.completed.connect(self._calibration_completed)
         worker.failed.connect(self._calibration_failed)
         worker.cancelled.connect(self._calibration_cancelled)
@@ -1395,56 +1414,59 @@ class RouteMateWindow(QMainWindow):
         worker.start()
 
     def _calibration_tick(self, event):
-        self._solve_done = event["done"]
-        self.solve_progress.setValue(self._solve_done)
-        r = event["last"]
-        counts = event["passes"]
-        self.solve_activity.setText(f"Solver audit · {self._solve_done}/100 checks")
-        self.solve_worker_status.setText(
-            f"{self._recommended_workers} workers; 10k {counts[10000]} strict; "
-            f"20k {counts[20000]} strict")
-        if r["valid"] or self._solve_done % 10 == 0:
-            self.log_line(f"[AUDIT] {self._solve_done}/100; seed={r['seed']} "
-                          f"moves={r['moves']}; strict={r['valid']} "
-                          f"{r['wires']}W/{r['cuts']}C")
+        if event["phase"] == "running":
+            self.solve_activity.setText("100-point move check · native measurement running")
+            self.solve_worker_status.setText(
+                "Native decoder measurement · no per-sample progress available")
+        else:
+            self._solve_done = int(event["completed"])
+            self.solve_progress.setRange(0, 100)
+            self.solve_progress.setValue(100)
         self._update_solve_clock()
 
     def _calibration_completed(self, result):
         self._calibration_stages["CALIBRATION"] = "done"
         self._refresh_checklist()
         self._solve_done = 100
+        self.solve_progress.setRange(0, 100)
         self.solve_progress.setValue(100)
-        self.solve_activity.setText("SOLVER AUDIT COMPLETE · STOP BEFORE PASS 1")
-        a,b=result["reports"][10000],result["reports"][20000]
+        self.solve_activity.setText("100-POINT MOVE CHECK COMPLETE · STOP BEFORE PASS 1")
         self.solve_worker_status.setText(
-            f"10k {a['passed']}/50 strict; 20k {b['passed']}/50 strict")
-        for budget, stats in result["reports"].items():
-            best = stats["best"]
-            self.log_line(f"[AUDIT] {budget} moves, {stats['passed']}/50 strict; " +
-                          (f"best {best['wires']}W/{best['cuts']}C" if best else
-                           "no strict solution; inconclusive"))
-        self.log_line("[AUDIT][STOP] No 1st Pass, 2nd Pass, Final Pass or final Electrical PASS.")
-        self.statusBar().showMessage("SOLVER AUDIT COMPLETE — STOP BEFORE PASS 1.")
-        self._set_board_summary("Audit complete; no final routed board produced", level="neutral")
+            f"100 decodes · {result['ms_per_decode']:.5f}ms/decode · "
+            f"{result['decodes_per_second']:,.0f} decodes/s")
+        self.log_line("[MOVE100][DONE] 100/100 random decoder points; "
+                      "0 placement, routing, solve attempts or final electrical check.")
+        self.log_line("[MOVE100][STOP] 1st/2nd/Final Pass not started.")
+        self.statusBar().showMessage("MOVE CALIBRATION COMPLETE — STOP BEFORE PASS 1.")
+        self._set_board_summary("Move calibration complete · no final routed board", level="neutral")
 
     def _calibration_failed(self, error):
         self._calibration_stages["CALIBRATION"] = "failed"
         self._refresh_checklist()
-        self.solve_activity.setText("Solver audit failed; see Activity")
+        self.solve_progress.setRange(0, 100)
+        self.solve_progress.setValue(0)
+        self.solve_activity.setText("100-point move check FAILED · see Activity")
         self.solve_worker_status.setText(str(error))
-        self.log_line("[AUDIT][ERROR] "+str(error))
+        self.log_line("[MOVE100][ERROR] " + str(error))
+        self.log_line("[MOVE100][STOP] No optimisation pass started.")
 
     def _calibration_cancelled(self):
-        self.solve_activity.setText("Solver audit cancelled; STOP BEFORE PASS 1")
-        self.log_line("[AUDIT][CANCELLED] No optimisation pass started.")
+        self.solve_progress.setRange(0, 100)
+        self.solve_progress.setValue(0)
+        self.solve_activity.setText("100-point move check cancelled")
+        self.log_line("[MOVE100][CANCELLED] No optimiser pass started.")
 
     def _calibration_finished(self):
         self._solve_clock.stop()
-        self._update_solve_clock()
+        if self._solve_started is not None:
+            elapsed = self._clock_text(perf_counter() - self._solve_started)
+            self.solve_eta.setText(f"Elapsed: {elapsed} · stopped before Pass 1")
         self._solve_started = None
         self._calibration_worker = None
         self.load_action.setEnabled(True)
         self.stop_action.setEnabled(False)
+        self.checklist.cuts_choice.setEnabled(True)
+        self.checklist.stacking_choice.setEnabled(True)
         if self._close_when_idle:
             self.close()
 
@@ -1487,6 +1509,10 @@ class RouteMateWindow(QMainWindow):
         if self._solve_started is None:
             return
         elapsed = max(0.0, perf_counter() - self._solve_started)
+        if self._calibration_worker is not None:
+            self.solve_eta.setText(
+                f"Elapsed: {self._clock_text(elapsed)} · ETA unavailable (100 decoder samples)")
+            return
         if self._worker_time_stats:
             # Parallel jobs do not finish in total-attempt order. The
             # slowest worker's unfinished share determines wall-clock ETA;
@@ -2084,15 +2110,8 @@ class RouteMateWindow(QMainWindow):
                 self.log_line("[COLLECT] Board dimensions cancelled; project not advanced.")
                 return
             dimensions = board_dialog.values()
-            spacing_dialog = SpacingDialog(self, selected=self._body_spacing_holes)
-            if spacing_dialog.exec() != QDialog.DialogCode.Accepted:
-                self.log_line("[SPACING] Cancelled; project not advanced.")
-                return
-            self._body_spacing_holes = spacing_dialog.value()
-            self.log_line(
-                f"[SPACING] Selected {('Off', 'Normal', 'Wider')[self._body_spacing_holes]} "
-                f"({self._body_spacing_holes} free hole(s))."
-            )
+            self.log_line("[SPACING] Obsolete Quick Solve spacing dialog removed; "
+                          "donor body-spacing metadata is not part of native move calibration.")
             if dimensions["wantedRowsMode"] == "fixed" and dimensions["wantedRows"] > dimensions["actualRows"]:
                 raise ValueError("Fixed preferred rows cannot exceed actual physical rows.")
             if dimensions["wantedColsMode"] == "fixed" and dimensions["wantedCols"] > dimensions["actualCols"]:
@@ -2103,9 +2122,12 @@ class RouteMateWindow(QMainWindow):
             self.project_path = path
             from pipeline import PipelineRun, project_import_stage_result
             self._calibration_stages = {}
+            self._probe_cut_drilled_only = None
+            self._probe_stacking_allowed = None
             self.checklist.reset()
+            self.solve_progress.setRange(0, 100)
             self.solve_progress.setValue(0)
-            self.solve_activity.setText("Calibration pending · STOP before Pass 1")
+            self.solve_activity.setText("100-point move check pending")
             self.pipeline_run = PipelineRun.create(
                 path, source,
                 sources=[{"kind": "project_json", "path": str(path.resolve())}],

@@ -1,4 +1,4 @@
-"""Regression: original Route-Mate board-size → spacing → lock dialog sequence.
+"""Regression: board-size and lock dialogs; no Quick Solve spacing prompt.
 
 This test uses the real GUI import pipeline and the repository MOTOEX fixture.
 Only user clicks and the external SVG renderer are mocked. No solver runs.
@@ -14,7 +14,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 try:
     from PySide6.QtWidgets import QApplication, QDialog, QMessageBox
     from gui.main import (
-        BoardSizeDialog, LockDialog, RouteMateWindow, SpacingDialog,
+        BoardSizeDialog, LockDialog, RouteMateWindow,
     )
 except ImportError:
     QApplication = None
@@ -23,7 +23,6 @@ except ImportError:
     BoardSizeDialog = None
     LockDialog = None
     RouteMateWindow = None
-    SpacingDialog = None
 
 
 @unittest.skipIf(QApplication is None, "PySide6 is not installed")
@@ -57,9 +56,6 @@ class GuiShellSmoke(unittest.TestCase):
                     patch.object(BoardSizeDialog, "exec",
                                  return_value=QDialog.DialogCode.Accepted) as size_exec,
                     patch.object(BoardSizeDialog, "values", return_value=sizes),
-                    patch.object(SpacingDialog, "exec",
-                                 return_value=QDialog.DialogCode.Accepted) as spacing_exec,
-                    patch.object(SpacingDialog, "value", return_value=1),
                     patch.object(LockDialog, "exec",
                                  return_value=QDialog.DialogCode.Accepted) as lock_exec,
                     patch.object(LockDialog, "values", return_value=lock),
@@ -78,7 +74,6 @@ class GuiShellSmoke(unittest.TestCase):
                     window.load_json()
 
                 size_exec.assert_called_once()
-                spacing_exec.assert_called_once()
                 # MOTOEX fixture has four existing on-board placements.
                 self.assertEqual(lock_exec.call_count, 4)
                 highlighted = [
@@ -102,6 +97,9 @@ class GuiShellSmoke(unittest.TestCase):
                 # The import hard stop is the current status UNTIL a view is selected.
                 self.assertIn("STOPPED BEFORE PASS 1", window.statusBar().currentMessage())
                 probe.assert_called_once()
+                self.assertIs(window.checklist.cuts_choice.currentData(), True)
+                self.assertIs(window.checklist.stacking_choice.currentData(), True)
+                self.assertEqual(window.checklist.STAGES[-1], ("VERIFY", "Electrical PASS"))
                 # Keep the PNG mock active while clicking the Qt action. The
                 # fixture bytes intentionally are not a valid PNG payload.
                 with patch.object(window.top_view, "show_png") as png_view:
@@ -144,11 +142,9 @@ class GuiShellSmoke(unittest.TestCase):
                                  return_value=QDialog.DialogCode.Rejected),
                     patch("render.schematic_bridge.render_schematic_data") as schematic_render,
                     patch("render.schematic_bridge.rasterize_schematic_svg") as raster_render,
-                    patch.object(SpacingDialog, "exec") as spacing,
                     patch.object(LockDialog, "exec") as locks,
                 ):
                     window.load_json()
-                spacing.assert_not_called()
                 locks.assert_not_called()
                 schematic_render.assert_not_called()
                 raster_render.assert_not_called()

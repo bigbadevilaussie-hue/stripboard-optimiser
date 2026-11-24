@@ -1,4 +1,4 @@
-# Route-Mate GUI 2.05 — direct PySide6 GUI import
+# Route-Mate GUI 2.08 — direct PySide6 GUI import
 
 Donor: `bigbadevilaussie-hue/Route-Mate`, audited commit
 `bb764a0b61cbf813d4abc687ef6c596243abc929` (Route-Mate GUI 1.44).
@@ -166,3 +166,20 @@ not require a GUI version bump.
 ## GUI 2.05 — restored original speed probe and 100-check audit
 
 The original Route-Mate synthetic CPU worker speed probe is restored verbatim from the 1.44 donor commit. It chooses 3 or 4 workers using the original 15% near-tie policy. No Seed 69 experiment is run. The native strict solver audit uses exactly 100 trials: matching seeds 1–50 at 10k and 20k moves, independently verified using the saved-board auditor. The existing board dimensions and lock dialogs feed the audit. Original Overview styling and approved workflow stages are retained. Stops at Solver audit; Pass 1, Pass 2, Final Pass and final Electrical PASS remain unexecuted. Source JSON is not overwritten.
+
+
+## GUI 2.08 — no more 100 full solver runs
+
+The 100-point move check calls the existing native V5 \`--speedprobe 100\`
+decoder-speed instrument once. It measures 100 random genome decodes, then
+stops without annealing, routing or saving any board. The measured mean
+milliseconds per **decode** is not a complete per-move runtime or an
+evidence-based optimal move budget. Drilled-only may change decoder cost.
+Wire stacking affects finishing/routing, not this decoder-only measurement.
+The original CPU worker scaling probe is unchanged.
+
+Cuts (Drilled only / Knife allowed) and Wire stacking (Allowed / Off) are
+chosen from Overview before either probe. The unnecessary legacy Quick Solve
+component-spacing popup is gone. The original board-size and per-component
+lock dialogs remain. Activity receives full diagnostic stdout/stderr and
+explicit flags/physical-board settings. Stops before Pass 1.

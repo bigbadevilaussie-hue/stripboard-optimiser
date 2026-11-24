@@ -1,5 +1,14 @@
 # Changelog
 
+### GUI 2.08 — Native decoder 100-point move check and policy controls (24 November 2026)
+- Replace mistaken 100 full solver attempts with one native \`--speedprobe 100\` decoder-only measurement; zero optimisation passes.
+- Cut policy (drilled-only vs knife-allowed) and wire-stacking selection occur before CPU probe and move check.
+- Remove obsolete component-spacing popup; keep board dimensions and per-part lock dialogs.
+- Activity records actual/preferred board, locked anchors, CLI flags, native stdout/stderr, probe timing and limitations.
+- Move-calibration progress is indeterminate until native probe completes; stop before Pass 1 and keep final Electrical PASS pending.
+- Preserve source JSON, native solver algorithm, original Route-Mate worker CPU probe. GUI 2.08.
+
+
 ### GUI 2.07 — Respect the selected physical board in native audit (24 November 2026)
 - The 100-check native solver audit now locks the GUI-selected physical rows and columns in its temporary input snapshot, so native strict mode cannot resize the selected board.
 - The imported JSON and GUI project remain unmodified; no changes to the original CPU speed probe or optimisation passes.
