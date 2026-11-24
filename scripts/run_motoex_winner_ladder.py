@@ -208,10 +208,10 @@ def run(args: argparse.Namespace) -> int:
         if move_count in seen:
             print(f"⏭️ {move_count//1000}k already archived", flush=True)
             continue
-        args.moves = move_count  # capture_one reads the current move budget
         stage_folder = out / "runs" / f"moves_{move_count:06d}"
         stage_folder.mkdir(parents=True, exist_ok=True)
-        result = capture_one(args, master, SEED, COLUMN, stage_folder, source_hash)
+        trial_args = argparse.Namespace(**{**vars(args), "moves": move_count})
+        result = capture_one(trial_args, master, SEED, COLUMN, stage_folder, source_hash)
         result["moves"] = move_count
         for field in ("input", "stdoutLog", "stderrLog", "savedJson"):
             if result.get(field):
