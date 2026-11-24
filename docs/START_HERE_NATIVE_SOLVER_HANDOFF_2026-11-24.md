@@ -219,6 +219,14 @@ The user pulled the native-polisher module alias bootstrap fix in `b6aae85` and 
 
 **Raw command outcome:** `✅ Generic exact wire-column / drilled-hole polish: synthetic tests passed`, `✅ Native generic drilled rotation domain: synthetic tests passed`, `✅ Generic knife-cut diagnostics: synthetic tests passed`. No strict physical PASS yet. Don't launch a 51-position sweep to address defects better targeted by local routing/placement repair.
 
+## 8B. Next actual replay target — **rotation-domain ON** 500k (24 Nov)
+
+The successful knife recovery reported in Section 8A was on `~/Desktop/motoex_col25_500k/` and `motoex_col41_500k/`, made **before** the generic rotation-domain feature. **This is not the domain-ON 500k comparison.** The next run must target `~/Desktop/motoex_col25_rotation_domain_500k/` and `motoex_col41_rotation_domain_500k/`, checking the files exist before executing. Expected **unpolished** values from the one-seed report: col25 40W/56C, electrically complete, 2 knives, 8 crossings, 4 stacks; col41 23W/44C, net6 incomplete, 2 knives, 0 crossings, 2 stacks. These are baseline measurements to verify again, **not** predictions of polished output.
+
+Generic wire-column polish now includes an **explicit segment-identity assertion** at each proposed relocated endpoint (commit `b54103a`): `findSegmentIndex` of proposed source/destination must equal their original segment index under the existing cuts. The exact electrical/physical replay script already uses the independent harness `verify`, `checkGeometry`, `metrics`, and `wireStackDepth` for BEFORE and AFTER, and refuses regressions; the local polisher additionally evaluates strip/connectivity/shorts/opens for each accepted change. Neither pass may claim strict victory if violations remain.
+
+If the domain-ON col41 net6 groups lack a legal same-column jumper, the next general solver improvement is a **bounded conflict-directed part move followed by routing**, not a MOTOEX or net6 special case. The same applies to col25's long crossing wire. Preserve immutable input/output copies and re-run the independent gate after every move.
+
 ## 9. Starting a new ChatGPT chat
 
 Suggested initial instruction: **“Read `docs/START_HERE_NATIVE_SOLVER_HANDOFF_2026-11-24.md`, root `README.md`, `project.md` and `docs/native-edge-slide-motoex.md` from branch `feature/native-edge-slide-motoex` in `bigbadevilaussie-hue/stripboard-optimiser`. Continue the general-purpose native optimiser where we left off. The immediate job is to compile/test/replay `wireColumnPolish.ts` on existing 500k saved layouts and fix it, then tackle net6 and integrate edge-slide into native anneal. Do not hard-code for MOTOEX. Quality/strict verification first; use existing branch; make code and commits, not just plans.”**
