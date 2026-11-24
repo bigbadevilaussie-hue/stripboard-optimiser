@@ -227,6 +227,51 @@ Generic wire-column polish now includes an **explicit segment-identity assertion
 
 If the domain-ON col41 net6 groups lack a legal same-column jumper, the next general solver improvement is a **bounded conflict-directed part move followed by routing**, not a MOTOEX or net6 special case. The same applies to col25's long crossing wire. Preserve immutable input/output copies and re-run the independent gate after every move.
 
+## 8C. User-verified **rotation-domain ON** 500k replay — 24 Nov 2026 (LATEST)
+
+The user successfully ran `git pull --ff-only` through commit `1764a7b`, `npx tsc -p tests/solver/tsconfig.json`, and `node tests/solver/testWireColumnPolish.js`: **synthetic tests passed** with explicit copper-segment identity checks. Then ran `inspectSavedCuts.js`, `inspectNetCorridors.js --net net6` and `polishSavedLayout.js` against the **correct newer** domain-ON 500k saved boards under `~/Desktop/motoex_col25_rotation_domain_500k/` and `~/Desktop/motoex_col41_rotation_domain_500k/`. Both copies remained **24×56**; the replay tool's independent `verify`, `checkGeometry`, `metrics` and `wireStackDepth` checks reported **no regressions**.
+
+| Actual measured metric | Col25 BEFORE | Col25 AFTER | Col41 BEFORE | Col41 AFTER |
+|---|---:|---:|---:|---:|
+| Wires | 40 | 40 | 23 | 23 |
+| Cuts | 56 | 56 | 44 | 44 |
+| Shorts/conflicts | 0 | 0 | 0 | 0 |
+| Incomplete nets | 0 | 0 | **1** | **1** |
+| Component geometry errors | 0 | 0 | 0 | 0 |
+| Nonvertical wires | 1 | 1 | 1 | 1 |
+| Body crossings | 8 | 8 | 0 | 0 |
+| Stacks | 4 | 4 | 2 | 2 |
+| Knife cuts | **2** | **1** | **2** | **2** |
+| Wire length | 313.205 | 313.205 | 149.616 | 149.616 |
+| Local moves tested / accepted | — | **213 / 1** | — | **78 / 0** |
+
+Outputs saved, never overwriting input:
+- `~/Desktop/motoex_col25_domain_on_polished.json`
+- `~/Desktop/motoex_col41_domain_on_polished.json`
+
+Both col25 knife cuts were **not** directly forced by adjacent unlike-net footprint pins; each original drill flank was obstructed by a jumper endpoint:
+- Row 0 gap col42/43: Kill Switch 2.1 `net1` at (0,42), fan GND (0,44), endpoint wire **#30** at (0,43).
+- Row 7 gap col30/31: C6.2 `GND` at (7,27), GPS.4 `net29` (7,31), endpoint wire **#35** at (7,30).
+Exactly **one** of these cuts was repaired by a verified column reassignment in this run; the trace did **not** print which one. **Do not invent its identity** until inspecting the polished output's `cuts` and comparing with the original.
+
+Col41 also had **two non-forced knife cuts** blocked by wire endpoints:
+- Row 0 gap col50/51: C4.2 `net13` at (0,50), LCD1 GND at (0,52), wire **#18** endpoint (0,51).
+- Row 13 gap col47/48: USB.2 `GND` at (13,46), ESP32.13 `net6` at (13,48), wire **#22** endpoint (13,47).
+The local search could not improve either in 78 tested candidate assignments.
+
+**Net6, domain-ON col41, now definitively diagnosed:**
+- Connected group 1: `ESP32.GPIO5` at **(13,48)**, only **3** free attachment holes.
+- Connected group 2: `R3.2` at **(21,14)** + `R4.1` at **(21,12)**, **19** free holes.
+- Connected group 3: `R10.1` at **(3,7)**, **8** free holes.
+- G1↔G2: **0 shared free columns**, 0 clean vertical candidates.
+- G1↔G3: **0 shared free columns**, 0 clean vertical candidates.
+- G2↔G3: **8 shared free columns**, **0 clean vertical candidates** due to current geometry/wires.
+These are **current fixed-cut/fixed-placement corridor constraints**, not a proof that the 24×56 problem is unsatisfiable. A new general-purpose search move must alter placement and/or free/rewire copper while retaining the electrical netlist.
+
+**Engineering decision:** The generic one-wire, fixed-endpoint-row polish has demonstrated genuine drill recovery, but the remaining 1 nonvertical / 8 crossings / 4 stacks at col25 and open net6 / 1 nonvertical / 2 stacks / 2 knives at col41 require **conflict-directed multiwire rerouting and bounded component relocation**. Prioritize by violated nets, obstructed shared columns and component crossings; generate candidate part shifts or swaps (including rotations only in the geometry-derived legal domain), rebuild cuts/wires on the **unchanged locked board**, independently validate strict status, and accept only a lexicographically better valid or nearer-to-valid state. **Do not special-case net6, GPS or the USB in generic solver code.**
+
+The earlier sections 8A (pre-domain 500k) and 8B (planned ON replay) are now historical; **this section 8C is the latest empirical status**.
+
 ## 9. Starting a new ChatGPT chat
 
 Suggested initial instruction: **“Read `docs/START_HERE_NATIVE_SOLVER_HANDOFF_2026-11-24.md`, root `README.md`, `project.md` and `docs/native-edge-slide-motoex.md` from branch `feature/native-edge-slide-motoex` in `bigbadevilaussie-hue/stripboard-optimiser`. Continue the general-purpose native optimiser where we left off. The immediate job is to compile/test/replay `wireColumnPolish.ts` on existing 500k saved layouts and fix it, then tackle net6 and integrate edge-slide into native anneal. Do not hard-code for MOTOEX. Quality/strict verification first; use existing branch; make code and commits, not just plans.”**
