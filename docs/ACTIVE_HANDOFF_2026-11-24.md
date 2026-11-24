@@ -31,10 +31,10 @@ The user specifically wants **only passing lines** printed, every passing JSON s
 |---|---|---|---:|---:|---:|---|
 | Audio | 5k | **Completed** | **113 / 2000** (5.65%) | **70.16** | 1312 | **13W / 41C** |
 | Audio | 10k | **Completed** | **170 / 2000** (8.50%) | **74.14** | 1171 | **11W / 39C** |
-| Audio | 20k | **In progress in latest shared output** | not confirmed | at least **72.47** | 0183 | **11W / 39C** |
-| Moto | 5k, 10k, 20k | **Not yet reported** | unknown | unknown | — | — |
+| Audio | 20k | **Completed per subsequently shared external review** | **215 / 2000** (10.75%) | **74.65** (score leader) | 0813 | **11W / 39C** |
+| Moto | 5k | **In progress when last reported** | unknown total | **30.54** so far | 0198 | **50W / 66C** |\n| Moto | 10k, 20k | **Not yet reported** | unknown | unknown | — | — |
 
-For Audio 20k, **seed 0183** was explicitly shown as a strict pass at **72.47**, 11W/39C; this is **not** a claim of the completed 20k winner. The 10k seed 1171 remains the best **reported** quality so far. At the end of Audio 10k the user had not reported a new benchmark record.
+The **later user-supplied external review** of Audio 20k reports **215 strict passes** and **20k seed 0813 Q74.65 (11W/39C)**, with **seed 1125 Q74.18 (10W/39C)** as the **fewest-wire** candidate. Those figures are reported from the external review, **not independently checked against all 2,000 saved JSONs in this chat**. Existing Audio reference remains **10W/38C**; neither 20k candidate matches 38 cuts. The new 100-check audit targets unsolved inputs only.
 
 **Historical reference board filenames on the user's Mac**: `~/Desktop/koala/audio10wires38cuts.json` (Audio reference **10W/38C**) and `~/Desktop/koala/moto14wires30cuts.json` (Moto reference **14W/30C**). These are **reference baselines**, not independently reaudited against the current build during this chat. Do not confuse them with the **separate MOTOEX** 27W/43C saved candidate in [the MOTOEX ladder notes](motoex-seed37-winner-ladder-2026-11-24.md).
 
@@ -46,6 +46,14 @@ Q = round(max(0, 100 - 0.6*wires - 0.4*cuts
 ```
 
 Length is derived from jumper endpoints using **2.54 mm per grid step**. Qualified boards must already be strict-valid. This **is a construction-cost heuristic, not a school grade or the official WR acceptance rule**. A score of 74/100 can be excellent for a circuit. Keep wires, cuts, length, and strict validity visible separately. Do not arbitrarily promise 80+ or equate Q with percent of physical optimum.
+
+## NEW: 100-check JSON+KiCad pre-solve audit (24 Nov 2026)
+
+- **Implemented:** `scripts/audit_100_audio_moto.js` — 100 nonmutating checks on each current Audio and Moto master JSON **and** paired `.net`; checks schema, locks, component IDs, custom footprint pins/body cells, net assignments, exact KiCad tuple parity and ten transparent complexity planning flags. Executed against the GitHub source bytes, **not** on the owner's iMac. Node standard library; run `node scripts/audit_100_audio_moto.js` after pulling.
+- **Result:** Audio **99 PASS, 1 complexity WARN, 0 FAIL**; Moto **91 PASS, 9 complexity WARN, 0 FAIL**. All **90 structural/netlist checks** passed on both. J10 flags the 22-column custom TFT on both. Moto's additional flags reflect complexity, not invalid electrical input.
+- **Meaningful differences:** 14 vs 33 on-board parts, 85 vs 123 pin assignments, 29 vs 35 nets, GND 16 vs 27 pins, net-edge proxy 56 vs 88. Static script does not fully resolve built-in footprint geometry (10 Audio / 28 Moto on-board parts use built-ins), run the native optimiser, or certify solved-board routing.
+- **Prediction:** Moto likely has a lower strict-pass rate and worse initial W/C at comparable 5k/10k/20k budgets. A deliberately **illustrative 1% Moto 5k baseline** with Audio's measured budget multipliers gives ~**20/30/38** passes out of 2,000 at 5k/10k/20k; **not a statistical forecast**. Moto 5k first *reported* success was seed 0198, **50W/66C, Q30.54**, without an established full pass rate. Details and caveats in [100-check report](AUDIO_MOTO_100_CHECK_PREFLIGHT_2026-11-24.md).
+- **Do not touch the running WR sweep** to run the static audit. It reads fixtures only. Avoid a rerun of WR controller because that deletes prior passing outputs.
 
 ## Multipass plan — a practical thought experiment, NOT built yet
 
