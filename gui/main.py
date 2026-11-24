@@ -808,7 +808,8 @@ class RouteMateWindow(QMainWindow):
         painter.end()
         if self._active_tool_splash is not None:
             self._active_tool_splash.close()
-        splash = QSplashScreen(self, pix, Qt.WindowType.WindowStaysOnTopHint)
+        # PySide6 QSplashScreen takes (pixmap, flags), not (parent, pixmap, flags).
+        splash = QSplashScreen(pix, Qt.WindowType.WindowStaysOnTopHint)
         self._active_tool_splash = splash
         splash.show()
         splash.repaint()

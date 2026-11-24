@@ -1,5 +1,11 @@
 # Changelog
 
+### GUI 2.06 — PySide6 splash constructor fix (24 November 2026)
+- Fix renderer revision splash constructor to use the PySide6-supported `(pixmap, flags)` signature.
+- Prevent the splash error from interrupting JSON import and lock review.
+- No changes to solver audit, speed probe, optimisation stages, board dimensions or toolbar.
+
+
 ### GUI 2.05 — original speed probe restored and 100-check solver audit (24 November 2026)
 - Restore original Route-Mate 1.44 synthetic CPU worker speed probe; 3/4 worker selection.
 - Existing board dimensions and locks feed exactly 100 native strict checks, paired 10k/20k with independent saved-board audit.
