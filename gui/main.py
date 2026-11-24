@@ -18,6 +18,11 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
+from gui.work_directory import (
+    WORK_ROOT, PASS_ONE, PASS_TWO, ensure_work,
+    clear_started_pass, read_pass_one, prepare_pass_two,
+)
+
 # The GUI has its own release counter; the top-level VERSION stays at 2.00
 # for the two-repository consolidation milestone.
 _GUI_VERSION_FILE = REPO_ROOT / "gui" / "VERSION"
@@ -188,6 +193,109 @@ class RoutingRulesDialog(QDialog):
     def values(self):
         return {"drilled_only": self.drilled_only.isChecked(),
                 "stacking_allowed": self.allow_stacking.isChecked()}
+
+class PassOneDialog(QDialog):
+    """Explicit move-budget selection and confirmation; no auto-start."""
+
+    def __init__(self, probe_result=None, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Pass One — Move Budget")
+        self.setModal(True)
+        self.setMinimumWidth(450)
+        layout = QVBoxLayout(self)
+        heading = QLabel("Pass One")
+        heading.setStyleSheet("font-size: 17px; font-weight: 800;")
+        layout.addWidget(heading)
+        explanation = QLabel(
+            "Run 2,000 independent seeds. Save verified seed, cut, W, "
+            "Q/100 and elapsed seconds to Work/pass 1/results.csv. "
+            "No solved JSONs are retained."
+        )
+        explanation.setWordWrap(True)
+        layout.addWidget(explanation)
+        self.ten_k = QRadioButton("10,000 moves per seed")
+        self.twenty_k = QRadioButton("20,000 moves per seed")
+        ms = (probe_result or {}).get("ms_per_decode")
+        if isinstance(ms, (int, float)) and ms > 0:
+            ten_est = 10000 * ms / 1000
+            twenty_est = 20000 * ms / 1000
+            # Transparent runtime heuristic, NOT a quality prediction.
+            self._recommended = 20000 if twenty_est <= 30 else 10000
+            timing = QLabel(
+                f"100-point decoder timing: {ms:.5f} ms/decode. "
+                f"Approximate decoder work per seed: 10k ≈ {ten_est:.1f}s; "
+                f"20k ≈ {twenty_est:.1f}s. "
+                "Excludes routing/finishing and does not prove quality."
+            )
+        else:
+            self._recommended = 10000
+            timing = QLabel(
+                "100-point timing unavailable. Default is 10k; "
+                "this is not a verified quality recommendation."
+            )
+        timing.setWordWrap(True)
+        layout.addWidget(timing)
+        if self._recommended == 10000:
+            self.ten_k.setText("10,000 moves — suggested for first-pass screening")
+            self.ten_k.setChecked(True)
+        else:
+            self.twenty_k.setText("20,000 moves — suggested from decoder timing")
+            self.twenty_k.setChecked(True)
+        layout.addWidget(self.ten_k)
+        layout.addWidget(self.twenty_k)
+        self.confirm = QCheckBox(
+            "Are you sure? Starting Pass One clears Work/pass 1 only."
+        )
+        layout.addWidget(self.confirm)
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok |
+            QDialogButtonBox.StandardButton.Cancel
+        )
+        go = buttons.button(QDialogButtonBox.StandardButton.Ok)
+        go.setText("GO — PASS ONE")
+        go.setEnabled(False)
+        self.confirm.toggled.connect(go.setEnabled)
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+        layout.addWidget(buttons)
+
+    def moves(self):
+        return 10000 if self.ten_k.isChecked() else 20000
+
+
+class PassTwoDialog(QDialog):
+    """Confirm import of existing Pass One CSV; no solver strategy assumed."""
+
+    def __init__(self, csv_path: Path, candidate_count: int, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Pass Two — Load Pass One Results")
+        self.setModal(True)
+        self.setMinimumWidth(470)
+        layout = QVBoxLayout(self)
+        label = QLabel(
+            f"Found {candidate_count:,} independently verified Pass One "
+            f"seed record(s):\n{csv_path}\n\n"
+            "GO copies all records to Work/pass 2/candidates.csv. "
+            "No Pass Two solver search runs yet because its move-budget "
+            "and survivor-processing strategy have not been specified."
+        )
+        label.setWordWrap(True)
+        layout.addWidget(label)
+        self.confirm = QCheckBox(
+            "Are you sure? Clear Work/pass 2 only; keep Pass One and JSONs."
+        )
+        layout.addWidget(self.confirm)
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok |
+            QDialogButtonBox.StandardButton.Cancel
+        )
+        go = buttons.button(QDialogButtonBox.StandardButton.Ok)
+        go.setText("GO — LOAD PASS TWO")
+        go.setEnabled(False)
+        self.confirm.toggled.connect(go.setEnabled)
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+        layout.addWidget(buttons)
 
 
 class LockDialog(QDialog):
@@ -461,7 +569,7 @@ class WorkflowChecklist(QWidget):
         )
         self.lock_warning.hide()
         layout.addWidget(self.lock_warning)
-        note = QLabel("100 decoder samples only · no solver passes or final electrical check")
+        note = QLabel("Pass One and Pass Two launch only by button · final Electrical PASS pending")
         note.setWordWrap(True)
         note.setStyleSheet("font-size: 10px; color: #697586;")
         layout.addWidget(note)
@@ -569,11 +677,42 @@ class NativeCalibrationWorker(QThread):
         except Exception as exc:
             self.failed.emit(f"{type(exc).__name__}: {exc}")
 
+class PassOneWorker(QThread):
+    tick = Signal(dict)
+    diagnostic = Signal(str)
+    completed = Signal(dict)
+    failed = Signal(str)
+    cancelled = Signal()
+
+    def __init__(self, project, moves, workers, drilled, stacking, output, parent=None):
+        super().__init__(parent)
+        self.project = copy.deepcopy(project)
+        self.moves = moves
+        self.workers = workers
+        self.drilled = drilled
+        self.stacking = stacking
+        self.output = output
+
+    def run(self):
+        from gui.pass_one import run_pass_one
+        from gui.native_calibration import Cancelled
+        try:
+            result = run_pass_one(
+                self.project, self.moves, self.workers,
+                self.drilled, self.stacking, self.output,
+                self.tick.emit, self.diagnostic.emit, self.isInterruptionRequested
+            )
+            self.completed.emit(result)
+        except Cancelled:
+            self.cancelled.emit()
+        except Exception as exc:
+            self.failed.emit(f"{type(exc).__name__}: {exc}")
+
 
 class RouteMateWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle(f"Route-Mate {GUI_VERSION} · rev {GUI_GIT_REVISION} — Move Calibration")
+        self.setWindowTitle(f"Route-Mate {GUI_VERSION} · rev {GUI_GIT_REVISION} — Pass Control")
         self.resize(1560, 900)
         self.setMinimumSize(950, 600)
         self.project: dict[str, Any] | None = None
@@ -590,6 +729,9 @@ class RouteMateWindow(QMainWindow):
         self._solver_worker = None
         self._speed_probe_worker = None
         self._calibration_worker = None
+        self._pass_one_worker = None
+        self._move_probe_result = None
+        self.work_root = WORK_ROOT
         self._stop_requested = False
         self._close_when_idle = False
         self._recommended_workers = None  # Original CPU probe chooses 3 or 4
@@ -650,7 +792,18 @@ class RouteMateWindow(QMainWindow):
         self.stop_action.triggered.connect(self.stop_solve)
         toolbar.addAction(self.stop_action)
 
-
+        self.pass_one_action = QAction("Pass One", self)
+        self.pass_one_action.setToolTip(
+            "Choose 10k/20k and GO; keep only audited seed metrics CSV/log"
+        )
+        self.pass_one_action.triggered.connect(self.start_pass_one)
+        toolbar.addAction(self.pass_one_action)
+        self.pass_two_action = QAction("Pass Two", self)
+        self.pass_two_action.setToolTip(
+            "Find Work/pass 1/results.csv from a previous session without rerunning Pass One"
+        )
+        self.pass_two_action.triggered.connect(self.start_pass_two)
+        toolbar.addAction(self.pass_two_action)
 
         toolbar.addSeparator()
         self.top_action = QAction("Component side", self)
@@ -799,8 +952,15 @@ class RouteMateWindow(QMainWindow):
         self.log_line(f"Route-Mate {GUI_VERSION} — 100-point native move calibration only")
         self.log_line(f"[GUI][REVISION] git={GUI_GIT_REVISION}")
         self.log_line("Workflow: import → input sanity → footprints → dimensions → locks → cuts → stacking → CPU probe → 100-point move check → STOP.")
-        self.log_line("[SOLVER] Decoder-only speed calibration; no 100-solve campaign, no Pass 1/2/Final.")
-        self.statusBar().showMessage("Ready. Load JSON; 100-point move check only.")
+        self.log_line("[SOLVER] CPU and 100-point probes remain separate from Pass One/Two.")
+        try:
+            ensure_work(self.work_root)  # creates folders; NEVER clears contents
+            self.log_line(f"[WORK] Persistent directory: {self.work_root}")
+            self.log_line("[WORK] Folders: pass 1 / pass 2 / jsons / logs; "
+                          "each pass clears ONLY its own folder when GO is clicked.")
+        except (OSError, ValueError) as exc:
+            self.log_line(f"[WORK][ERROR] {exc}")
+        self.statusBar().showMessage("Ready. Pass Two can load an existing CSV immediately.")
 
     def _set_board_summary(self, message: str, *, project: dict | None = None,
                            level: str = "neutral"):
@@ -1484,18 +1644,19 @@ class RouteMateWindow(QMainWindow):
 
     def _calibration_completed(self, result):
         self._calibration_stages["CALIBRATION"] = "done"
+        self._move_probe_result = dict(result)
         self._refresh_checklist()
         self._solve_done = 100
         self.solve_progress.setRange(0, 100)
         self.solve_progress.setValue(100)
-        self.solve_activity.setText("100-POINT MOVE CHECK COMPLETE · STOP BEFORE PASS 1")
+        self.solve_activity.setText("MOVE CHECK COMPLETE · Pass One awaits GO")
         self.solve_worker_status.setText(
             f"100 decodes · {result['ms_per_decode']:.5f}ms/decode · "
             f"{result['decodes_per_second']:,.0f} decodes/s")
         self.log_line("[MOVE100][DONE] 100/100 random decoder points; "
                       "0 placement, routing, solve attempts or final electrical check.")
-        self.log_line("[MOVE100][STOP] 1st/2nd/Final Pass not started.")
-        self.statusBar().showMessage("MOVE CALIBRATION COMPLETE — STOP BEFORE PASS 1.")
+        self.log_line("[MOVE100][STOP] No Pass One/Two auto-start; press a pass button when ready.")
+        self.statusBar().showMessage("MOVE CALIBRATION COMPLETE — press Pass One to open its launch popup.")
         self._set_board_summary("Move calibration complete · no final routed board", level="neutral")
 
     def _calibration_failed(self, error):
@@ -1526,8 +1687,175 @@ class RouteMateWindow(QMainWindow):
         if self._close_when_idle:
             self.close()
 
+    def start_pass_one(self):
+        """GO is the only action allowed to clear Work/pass 1."""
+        if (self._pass_one_worker is not None
+            or self._calibration_worker is not None
+            or self._speed_probe_worker is not None):
+            QMessageBox.information(self, "Pass One busy",
+                                    "Finish or stop the active task first.")
+            return
+        if self.project is None:
+            QMessageBox.information(self, "Pass One", "Load a project JSON first.")
+            return
+        if (self._calibration_stages.get("CALIBRATION") != "done"
+            or not isinstance(self._probe_cut_drilled_only, bool)
+            or not isinstance(self._probe_stacking_allowed, bool)
+            or self._recommended_workers not in (3, 4)):
+            QMessageBox.information(
+                self, "Pass One", "Finish board/lock review, routing rules, "
+                "worker probe and the 100-point move check before Pass One."
+            )
+            return
+        dialog = PassOneDialog(self._move_probe_result, self)
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            self.log_line("[PASS1][CANCELLED] GO not pressed; Work/pass 1 untouched.")
+            return
+        moves = dialog.moves()
+        try:
+            # Validate the external native binaries before deleting old Pass One.
+            from gui.native_calibration import prerequisites
+            from gui.pass_one import AUDITOR
+            prerequisites()
+            if not AUDITOR.is_file():
+                raise RuntimeError(f"Independent saved-board auditor is missing: {AUDITOR}")
+            folder = clear_started_pass(PASS_ONE, self.work_root)
+        except (OSError, ValueError, RuntimeError) as exc:
+            QMessageBox.critical(self, "Pass One startup", str(exc))
+            return
+        self._calibration_stages["PASS1"] = "running"
+        self._refresh_checklist()
+        self._solve_done = 0
+        self._solve_budget = 2000
+        self.solve_progress.setRange(0, 2000)
+        self.solve_progress.setValue(0)
+        self.solve_progress.setFormat("Pass One: %v/%m seeds")
+        self.solve_activity.setText(f"Pass One · {moves:,} moves · 0/2000")
+        self.load_action.setEnabled(False)
+        self.pass_one_action.setEnabled(False)
+        self.pass_two_action.setEnabled(False)
+        self.stop_action.setEnabled(True)
+        self._solve_started = perf_counter()
+        self._solve_clock.start()
+        self.log_line(f"[PASS1][GO] 2,000 native seeds × {moves:,} moves; "
+                      f"{self._recommended_workers} workers; ONLY {folder} cleared.")
+        self.log_line(f"[PASS1][FILES] {folder / 'results.csv'} and activity.log; "
+                      "saved-board JSONs exist only in temporary directories.")
+        worker = PassOneWorker(
+            self.project, moves, self._recommended_workers,
+            self._probe_cut_drilled_only, self._probe_stacking_allowed,
+            folder, self
+        )
+        self._pass_one_worker = worker
+        worker.tick.connect(self._pass_one_tick)
+        worker.diagnostic.connect(self.log_line)
+        worker.completed.connect(self._pass_one_completed)
+        worker.failed.connect(self._pass_one_failed)
+        worker.cancelled.connect(self._pass_one_cancelled)
+        worker.finished.connect(self._pass_one_finished)
+        worker.start()
+
+    def _pass_one_tick(self, progress):
+        self._solve_done = progress["done"]
+        self.solve_progress.setValue(self._solve_done)
+        passed = progress["qualified"]
+        self.solve_activity.setText(
+            f"Pass One · {self._solve_done:,}/{progress['total']:,} "
+            f"seeds · {passed:,} verified"
+        )
+        self.solve_worker_status.setText(
+            f"{self._recommended_workers} workers · {passed} strict+audited CSV rows"
+        )
+        self._update_solve_clock()
+
+    def _pass_one_completed(self, result):
+        self._calibration_stages["PASS1"] = "done"
+        self._refresh_checklist()
+        self.solve_progress.setValue(result["seeds"])
+        self.solve_activity.setText(
+            f"PASS ONE COMPLETE · {result['qualified']:,} verified CSV rows"
+        )
+        self.log_line(f"[PASS1][DELIVERED] {result['csv']}")
+        self.log_line(f"[PASS1][LOG] {result['log']}")
+        self.log_line("[PASS1][STOP] No solved JSONs retained; Pass Two not started.")
+        self.statusBar().showMessage(
+            f"Pass One complete — {result['qualified']} verified seeds in results.csv"
+        )
+
+    def _pass_one_failed(self, error):
+        self._calibration_stages["PASS1"] = "failed"
+        self._refresh_checklist()
+        self.solve_activity.setText("PASS ONE FAILED · see Activity; partial CSV retained")
+        self.log_line("[PASS1][ERROR] " + str(error))
+
+    def _pass_one_cancelled(self):
+        self.solve_activity.setText("PASS ONE STOPPED · partial verified CSV retained")
+        self.log_line("[PASS1][CANCELLED] No Pass Two automatically started.")
+
+    def _pass_one_finished(self):
+        self._solve_clock.stop()
+        if self._solve_started is not None:
+            self.solve_eta.setText(
+                f"Elapsed: {self._clock_text(perf_counter() - self._solve_started)}"
+            )
+        self._solve_started = None
+        self._pass_one_worker = None
+        self.load_action.setEnabled(True)
+        self.pass_one_action.setEnabled(True)
+        self.pass_two_action.setEnabled(True)
+        self.stop_action.setEnabled(False)
+        if self._close_when_idle:
+            self.close()
+
+    def start_pass_two(self):
+        """Find the prior Pass One CSV even on a fresh, unloaded GUI launch.
+
+        Until Pass Two's search is specified, prepare the full candidate CSV;
+        do not misrepresent import as an optimiser run or a completed Pass Two.
+        """
+        if (self._pass_one_worker is not None
+            or self._calibration_worker is not None
+            or self._speed_probe_worker is not None):
+            QMessageBox.information(
+                self, "Pass Two busy", "Stop the active task first."
+            )
+            return
+        try:
+            rows = read_pass_one(self.work_root)
+        except (OSError, ValueError) as exc:
+            self.log_line("[PASS2][INPUT ERROR] " + str(exc))
+            QMessageBox.warning(self, "Pass Two needs Pass One CSV", str(exc))
+            return
+        if not rows:
+            QMessageBox.information(
+                self, "Pass Two", "Pass One results.csv contains no verified seeds."
+            )
+            return
+        source = self.work_root / PASS_ONE / "results.csv"
+        dialog = PassTwoDialog(source, len(rows), self)
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            self.log_line("[PASS2][CANCELLED] Work/pass 2 unchanged.")
+            return
+        try:
+            path, count = prepare_pass_two(self.work_root)
+        except (OSError, ValueError) as exc:
+            self.log_line("[PASS2][ERROR] " + str(exc))
+            QMessageBox.critical(self, "Pass Two import failed", str(exc))
+            return
+        self.log_line(f"[PASS2][GO] Imported {count:,} prior strict+audited "
+                      f"seed records from {source}.")
+        self.log_line(f"[PASS2][FILES] {path}; pass 1 and jsons untouched.")
+        self.log_line("[PASS2][WAITING] Pass Two native search is NOT implemented; "
+                      "no moves have been run.")
+        self.solve_activity.setText(
+            f"Pass Two · {count:,} seeds loaded · search not started"
+        )
+        self.statusBar().showMessage(
+            f"Pass Two CSV ready: {path} — search not yet configured."
+        )
+
     def solve_board(self):
-        """Hard stop even if invoked programmatically."""
+        """Hard stop for legacy auto-start paths; passes use explicit buttons."""
 
         self.stop_action.setEnabled(False)
         self.log_line("[SOLVER][DISABLED] Native CLI adapter pending; nothing was started.")
@@ -1536,6 +1864,11 @@ class RouteMateWindow(QMainWindow):
 
     def stop_solve(self):
         """Cooperatively stop the active worker; never force-kill a QThread."""
+        if self._pass_one_worker is not None and self._pass_one_worker.isRunning():
+            self._pass_one_worker.requestInterruption()
+            self.stop_action.setEnabled(False)
+            self.log_line("[PASS1][STOP] Cancellation requested; partial CSV retained.")
+            return
         if self._calibration_worker is not None and self._calibration_worker.isRunning():
             self._calibration_worker.requestInterruption()
             self.stop_action.setEnabled(False)
@@ -1565,6 +1898,12 @@ class RouteMateWindow(QMainWindow):
         if self._solve_started is None:
             return
         elapsed = max(0.0, perf_counter() - self._solve_started)
+        if self._pass_one_worker is not None:
+            self.solve_eta.setText(
+                f"Elapsed: {self._clock_text(elapsed)} · {self._solve_done:,}/"
+                f"{self._solve_budget:,} seeds; remaining unknown"
+            )
+            return
         if self._calibration_worker is not None:
             self.solve_eta.setText(
                 f"Elapsed: {self._clock_text(elapsed)} · ETA unavailable (100 decoder samples)")
@@ -2178,6 +2517,7 @@ class RouteMateWindow(QMainWindow):
             self.project_path = path
             from pipeline import PipelineRun, project_import_stage_result
             self._calibration_stages = {}
+            self._move_probe_result = None
             self._probe_cut_drilled_only = None
             self._probe_stacking_allowed = None
             self.checklist.reset()
@@ -2293,6 +2633,12 @@ class RouteMateWindow(QMainWindow):
             QMessageBox.critical(self, "Could not load project", str(exc))
 
     def closeEvent(self, event):
+        if self._pass_one_worker is not None and self._pass_one_worker.isRunning():
+            self._close_when_idle = True
+            self._pass_one_worker.requestInterruption()
+            event.ignore()
+            self.statusBar().showMessage("Exit requested — cancelling Pass One.")
+            return
         if self._solver_worker is not None and self._solver_worker.isRunning():
             self._close_when_idle = True
             self.stop_solve()

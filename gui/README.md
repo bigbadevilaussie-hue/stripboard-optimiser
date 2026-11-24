@@ -201,3 +201,33 @@ physical board, and the decoder rejects inconsistent input. Old
 Quick Solve position-count predictions were removed; no solve passes run.
 The native probe's exact rejection reason appears in Activity and in the
 Overview error text. The native engine and source JSON remain unchanged.
+
+
+## GUI 2.10 — Persistent Work and button-controlled Pass One/Two
+
+\`Work/\` is permanently rooted beside \`gui/\` in the checked-out repository,
+with \`pass 1/\`, \`pass 2/\`, \`jsons/\`, and \`logs/\` underneath. Opening
+the GUI or JSON only creates missing directories, never clears anything.
+A pass folder is cleared **only** when that pass's explicit GO button is
+pressed. Pass Two never removes Pass One results or the shared JSONs folder.
+
+**Pass One:** After the 100-point speed check, click Pass One in the toolbar.
+Choose **10k or 20k** moves per seed (radio buttons), tick **Are you sure?**
+and press **GO**. The timing-based default recommendation is only a decoder
+throughput heuristic, not experimentally established layout quality.
+The existing 3/4-worker probe selects concurrent workers. Exactly 2,000
+native strict seeds are attempted. A seed qualifies for the CSV only after
+the independent saved-board audit confirms electrical/geometry/copper/locked
+board validity. Its Q/100 score uses the repository's existing AUDIOEX
+quality100 formula (separate from native CLI quality=0). Pass One persists
+only \`Work/pass 1/results.csv\` and \`Work/pass 1/activity.log\`; temporary
+candidate JSONs used to audit successful attempts are deleted. The CSV
+columns are \`seed,cut,w,q,time_taken\` (elapsed wall seconds).
+
+**Pass Two:** Click Pass Two from a fresh GUI session without loading a
+project. It finds \`Work/pass 1/results.csv\`, validates all recorded seed
+metrics, and displays a confirmation. On GO, only \`Work/pass 2/\` is cleared
+and all rows are copied into \`candidates.csv\`, with a separate Activity
+log. No Pass Two optimiser algorithm, budget or filtering is implied or
+executed: the GUI labels this as imported candidate data, not an
+optimisation success. The original Pass One CSV and all other folders remain.

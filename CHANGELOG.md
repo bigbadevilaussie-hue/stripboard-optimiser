@@ -1,5 +1,16 @@
 # Changelog
 
+### GUI 2.10 — Persistent Work, explicit Pass One/Two buttons, CSV-only Pass One (25 November 2026)
+- Stable \`Work/pass 1\`, \`Work/pass 2\`, \`Work/jsons\`, \`Work/logs\` under the checkout; creating/opening GUI never deletes results.
+- Each pass folder is cleared ONLY after its own explicit GO confirmation. Pass Two never clears Pass One or the shared JSONs directory.
+- Pass One button opens 10k/20k move radio choices, 100-point decoder-timing estimate, Are-you-sure checkbox and GO. No automatic pass start.
+- Real Pass One 2,000-seed native strict CLI trials use the existing selected cut/stack policies and original 3/4 worker recommendation. Independent saved-board audit gates every CSV row.
+- Pass One outputs only \`results.csv\` (seed,cut,w,q,time_taken) and \`activity.log\`; candidate solved boards are temporary and discarded. Q/100 uses the existing AUDIOEX quality100 formula, not native CLI quality=0.
+- Pass Two button works from a fresh GUI launch without JSON import. Reads all Pass One CSV rows; on explicit GO writes \`pass 2/candidates.csv\` and \`pass 2/activity.log\`.
+- Pass Two's search strategy and move budget are not yet defined. CSV import is not mislabelled a completed optimisation pass.
+- No changes to native solver, original JSON, post-routing final Electrical PASS or automatic Pass Two launch.
+
+
 ### GUI 2.09 — Cut/stack popup, experimental Slide visibility, actionable native diagnostics (24 November 2026)
 - Replace sidebar cut/stack dropdowns with one routing-rules popup after component lock review and before worker/move probes.
 - Default Drilled only OFF (knife cuts allowed) and Allow stacked wires ON; explain how each choice affects the native solver.

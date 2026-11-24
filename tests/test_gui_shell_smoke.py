@@ -109,6 +109,8 @@ class GuiShellSmoke(unittest.TestCase):
                 self.assertEqual(window.checklist.cuts_value.text(), "Knife allowed")
                 self.assertEqual(window.checklist.stacking_value.text(), "Allowed")
                 self.assertEqual(window.checklist.STAGES[-1], ("VERIFY", "Electrical PASS"))
+                self.assertEqual(window.pass_one_action.text(), "Pass One")
+                self.assertEqual(window.pass_two_action.text(), "Pass Two")
                 # Keep the PNG mock active while clicking the Qt action. The
                 # fixture bytes intentionally are not a valid PNG payload.
                 with patch.object(window.top_view, "show_png") as png_view:
