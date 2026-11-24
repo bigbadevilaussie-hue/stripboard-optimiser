@@ -24,6 +24,16 @@ With `-DV5_EXPERIMENT_EDGE_MOUNT=1`, `v5wasm/decode.c` counts only the on-board 
 `npm run build:native:edge` builds a separate experimental decoder at `src/frontend/tests/solver/native/build/edge/libv5decode.so`. It also enables the previously verified grid-clear and identical-genome speed shortcuts. It does not overwrite the standard native decoder, native router, browser WASM, CLI protocol or WR artifacts.
 
 
+## 24 November 2026 — real saved-board polisher results (Mac-verified)
+
+The user pulled the alias-loader bootstrap fix `b6aae85`, compiled the solver TS tests and confirmed **all three synthetic test suites passed**. Read-only knife and net-corridor diagnostics and both saved-layout polisher runs completed.
+
+- **Pre-domain USB col25 500k**: 29W/48C, 3 incomplete nets, 11 body crossings, 2 nonvertical, 2 stacks, **7 knives → 4 knives** after polishing. 384 proposals, 3 accepted wire-column moves, 3 drill upgrades, **no new electrical, geometry or routing defects**. The remaining four knives are the four **forced adjacent different-net GPS pin gaps** in its 0° rotation (row16, cols4–8). Saved output `~/Desktop/motoex_col25_polished.json`.
+- **Pre-domain USB col41 500k**: 30W/46C, 0 incomplete nets, 2 nonvertical, 8 crossings, 1 stack, 0 knives before/after; 119 local trials, **zero accepted**. Saved `~/Desktop/motoex_col41_polished.json`. This version's net6 **is connected** (ESP32.GPIO5/R3.2/R4.1/R10.1 in a single group); the later domain-ON col41 board is different and had net6 disconnected.
+- **No strict passes**. The generic local polisher has demonstrated safe partial improvement in one real board, not universal convergence. Next implement independently verified **multiwire/rip-up and bounded placement repair** (not a GPS-specific exception). Preserve default OFF for parity.
+
+This newer measurement supersedes stale “not yet verified on the iMac” language in older chronological notes below. For exact figures and the broader handover see [START HERE](START_HERE_NATIVE_SOLVER_HANDOFF_2026-11-24.md).
+
 ## Fixed-board exact wire-column and drill-hole polish (experimental)
 
 `components/stripboard/wireColumnPolish.ts` is a **generic**, opt-in v5 post-finisher operating on a fixed physical board. It **never moves components, expands the board, changes net assignments or deletes wires**. For an existing jumper, it finds the copper segment occupied by each endpoint and searches their shared available columns. The proposed jumper is vertical, and its endpoint holes must be free of component pins/bodies/cuts and other wire endpoints. It also considers a slanted jumper when its source and destination strips have a common column.
