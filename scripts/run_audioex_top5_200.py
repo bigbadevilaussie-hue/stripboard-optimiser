@@ -24,7 +24,7 @@ from scripts import run_audioex_native_ladder as core
 
 MOVES=50_000
 SEEDS=tuple(range(1,201))
-FIELDS=("seed","moves","strictPass","wires","cuts","wireLength",
+FIELDS=("seed","moves","strictPass","wires","cuts","wireLength","price",
         "quality","conflicts","incomplete","nonvertical","crossings",
         "firstFeasibleMove","strictFailures","auditFailures","errors",
         "layoutSig","elapsedWallMs")
