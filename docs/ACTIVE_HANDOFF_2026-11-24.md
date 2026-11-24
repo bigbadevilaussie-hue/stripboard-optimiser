@@ -55,6 +55,10 @@ Length is derived from jumper endpoints using **2.54 mm per grid step**. Qualifi
 - **Prediction:** Moto likely has a lower strict-pass rate and worse initial W/C at comparable 5k/10k/20k budgets. A deliberately **illustrative 1% Moto 5k baseline** with Audio's measured budget multipliers gives ~**20/30/38** passes out of 2,000 at 5k/10k/20k; **not a statistical forecast**. Moto 5k first *reported* success was seed 0198, **50W/66C, Q30.54**, without an established full pass rate. Details and caveats in [100-check report](AUDIO_MOTO_100_CHECK_PREFLIGHT_2026-11-24.md).
 - **Do not touch the running WR sweep** to run the static audit. It reads fixtures only. Avoid a rerun of WR controller because that deletes prior passing outputs.
 
+## Nick's Fantastic Ideas Basket (not implemented)
+
+The future GUI calibration idea and optometrist comparison are recorded in [the ideas basket](NICKS_FANTASTIC_IDEAS_BASKET.md). On JSON load, five separate native timing probes at **5k/10k/15k/20k/25k moves**, **seed 69**; estimate per-project time/move and recommend budgets before starting multipass. This is a *speed probe* only; no claim of optimal quality from one seed. Do not run it via the destructive WR sweep controller.
+
 ## Multipass plan — a practical thought experiment, NOT built yet
 
 Goal: use the six WR datasets to choose smarter search effort and ultimately drive the native engine from the GUI; **quality/strict legality matters more than raw speed**, with a simple human-readable UI. The project owner explicitly rejected an excessively academic/committee-style process. Grok's peer reviews are **ideas for consideration, not approved specifications**.
