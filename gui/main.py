@@ -50,14 +50,14 @@ def _git_revision() -> str:
 GUI_GIT_REVISION = _git_revision()
 
 from PySide6.QtCore import Qt, QByteArray, QPoint, QThread, Signal, QTimer
-from PySide6.QtGui import QAction, QBrush, QColor, QFontDatabase, QPainter, QPixmap, QIcon
+from PySide6.QtGui import QAction, QBrush, QColor, QFontDatabase, QPainter, QPixmap, QIcon, QIntValidator
 from PySide6.QtSvg import QSvgRenderer
 from PySide6.QtSvgWidgets import QGraphicsSvgItem
 from PySide6.QtWidgets import (
     QApplication, QCheckBox, QDialog, QDialogButtonBox, QFileDialog,
     QFormLayout, QGraphicsScene, QGraphicsView, QGroupBox, QHBoxLayout,
     QLabel, QMainWindow, QMessageBox, QPlainTextEdit, QPushButton, QRadioButton, QComboBox,
-    QSpinBox, QSplitter, QToolBar, QVBoxLayout, QWidget, QProgressBar, QTabWidget, QFrame, QSplashScreen,
+    QLineEdit, QSplitter, QToolBar, QVBoxLayout, QWidget, QProgressBar, QTabWidget, QFrame, QSplashScreen,
 )
 
 
@@ -77,18 +77,69 @@ def default_project_directory() -> Path:
 
 # No old Python saved-board verifier: native CLI audit is authoritative.
 
+class DimensionBox(QWidget):
+    """Plain numeric text field with live ✓/✕ indicator. No spin wheels."""
+
+    def __init__(self, value, parent=None):
+        super().__init__(parent)
+        row = QHBoxLayout(self)
+        row.setContentsMargins(0, 0, 0, 0)
+        row.setSpacing(6)
+        self.entry = QLineEdit(self)
+        self.entry.setObjectName("dimensionEntry")
+        self.entry.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        self.entry.setValidator(QIntValidator(1, 500, self.entry))
+        self.entry.setPlaceholderText("1–500")
+        self.entry.setMinimumWidth(78)
+        try:
+            self.entry.setText(str(int(value)))
+        except (TypeError, ValueError):
+            self.entry.setText("")
+        row.addWidget(self.entry, 1)
+        self.check = QLabel("✓", self)
+        self.check.setObjectName("dimensionCheck")
+        self.check.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.check.setFixedWidth(21)
+        row.addWidget(self.check)
+
+    def number(self):
+        if not self.entry.hasAcceptableInput():
+            return None
+        return int(self.entry.text())
+
+    def value(self):
+        number = self.number()
+        if number is None:
+            raise ValueError("Board dimensions must be whole numbers from 1 to 500")
+        return number
+
+    def setValue(self, number):
+        self.entry.setText(str(number))
+
+    def set_valid(self, valid):
+        self.check.setText("✓" if valid else "✕")
+        self.check.setStyleSheet(
+            "font-size: 17px; font-weight: 800; "
+            + ("color: #168d95;" if valid else "color: #ce5265;")
+        )
+        self.entry.setStyleSheet(
+            "border: 1px solid " + ("#bcd4e8" if valid else "#ce5265") + ";"
+        )
+
+
 class BoardSizeDialog(QDialog):
-    """Collect physical and preferred dimensions without changing the source file."""
+    """Validated text boxes replace wheel-based board-size spin controls."""
+
     def __init__(self, board: dict[str, Any], parent=None):
         super().__init__(parent)
         self.setWindowTitle("Board dimensions")
         self.setModal(True)
         layout = QVBoxLayout(self)
         form = QFormLayout()
-        self.actual_rows = self._spin(board.get("actualRows", board.get("rows", 24)))
-        self.actual_cols = self._spin(board.get("actualCols", board.get("cols", 56)))
-        self.preferred_rows = self._spin(board.get("wantedRows", board.get("rows", 24)))
-        self.preferred_cols = self._spin(board.get("wantedCols", board.get("cols", 56)))
+        self.actual_rows = DimensionBox(board.get("actualRows", board.get("rows", 24)))
+        self.actual_cols = DimensionBox(board.get("actualCols", board.get("cols", 56)))
+        self.preferred_rows = DimensionBox(board.get("wantedRows", board.get("rows", 24)))
+        self.preferred_cols = DimensionBox(board.get("wantedCols", board.get("cols", 56)))
         self.rows_mode = self._mode(board.get("wantedRowsMode", "fixed"))
         self.cols_mode = self._mode(board.get("wantedColsMode", "fixed"))
         form.addRow("Actual physical rows:", self.actual_rows)
@@ -96,31 +147,37 @@ class BoardSizeDialog(QDialog):
         rows_box = QWidget()
         rows_layout = QHBoxLayout(rows_box)
         rows_layout.setContentsMargins(0, 0, 0, 0)
-        rows_layout.addWidget(self.preferred_rows)
+        rows_layout.setSpacing(8)
+        rows_layout.addWidget(self.preferred_rows, 1)
         rows_layout.addWidget(self.rows_mode)
         cols_box = QWidget()
         cols_layout = QHBoxLayout(cols_box)
         cols_layout.setContentsMargins(0, 0, 0, 0)
-        cols_layout.addWidget(self.preferred_cols)
+        cols_layout.setSpacing(8)
+        cols_layout.addWidget(self.preferred_cols, 1)
         cols_layout.addWidget(self.cols_mode)
         form.addRow("Preferred rows:", rows_box)
         form.addRow("Preferred columns:", cols_box)
         layout.addLayout(form)
-        layout.addWidget(QLabel("Preferred dimensions are separate from the physical board limits."))
-        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        layout.addWidget(QLabel("Enter whole numbers from 1 to 500. ✓ means valid."))
+        self.feedback = QLabel("")
+        self.feedback.setWordWrap(True)
+        self.feedback.setStyleSheet("color: #ac3553; font-size: 11px;")
+        layout.addWidget(self.feedback)
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
+        )
+        self._ok = buttons.button(QDialogButtonBox.StandardButton.Ok)
+        self._ok.setObjectName("nextActionButton")
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
-
-    @staticmethod
-    def _spin(value):
-        widget = QSpinBox()
-        widget.setRange(1, 500)
-        try:
-            widget.setValue(int(value))
-        except (TypeError, ValueError):
-            widget.setValue(24)
-        return widget
+        for field in (self.actual_rows, self.actual_cols,
+                      self.preferred_rows, self.preferred_cols):
+            field.entry.textChanged.connect(self._update_validation)
+        self.rows_mode.currentIndexChanged.connect(self._update_validation)
+        self.cols_mode.currentIndexChanged.connect(self._update_validation)
+        self._update_validation()
 
     @staticmethod
     def _mode(value):
@@ -131,7 +188,35 @@ class BoardSizeDialog(QDialog):
         widget.setCurrentIndex(max(0, index))
         return widget
 
+    def _update_validation(self, *_):
+        fields = (self.actual_rows, self.actual_cols,
+                  self.preferred_rows, self.preferred_cols)
+        numbers = [field.number() for field in fields]
+        valid = [number is not None for number in numbers]
+        errors = []
+        if not all(valid):
+            errors.append("Every dimension must be a whole number from 1 to 500.")
+        if (valid[0] and valid[2] and self.rows_mode.currentData() == "fixed"
+                and numbers[2] > numbers[0]):
+            valid[2] = False
+            errors.append("Fixed preferred rows cannot exceed physical rows.")
+        if (valid[1] and valid[3] and self.cols_mode.currentData() == "fixed"
+                and numbers[3] > numbers[1]):
+            valid[3] = False
+            errors.append("Fixed preferred columns cannot exceed physical columns.")
+        for field, ok in zip(fields, valid):
+            field.set_valid(ok)
+        self._ok.setEnabled(all(valid))
+        self.feedback.setText(" ".join(errors))
+        return all(valid)
+
+    def accept(self):
+        if self._update_validation():
+            super().accept()
+
     def values(self):
+        if not self._update_validation():
+            raise ValueError("Correct the marked board dimensions before continuing")
         return {
             "actualRows": self.actual_rows.value(),
             "actualCols": self.actual_cols.value(),
@@ -140,7 +225,6 @@ class BoardSizeDialog(QDialog):
             "wantedRowsMode": self.rows_mode.currentData(),
             "wantedColsMode": self.cols_mode.currentData(),
         }
-
 
 class RoutingRulesDialog(QDialog):
     """Require a visible, explicit choice of both physical routing policies."""
