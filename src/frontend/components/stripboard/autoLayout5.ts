@@ -1272,7 +1272,7 @@ export function computeAutoLayout5(
   const final: AutoLayoutResult = bestFin.final;
   const polished = options?.wirePolish && board.lockedRows && board.lockedCols &&
     !board.pattern && physicalFit(final)
-    ? polishFixedBoardWires(board, components, componentDefs, nets, netAssignments, final, 6000, !!options?.drilledCutsOnly)
+    ? polishFixedBoardWires(board, components, componentDefs, nets, netAssignments, final, 6000, !!options?.drilledCutsOnly, !!options?.noWireStacking)
     : null;
   if (polished) options?.onWirePolish?.(polished.stats);
   const delivered = polished?.result ?? final;

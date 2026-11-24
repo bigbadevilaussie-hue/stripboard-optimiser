@@ -3,7 +3,7 @@ const assert = require("node:assert/strict");
 const path = require("path");
 // Install the existing test harness @/ alias resolver before loading compiled TS.
 require("./helpers.js");
-const { polishFixedBoardWires } = require(path.join(
+const { polishFixedBoardWires, verifiedPolishIssues } = require(path.join(
   __dirname, "out/components/stripboard/wireColumnPolish.js"));
 const { verify, checkGeometry } = require("./helpers.js");
 const pinDef = { id:"probe", name:"Probe", category:"generic", symbol:"x",
@@ -63,4 +63,19 @@ const untouched = run(knifeBoard,knifeParts,knifeAssignments,[net("A"),net("B")]
 assert.deepEqual(untouched.result.wires,knifeBoard.wires,"disabled polish is identity");
 assert.deepEqual(untouched.result.cuts,knifeBoard.cuts,"disabled polish cannot change cuts");
 
-console.log("✅ Generic exact wire-column / drilled-hole polish: synthetic tests passed");
+// Regression: the polisher must not re-add stack-only issues when stacking is allowed.
+const stackOnly = ["5 wires still run on top of another wire"];
+assert.deepEqual(verifiedPolishIssues(stackOnly,{nonvertical:0,crossings:0,stacked:5},false),[],
+  "allowed stacking is advisory, not fatal");
+assert.deepEqual(verifiedPolishIssues(stackOnly,{nonvertical:0,crossings:0,stacked:5},true),stackOnly,
+  "no-stacking mode still rejects five overlaps");
+assert.deepEqual(verifiedPolishIssues(["unplaced part",...stackOnly],
+  {nonvertical:0,crossings:0,stacked:5},false),["unplaced part"],
+  "never hide an unrelated solver issue");
+assert.deepEqual(verifiedPolishIssues(["2 wires could not be made straight and crossing-free"],
+  {nonvertical:0,crossings:0,stacked:5},false),[],
+  "verified zero crossing and off-axis count clears stale wire issue");
+assert.deepEqual(verifiedPolishIssues([], {nonvertical:1,crossings:0,stacked:5},false),
+  ["1 wire violations remain after fixed-board polish"],
+  "nonvertical violation is fatal even with stacking allowed");
+console.log("✅ Generic wire-column polish and stacking policy: synthetic tests passed");

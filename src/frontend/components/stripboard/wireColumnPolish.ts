@@ -132,11 +132,30 @@ function drillFreeCuts(
   return { cuts: activeCuts, quality: activeQuality };
 }
 
+/**
+ * Reconcile only verified wire diagnostics after polishing. Never hide
+ * unresolved nets, geometry faults or other unrelated solver problems.
+ */
+export function verifiedPolishIssues(
+  existing: readonly string[],
+  result: Pick<Quality, "nonvertical" | "crossings" | "stacked">,
+  noWireStacking = false,
+): string[] {
+  const wireOnly = /^\d+ wires? (?:could not be made straight and crossing-free|still run on top of another wire|violations remain after fixed-board polish)$/;
+  const issues = existing.filter((message) => !wireOnly.test(message));
+  const mess = result.nonvertical + result.crossings;
+  if (mess) issues.push(`${mess} wire violations remain after fixed-board polish`);
+  if (noWireStacking && result.stacked)
+    issues.push(`${result.stacked} wires still run on top of another wire`);
+  return issues;
+}
+
 export function polishFixedBoardWires(
   originalBoard: Board, components: Component[], defs: ComponentDef[],
   nets: Net[], assignments: NetAssignment[], result: AutoLayoutResult,
   maxEvaluations = 6000,
   drilledCutsOnly = true,
+  noWireStacking = false,
 ): WirePolishOutcome {
   const emptyStats = (q: Quality): WirePolishStats => ({
     tried: 0, accepted: 0, columnsMoved: 0, drillsRecovered: 0,
@@ -244,13 +263,8 @@ export function polishFixedBoardWires(
   const independentlyVerified = evaluate(board, comps, defs, nets, assignments, obs, wires, cuts);
   if (!independentlyVerified || !noRegression(independentlyVerified, before))
     return { result, stats: { tried, accepted: 0, columnsMoved: 0, drillsRecovered: 0, before, after: before } };
-  // Update only finish messages we can prove have changed, without hiding any
-  // placement, starvation, reachability or other solver issue.
-  const staleWireIssue = /wire(s)? (could not be made straight and crossing-free|still run on top of another wire)/;
-  const issues = result.issues.filter((x) => !staleWireIssue.test(x));
-  const mess = independentlyVerified.nonvertical + independentlyVerified.crossings;
-  if (mess) issues.push(`${mess} wire violations remain after fixed-board polish`);
-  if (independentlyVerified.stacked) issues.push(`${independentlyVerified.stacked} wires still run on top of another wire`);
+  // Keep unrelated solver issues; a permitted stack is not a failure.
+  const issues = verifiedPolishIssues(result.issues, independentlyVerified, noWireStacking);
   return { result: { ...result, wires, cuts, issues },
     stats: { tried, accepted, columnsMoved, drillsRecovered, before, after: independentlyVerified } };
 }
