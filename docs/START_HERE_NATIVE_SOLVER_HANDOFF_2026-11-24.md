@@ -194,6 +194,31 @@ Expected preserved signature `e69806eb68fc` for that exact input/seed/moves/buil
 - **Do not** overwrite canonical master, input saved results, original SVG renderer outputs or historical logs.
 - **Do not** pivot to an unrelated solver, add another feature branch, reimplement routing in the GUI or force a GUI migration now.
 
+## 8A. User-verified fixed-board polish replay — 24 Nov 2026 (NEW)
+
+The user pulled the native-polisher module alias bootstrap fix in `b6aae85` and ran:
+`npx tsc -p tests/solver/tsconfig.json`, `testWireColumnPolish.js`, `testDrilledRotationDomain.js`, `testKnifeCutAudit.js`, `inspectSavedCuts.js`, `inspectNetCorridors.js --net net6`, and `polishSavedLayout.js` against the **pre-domain** 500k board files `~/Desktop/motoex_col25_500k/motoex_seed1_usb_col25.json` and `~/Desktop/motoex_col41_500k/motoex_seed1_usb_col41.json`. **All three synthetic tests passed on the iMac** and both saved-board audits completed without flagged regressions. The actual boards were 24×56.
+
+| Metric | Col25 original 500k | Col25 polished | Col41 original 500k | Col41 polished |
+|---|---:|---:|---:|---:|
+| Wires | 29 | 29 | 30 | 30 |
+| Cuts | 48 | 48 | 46 | 46 |
+| Electrical conflicts | 0 | 0 | 0 | 0 |
+| Incomplete nets | 3 | 3 | 0 | 0 |
+| Geometry errors | 0 | 0 | 0 | 0 |
+| Nonvertical wires | 2 | 2 | 2 | 2 |
+| Component crossings | 11 | 11 | 8 | 8 |
+| Stacks | 2 | 2 | 1 | 1 |
+| Knife cuts | **7** | **4** | **0** | **0** |
+
+**Col25 local-polish telemetry:** 384 trial wire-column assignments, **3 accepted**, **3 wires moved**, **3 knife cuts converted to drilled holes**, no independently detected regression. Saved new file `~/Desktop/motoex_col25_polished.json`; input unchanged. Its remaining four knives occur **all at GPS** row16, between columns4/5, 5/6, 6/7 and 7/8, where adjacent different-net/floating pins occupy both neighbouring holes. This historical board has GPS at 0°, so **wire-only post-polish cannot eliminate those four** while preserving its fixed component placement. This confirms the distinction between the **generic rotation-domain constraint (prevents such placements)** and **generic wire polish (repairs avoidable cuts once placed)**.
+
+**Col41 local-polish telemetry:** 119 candidate assignments, **zero accepted**, unchanged 30W/46C, zero incomplete nets and zero knives, but **2 nonvertical wires, 8 crossings and 1 stack** remain. Saved new `~/Desktop/motoex_col41_polished.json`, unchanged electrically. Its `net6` in this **pre-domain 500k** output is a **single connected group** (ESP32.GPIO5 at 20,33; R3.2 at 6,31; R4.1 at 1,29; R10.1 at 6,26), with **53 free solder holes** on already connected copper; that is **not** the same layout as the **after-domain col41 500k** result in which net6 had three disconnected groups. Never conflate their diagnostics.
+
+**Unavoidable scope boundary:** this first polisher cannot repair GPS orientation because it does not move parts; and it cannot fix col41's remaining violations with a *single* fixed-row, fixed-copper-segment common-column move. Next engineering step should be **generic multiwire rip-up/reroute and/or bounded component-placement moves**, independently checked. Preserve old signatures by leaving polish off by default. New synthetic pass and saved-board evidence should replace earlier “not yet Mac-tested” statements in prior sections of this handover; those earlier statements describe the state *before this new evidence*.
+
+**Raw command outcome:** `✅ Generic exact wire-column / drilled-hole polish: synthetic tests passed`, `✅ Native generic drilled rotation domain: synthetic tests passed`, `✅ Generic knife-cut diagnostics: synthetic tests passed`. No strict physical PASS yet. Don't launch a 51-position sweep to address defects better targeted by local routing/placement repair.
+
 ## 9. Starting a new ChatGPT chat
 
 Suggested initial instruction: **“Read `docs/START_HERE_NATIVE_SOLVER_HANDOFF_2026-11-24.md`, root `README.md`, `project.md` and `docs/native-edge-slide-motoex.md` from branch `feature/native-edge-slide-motoex` in `bigbadevilaussie-hue/stripboard-optimiser`. Continue the general-purpose native optimiser where we left off. The immediate job is to compile/test/replay `wireColumnPolish.ts` on existing 500k saved layouts and fix it, then tackle net6 and integrate edge-slide into native anneal. Do not hard-code for MOTOEX. Quality/strict verification first; use existing branch; make code and commits, not just plans.”**
