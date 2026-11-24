@@ -53,6 +53,17 @@ def publish(out,rows):
     for file in champions.glob("seed_*.json"):
         if int(file.stem.split("_")[1]) not in wanted:
             file.unlink()
+    # Rebuild ranked view from permanent verified copies. A previously
+    # unranked qualifier can enter the top20 after a later result changes
+    # deduplication/ranking; never depend on its transient job folder.
+    for r in winner_rows:
+        filename=f"seed_{r['seed']:04d}_W{r['wires']}_C{r['cuts']}.json"
+        permanent=out/"qualified_all"/filename
+        ranked=champions/filename
+        if not permanent.is_file():
+            raise RuntimeError(f"Missing qualified layout: {permanent}")
+        if not ranked.is_file():
+            shutil.copy2(permanent,ranked)
     with (out/"results.csv").open("w",newline="",encoding="utf8") as f:
         writer=csv.DictWriter(f,fieldnames=FIELDS)
         writer.writeheader()
