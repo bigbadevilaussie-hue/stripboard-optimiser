@@ -272,6 +272,14 @@ These are **current fixed-cut/fixed-placement corridor constraints**, not a proo
 
 The earlier sections 8A (pre-domain 500k) and 8B (planned ON replay) are now historical; **this section 8C is the latest empirical status**.
 
+## 8D. New pending fixed-USB tournament — 200 seeds × 25k (NOT YET RUN)
+
+The next benchmark was requested with **drilled-only OFF** (knife cuts allowed), **wire stacking ALLOWED**, and exactly **200 independent seeds × 25,000 moves** with timings/diagnostics, **all strict-solved JSONs archived**, top five solved layouts and all rejected JSONs for post-analysis.
+
+**Critical user requirement:** **NO USB SLIDE in this sweep.** `scripts/run_motoex_native_sweep.py` now defaults to `--slide no`, keeping the USB at original `(row 13, col 47)` for all 200 seeds. Only a **separate future sweep** may use `--slide yes` and `--columns all` or a listed column subset. One solve per seed regardless of Slide mode. USB body overhang remains legal, physical board stays 24×56 locked. No special-case solver code is involved: the runner is a fixture-specific tournament controller.
+
+The new runner and its pure schedule/ranking tests are committed, **not yet tested on the user's Mac**. Primary entry: [docs/native-fixed-usb-200x25k-sweep.md](native-fixed-usb-200x25k-sweep.md). That file has the exact `git pull`, unittest, TypeScript/native build and 200-seed execution command, archive tree and `--resume` procedure. It records source Git hash and binary hashes, `STRIPBOARD_TIMING=1`, move outcome histogram, finish trace, independently verified strict reason codes, JSONL checkpoint and top five distinct full-geometry signatures. User selected `--wire-polish yes` for strict-quality assistance in the example command. **No timing results or best five can be reported until the Mac completes the sweep.** Existing source master and prior runs are left unchanged.
+
 ## 9. Starting a new ChatGPT chat
 
 Suggested initial instruction: **“Read `docs/START_HERE_NATIVE_SOLVER_HANDOFF_2026-11-24.md`, root `README.md`, `project.md` and `docs/native-edge-slide-motoex.md` from branch `feature/native-edge-slide-motoex` in `bigbadevilaussie-hue/stripboard-optimiser`. Continue the general-purpose native optimiser where we left off. The immediate job is to compile/test/replay `wireColumnPolish.ts` on existing 500k saved layouts and fix it, then tackle net6 and integrate edge-slide into native anneal. Do not hard-code for MOTOEX. Quality/strict verification first; use existing branch; make code and commits, not just plans.”**
