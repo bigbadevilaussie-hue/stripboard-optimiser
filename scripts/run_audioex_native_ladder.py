@@ -162,7 +162,8 @@ def last_json(stdout: str) -> dict | None:
 
 def run_one(folder: Path, prepared: dict, moves: int, seed: int,
             timeout: int, drilled: bool = False,
-            drill_domain: bool = False, forensic: bool = False) -> dict:
+            drill_domain: bool = False, forensic: bool = False,
+            enforce_bms_anchor: bool = True) -> dict:
     """Each worker owns one disjoint folder; never touches fixture or peers."""
     tag = f"moves_{moves:06d}_seed_{seed:03d}"
     job = folder / "jobs" / tag
@@ -230,13 +231,14 @@ def run_one(folder: Path, prepared: dict, moves: int, seed: int,
     else:
         try:
             saved = json.loads(candidate.read_text(encoding="utf8"))
-            sbms, _ = bms_info(saved)
-            bms, _ = bms_info(prepared)
-            if (sbms.get("boardPos") != BMS_POS or sbms.get("rotation",0) != 0 or
-                sbms.get("locked") is not True or sbms.get("edge") is not True or
-                sbms.get("slide") is not False or
-                sbms.get("id") != bms.get("id")):
-                record["errors"].append("BMS_CASE_ANCHOR_CHANGED")
+            if enforce_bms_anchor:
+                sbms, _ = bms_info(saved)
+                bms, _ = bms_info(prepared)
+                if (sbms.get("boardPos") != BMS_POS or sbms.get("rotation",0) != 0 or
+                    sbms.get("locked") is not True or sbms.get("edge") is not True or
+                    sbms.get("slide") is not False or
+                    sbms.get("id") != bms.get("id")):
+                    record["errors"].append("BMS_CASE_ANCHOR_CHANGED")
             if (saved.get("board", {}).get("rows"), saved.get("board", {}).get("cols"),
                 saved.get("board", {}).get("lockedRows"),
                 saved.get("board", {}).get("lockedCols")) != (24, 56, True, True):
