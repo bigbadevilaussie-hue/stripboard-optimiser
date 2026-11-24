@@ -24,6 +24,17 @@ With `-DV5_EXPERIMENT_EDGE_MOUNT=1`, `v5wasm/decode.c` counts only the on-board 
 `npm run build:native:edge` builds a separate experimental decoder at `src/frontend/tests/solver/native/build/edge/libv5decode.so`. It also enables the previously verified grid-clear and identical-genome speed shortcuts. It does not overwrite the standard native decoder, native router, browser WASM, CLI protocol or WR artifacts.
 
 
+## Latest domain-ON 500k replay — 24 November 2026
+
+The correct `motoex_col25_rotation_domain_500k` and `motoex_col41_rotation_domain_500k` files were finally tested on the user's iMac, including the explicit same-copper-segment column move assertion. **TypeScript compilation and synthetic wire-polish test passed.**
+
+- **Col25 domain-ON:** 40 W / 56 C, 0 shorts, 0 opens, geometry 0, one nonvertical jumper, 8 body crossings, 4 stacks, **2 knives → 1 knife**. 213 candidate column shifts tried, 1 accepted, 1 knife drilled. Original knives: row0 gap42/43 blocked by wire #30; row7 gap30/31 blocked by wire #35. Both not pin-forced. New JSON `~/Desktop/motoex_col25_domain_on_polished.json`.
+- **Col41 domain-ON:** 23 W / 44 C, **1 incomplete net**, one nonvertical jumper, 0 body crossings, 2 stacks, **2 knives unchanged** after 78 tested / 0 accepted. Knife row0 gap50/51 blocked by wire #18; knife row13 gap47/48 blocked by wire #22. New JSON `~/Desktop/motoex_col41_domain_on_polished.json`.
+- **Net6 on col41 domain-ON:** group ESP32.GPIO5@(13,48), only 3 free holes; group R3.2@(21,14)+R4.1@(21,12), 19 free holes; group R10.1@(3,7), 8 free holes. Groups 1/2 and 1/3 have **zero shared free columns**; groups 2/3 share 8 but **zero currently unobstructed vertical paths**.
+- **Independent before/after checks showed no regression**; **neither board passed strict validation**. The current one-wire common-column pass has reached a local limit. Implement generic conflict-directed component placement / multiple-wire rerouting on the immutable board; do not hardcode net6 or specific parts.
+
+See [complete handover §8C](START_HERE_NATIVE_SOLVER_HANDOFF_2026-11-24.md#8c-user-verified-rotation-domain-on-500k-replay--24-nov-2026-latest) for details. The older pre-domain 500k replay is recorded below and is **not** the current ON-domain result.
+
 ## 24 November 2026 — real saved-board polisher results (Mac-verified)
 
 The user pulled the alias-loader bootstrap fix `b6aae85`, compiled the solver TS tests and confirmed **all three synthetic test suites passed**. Read-only knife and net-corridor diagnostics and both saved-layout polisher runs completed.
