@@ -54,8 +54,12 @@ function auditSavedStrict(saved, input, noStack = false) {
   const wires = b.wires ?? [], cuts = b.cuts ?? [];
   for (let i=0;i<cuts.length;i++) {
     const cut=cuts[i];
-    if (!inside(cut,b) || !["hole","between"].includes(cut.kind) ||
-        (cut.kind === "between" && cut.col >= b.cols-1))
+    // The public Cut type intentionally omits kind for ordinary between-hole
+    // knife cuts. Match the real strip router's default, not a mandatory
+    // tagged union: absent kind === "between".
+    const kind = cut.kind ?? "between";
+    if (!inside(cut,b) || !["hole","between"].includes(kind) ||
+        (kind === "between" && cut.col >= b.cols-1))
       failures.push("ILLEGAL_CUT_" + (i+1));
   }
   let nonvertical=0, stacks=0;

@@ -29,6 +29,23 @@ saved.board.wires=[
 const result=auditSavedStrict(saved,input);
 assert.equal(result.valid,true,JSON.stringify(result));
 assert.equal(result.stacked,1);
+// Saved legacy boards frequently omit Cut.kind: undefined means "between".
+const implicitKnife=JSON.parse(JSON.stringify(saved));
+implicitKnife.board.cuts=[{row:0,col:5}];
+assert.equal(auditSavedStrict(implicitKnife,input).valid,true,
+  "missing cut kind is a legal between-hole knife cut");
+const explicitKnife=JSON.parse(JSON.stringify(saved));
+explicitKnife.board.cuts=[{row:0,col:5,kind:"between"}];
+assert.equal(auditSavedStrict(explicitKnife,input).valid,true,
+  "explicit between-cut behaves identically to the implicit form");
+const invalidKnife=JSON.parse(JSON.stringify(saved));
+invalidKnife.board.cuts=[{row:0,col:6}];
+assert.ok(auditSavedStrict(invalidKnife,input).failures.some(x=>x.startsWith("ILLEGAL_CUT")),
+  "between cut after final column remains illegal");
+const badCutKind=JSON.parse(JSON.stringify(saved));
+badCutKind.board.cuts=[{row:0,col:5,kind:"mystery"}];
+assert.ok(auditSavedStrict(badCutKind,input).failures.some(x=>x.startsWith("ILLEGAL_CUT")),
+  "unknown kinds are never silently accepted");
 const forbidden=auditSavedStrict(saved,input,true);
 assert.equal(forbidden.valid,false);
 assert.ok(forbidden.failures.some(f=>f.startsWith("STACKED_")));
