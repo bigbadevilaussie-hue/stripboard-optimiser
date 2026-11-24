@@ -11,6 +11,10 @@
 5. [Standalone renderers](../src/frontend/standalone-renderer/README.md) — Node SVG CLI usage
 6. [Headless solver](../src/frontend/README.md) — builds and strict CLI verification
 
+## Static 100-check Audio/Moto input audit (24 Nov 2026)
+
+- [Results, detailed coverage and search-outcome prediction](AUDIO_MOTO_100_CHECK_PREFLIGHT_2026-11-24.md) — 100 checks per circuit using `scripts/audit_100_audio_moto.js`; Audio 99 PASS / 1 planning WARN, Moto 91 PASS / 9 planning WARN, **zero input-contract FAILs**. Pre-solve only; not strict saved-board certification.
+
 ## Active WR experiment — Audio and Moto
 
 - [WR 12k discovery + native call chain + last reported results + safe-use warning](ACTIVE_HANDOFF_2026-11-24.md). This **passes-only runner wipes output directories on rerun**, has no resume, and is separate from AUDIOEX's resumable forensic ladder.
