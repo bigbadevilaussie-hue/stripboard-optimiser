@@ -251,9 +251,7 @@ def sweep_subset(name, prepared, moves, folder, jobs, timeout, resume, wanted):
                           f"| ⭐ {row['quality100']:.2f}/100 "
                           f"| {row['wires']}W/{row['cuts']}C "
                           f"| 💾 {row['file']} | passes {passes}", flush=True)
-                else:
-                    print(f"❌ {name} {moves//1000}k seed {row['seed']:04d}/2000 "
-                          f"| passes {passes}", flush=True)
+                # Failed seeds are checkpointed silently; print passes only.
         except KeyboardInterrupt:
             for f in futures:
                 f.cancel()
