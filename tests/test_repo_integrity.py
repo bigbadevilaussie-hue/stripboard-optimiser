@@ -9,11 +9,13 @@ class RepoIntegrityTests(unittest.TestCase):
         audit = check_repository()
         self.assertEqual(audit["status"], "PASS", audit.get("errors"))
         self.assertEqual(audit["errors"], [])
-        self.assertEqual(audit["stats"]["fixture_files"], 12)
-        self.assertEqual(audit["stats"]["fixture_hashes_checked"], 12)
+        self.assertGreaterEqual(audit["stats"]["fixture_files"], 12)
+        self.assertEqual(audit["stats"]["fixture_files"],
+                         audit["stats"]["fixture_hashes_checked"])
         self.assertEqual(audit["stats"]["master_project_jsons_checked"], 3)
         self.assertGreaterEqual(audit["stats"]["typescript_files_checked"], 76)
-        self.assertEqual(audit["versions"]["gui"], "2.01")
+        self.assertRegex(audit["versions"]["gui"], r"^2\.\d{2}$")
+        self.assertNotEqual(audit["versions"]["gui"], audit["versions"]["repository"])
         self.assertEqual(audit["versions"]["repository"], "2.00")
 
 

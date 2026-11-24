@@ -10,8 +10,11 @@ Import/sanity/geometry/sidecar support is also directly reused.
 **FIRST CHECKPOINT: original Route-Mate import workflow and lock dialogs,
 then STOP before Pass 1.**
 
-The GUI's **Load JSON** method and sequential `_ask_lock_settings()` method
-are copied verbatim from Route-Mate 1.44 at the pinned donor commit.
+The GUI's **Load JSON** and sequential `_ask_lock_settings()` workflow
+comes from Route-Mate 1.44 at the pinned donor commit. The imported methods
+were adapted after the transplant to cache schematic previews and enforce
+the native-solver hard stop; the original board-size, spacing, highlighted
+component-lock dialogs and decision order are preserved.
 
 Original sequence:
 1. Select a JSON file.
