@@ -5,6 +5,7 @@ Ideas for the Stripboard Optimiser to revisit when the current native solver and
 ## 🦂 Idea 001 — Seed 69 auto-calibration when a JSON is loaded
 
 **Added:** 24 November 2026  
+**Implementation status:** Standalone **native CLI seed-69 probe implemented** as `scripts/probe_seed69.py`. **GUI auto-run/pop-up/caching/recommendation not implemented.**  
 **Nick's concept:** “When we load the JSON, pop up ‘Calibrating the optimizer please hold’. Then we do 5k, 10k, 15k, 20k and 25k on 1 seed only. Pick 69 cos it's funny. Then make some slash thingo. Then get going.”
 
 ### Experience
@@ -35,6 +36,17 @@ Ideas for the Stripboard Optimiser to revisit when the current native solver and
 ### Why this idea is useful
 
 JSON topology alone cannot predict how quickly the actual native solver can run on the user's CPU. Five short probes provide machine-and-project-specific timing evidence before committing to large multipass sweeps. Pair the timing with observed success rates to make a recommendation, not a blind universal move count.
+
+### Run the standalone probe safely
+
+```sh
+cd ~/Documents/stripboard-optimiser
+git pull --ff-only
+python3 scripts/probe_seed69.py                  # Moto by default
+# python3 scripts/probe_seed69.py --circuit both # Audio + Moto, five runs each
+```
+
+**Protection:** creates a fresh `~/Desktop/Seed69Calibrations/` subdirectory with logs, candidate layouts, audit results, CSV, per-circuit summaries, SHA256 manifest; **never deletes or writes to** `~/Desktop/WR_Audio` or `~/Desktop/WR_Moto`. Refuses by default while `run_wr_audio_moto.py` is running, to avoid distorted timings or CPU contention; `--allow-concurrent` is available for an intentionally under-load experiment. It does **not** run automatically on JSON load yet. Runs must be performed on the owner's Mac to get genuine performance.
 
 ## Other candidate ideas noted (not yet designed)
 
