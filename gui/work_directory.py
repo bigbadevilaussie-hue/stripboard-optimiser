@@ -20,6 +20,110 @@ PASS_TWO = "pass 2"
 SUBDIRS = (PASS_ONE, PASS_TWO, "jsons", "logs")
 CSV_FIELDS = ("seed", "cut", "w", "q", "time_taken")
 
+CAMPAIGN_FIELDS = CSV_FIELDS + ("status", "reason")
+CAMPAIGN_MANIFEST = "campaign.json"
+MOVE_BUDGETS = (10000, 20000)
+
+
+def pass_one_budget_dir(root: Path, moves: int, *, create: bool = False) -> Path:
+    """Per-project, per-budget isolation; never delete sibling campaigns."""
+    if moves not in MOVE_BUDGETS:
+        raise ValueError(f"Unsupported Pass One move budget: {moves}")
+    folder = Path(root) / PASS_ONE / f"{moves // 1000}k"
+    if folder.is_symlink():
+        raise ValueError(f"Refusing symlinked Pass One campaign: {folder}")
+    if create:
+        ensure_work(root)
+        folder.mkdir(parents=True, exist_ok=True)
+    return folder
+
+
+def winner_budget_dir(root: Path, moves: int, *, create: bool = False) -> Path:
+    if moves not in MOVE_BUDGETS:
+        raise ValueError(f"Unsupported Pass One move budget: {moves}")
+    folder = Path(root) / "jsons" / f"{moves // 1000}k"
+    if folder.is_symlink():
+        raise ValueError(f"Refusing symlinked winner directory: {folder}")
+    if create:
+        ensure_work(root)
+        folder.mkdir(parents=True, exist_ok=True)
+    return folder
+
+
+def pass_one_campaign_sources(root: Path) -> list[tuple[str, Path]]:
+    """Completed/incomplete budgeted CSVs and unmodified legacy CSV.
+
+    The GUI shows both so an old 10k Moto CSV remains accessible in Pass Two.
+    """
+    base = Path(root) / PASS_ONE
+    result = []
+    for moves in MOVE_BUDGETS:
+        folder = pass_one_budget_dir(root, moves)
+        csv_file = folder / "results.csv"
+        if csv_file.is_file() and not csv_file.is_symlink():
+            result.append((f"{moves // 1000}k moves", csv_file))
+    old = base / "results.csv"
+    if old.is_file() and not old.is_symlink():
+        result.append(("Legacy Pass One (preserved)", old))
+    return result
+
+
+def campaign_existing_files(root: Path, moves: int) -> list[Path]:
+    """Inventory files before displaying an overwrite confirmation."""
+    paths = (pass_one_budget_dir(root, moves), winner_budget_dir(root, moves))
+    found = []
+    for folder in paths:
+        if folder.is_symlink():
+            raise ValueError(f"Refusing symlinked campaign directory: {folder}")
+        if folder.is_dir():
+            found.extend(sorted(folder.iterdir()))
+    return found
+
+
+def clear_pass_one_budget(root: Path, moves: int) -> Path:
+    """Clear ONLY one approved budget and its winner output, after GO."""
+    workspace = ensure_work(root)
+    for folder in (pass_one_budget_dir(workspace, moves, create=True),
+                   winner_budget_dir(workspace, moves, create=True)):
+        if folder.is_symlink():
+            raise ValueError(f"Refusing symlinked campaign directory: {folder}")
+        for child in folder.iterdir():
+            if child.is_dir() and not child.is_symlink():
+                shutil.rmtree(child)
+            else:
+                child.unlink()
+    return pass_one_budget_dir(workspace, moves)
+
+
+def load_campaign_records(csv_file: Path) -> dict[int, dict]:
+    """Load every recorded attempt; no seed inferred from row order."""
+    path = Path(csv_file)
+    records = {}
+    with path.open("r", newline="", encoding="utf-8") as stream:
+        reader = csv.DictReader(stream)
+        if tuple(reader.fieldnames or ()) != CAMPAIGN_FIELDS:
+            raise ValueError(f"Unexpected campaign CSV columns: {reader.fieldnames!r}")
+        for index, row in enumerate(reader, 2):
+            try:
+                seed = int(row["seed"])
+                status = row["status"]
+            except (KeyError, ValueError, TypeError) as exc:
+                raise ValueError(f"Invalid campaign CSV row {index}: {exc}") from exc
+            if seed <= 0 or seed in records or status not in ("PASS", "FAIL", "ERROR"):
+                raise ValueError(f"Duplicate seed or invalid status at row {index}")
+            if status == "PASS":
+                try:
+                    cut = int(row["cut"])
+                    wire = int(row["w"])
+                    quality = float(row["q"])
+                    if cut < 0 or wire < 0 or not 0 <= quality <= 100:
+                        raise ValueError("W/C/Q outside valid range")
+                except (ValueError, TypeError, KeyError) as exc:
+                    raise ValueError(f"Invalid PASS metrics at row {index}: {exc}") from exc
+            records[seed] = dict(row)
+    return records
+
+
 
 def ensure_work(root: Path = WORK_ROOT) -> Path:
     root = Path(root)
@@ -58,46 +162,62 @@ def clear_started_pass(stage: str, root: Path = WORK_ROOT) -> Path:
     return folder
 
 
-def read_pass_one(root: Path = WORK_ROOT) -> list[dict]:
-    """Load only vetted Pass One CSV rows, preserving every qualifying seed.
+def read_pass_one(root: Path = WORK_ROOT, *, csv_path: Path | None = None) -> list[dict]:
+    """Read verified PASS seeds only; old successful-only CSVs stay readable.
 
-    No solver call; works immediately after opening the GUI without JSON import.
+    New budget campaigns must be COMPLETED before they enter Pass Two.
     """
-    path = stage_path(PASS_ONE, root) / "results.csv"
-    if not path.is_file():
-        raise FileNotFoundError(f"Pass One CSV not found: {path}")
+    path = Path(csv_path) if csv_path is not None else stage_path(PASS_ONE, root) / "results.csv"
+    if not path.is_file() or path.is_symlink():
+        raise FileNotFoundError(f"Pass One CSV not found or is a symlink: {path}")
     rows = []
     seen = set()
     with path.open("r", newline="", encoding="utf-8") as stream:
         reader = csv.DictReader(stream)
-        if tuple(reader.fieldnames or ()) != CSV_FIELDS:
+        fields = tuple(reader.fieldnames or ())
+        if fields not in (CSV_FIELDS, CAMPAIGN_FIELDS):
             raise ValueError(f"Unexpected Pass One CSV columns: {reader.fieldnames!r}")
+        if fields == CAMPAIGN_FIELDS:
+            manifest = path.parent / CAMPAIGN_MANIFEST
+            if not manifest.is_file() or manifest.is_symlink():
+                raise ValueError(f"Missing campaign completion metadata: {manifest}")
+            state = json.loads(manifest.read_text(encoding="utf-8"))
+            if state.get("state") != "COMPLETED":
+                raise ValueError(f"Pass One {path.parent.name} is {state.get('state', 'INCOMPLETE')}; resume it before Pass Two.")
         for number, row in enumerate(reader, 2):
             try:
                 seed = int(row["seed"])
+            except (TypeError, ValueError, KeyError) as exc:
+                raise ValueError(f"Invalid Pass One seed on row {number}: {exc}") from exc
+            if seed <= 0 or seed in seen:
+                raise ValueError(f"Invalid or duplicate seed on row {number}")
+            seen.add(seed)
+            if fields == CAMPAIGN_FIELDS:
+                if row["status"] not in ("PASS", "FAIL", "ERROR"):
+                    raise ValueError(f"Invalid Pass One status at row {number}")
+                if row["status"] != "PASS":
+                    continue
+            try:
                 cuts = int(row["cut"])
                 wires = int(row["w"])
                 quality = float(row["q"])
                 seconds = float(row["time_taken"])
             except (TypeError, ValueError, KeyError) as exc:
-                raise ValueError(f"Invalid Pass One CSV row {number}: {exc}") from exc
+                raise ValueError(f"Invalid Pass One PASS row {number}: {exc}") from exc
             import math
-            if (seed <= 0 or seed in seen or cuts < 0 or wires < 0
-                or not math.isfinite(quality) or not 0 <= quality <= 100
-                or not math.isfinite(seconds) or seconds < 0):
-                raise ValueError(f"Invalid or duplicate Pass One seed on row {number}")
-            seen.add(seed)
+            if (cuts < 0 or wires < 0 or not math.isfinite(quality)
+                or not 0 <= quality <= 100 or not math.isfinite(seconds)
+                or seconds < 0):
+                raise ValueError(f"Invalid Pass One metrics on row {number}")
             rows.append({"seed": seed, "cut": cuts, "w": wires,
                          "q": quality, "time_taken": seconds})
     return rows
 
 
-def prepare_pass_two(root: Path = WORK_ROOT) -> tuple[Path, int]:
-    """Import every Pass One survivor. No unapproved Pass Two search algorithm.
-
-    Validate the source before touching existing Pass Two files.
-    """
-    rows = read_pass_one(root)
+def prepare_pass_two(root: Path = WORK_ROOT, *,
+                     source_csv: Path | None = None) -> tuple[Path, int]:
+    """Import verified survivors from the exact selected budget/legacy CSV."""
+    rows = read_pass_one(root, csv_path=source_csv)
     if not rows:
         raise ValueError("Pass One has no independently verified qualifying rows")
     folder = clear_started_pass(PASS_TWO, root)
@@ -111,7 +231,7 @@ def prepare_pass_two(root: Path = WORK_ROOT) -> tuple[Path, int]:
                              "time_taken": f"{row['time_taken']:.3f}"})
     with (folder / "activity.log").open("w", encoding="utf-8") as log:
         log.write(f"PASS TWO IMPORT: {len(rows)} verified Pass One CSV rows\n")
-        log.write(f"Source: {stage_path(PASS_ONE, root) / 'results.csv'}\n")
+        log.write(f"Source: {source_csv or (stage_path(PASS_ONE, root) / 'results.csv')}\n")
         log.write("Native Pass Two optimiser not started: search policy still unassigned.\n")
     return target, len(rows)
 
