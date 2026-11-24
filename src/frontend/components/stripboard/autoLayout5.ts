@@ -462,9 +462,18 @@ export function computeAutoLayout5(
     const lookup = new Map(components.map((comp) => [comp.id, comp]));
     for (const placement of result.placements) {
       const original = lookup.get(placement.componentId);
-      if (!original || !onPurchasedBoard(placement.boardPos)) return false;
+      if (!original) return false;
       const def = resolveComponentDef(original, componentDefs);
       if (!def) return false;
+      // A rigid locked Edge mount may begin beyond the PCB; only its
+      // body can overhang. The electrical pin checks below remain strict.
+      // The position and rotation must remain exactly as locked.
+      const bodyOnlyEdgeOverhang = original.locked === true &&
+        original.edge === true && !def.flexible && !!original.boardPos &&
+        placement.boardPos.row === original.boardPos.row &&
+        placement.boardPos.col === original.boardPos.col &&
+        (placement.rotation ?? original.rotation ?? 0) === (original.rotation ?? 0);
+      if (!onPurchasedBoard(placement.boardPos) && !bodyOnlyEdgeOverhang) return false;
       const positioned = { ...original, boardPos: placement.boardPos,
         rotation: placement.rotation ?? original.rotation, flexibleEndPos: placement.flexibleEndPos };
       for (const pin of getComponentPinPositions(positioned, def))

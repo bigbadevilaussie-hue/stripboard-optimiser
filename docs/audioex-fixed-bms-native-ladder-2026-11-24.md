@@ -77,6 +77,32 @@ The runner prevents this by comparing native SHA-256 fingerprints. Preserve
 targeted native regression and a single-seed smoke into a **new output
 directory**. A successful decode is **not** yet a strictly routed pass.
 
+## Second stage — finished-board physical gate (24 Nov 2026)
+
+A single 5k smoke with the edge decoder fixed advanced from
+`NO_FEASIBLE_PLACEMENT` to **`NO_PHYSICAL_FINISH`**. Investigation found
+a second generic validator mismatch in `autoLayout5.ts`:
+`physicalFit()` rejected **every** negative component anchor, even when
+that part was explicitly `locked + edge` and the body alone overhung the
+purchased 24×56 PCB. The isolated C decoder had already placed it legally.
+
+The fix exempts only a rigid explicitly locked Edge part **at its
+unchanged locked position and rotation** from the anchor-in-bounds test.
+All actual pin positions, copper cuts/jumper endpoints, board dimensions,
+and ordinary component bounds remain checked. The saved-board auditor
+still requires unchanged net assignments and the exact locked BMS.
+
+**Regression:** `node tests/solver/testNativeNegativeEdgeFinish.js`
+invokes a real native solve on a BMS-only AUDIOEX-derived project, verifies
+it does not return either UNSOLVED sentinel, and verifies the original
+negative BMS anchor is preserved in the saved JSON. This is intentionally
+not proof that the **full** AUDIOEX board routes successfully.
+
+Previous rejected folders are immutable evidence. A fresh smoke needs a
+**new** output folder:
+`~/Desktop/audioex_bms_edgefix2_smoke`. Do not resume or overwrite
+`audioex_bms_edgefix2_smoke` or `audioex_bms_fixed_native_ladder`.
+
 ## Mac commands
 
 From repository root, after `git pull --ff-only`:
@@ -87,31 +113,32 @@ npm run build:solver
 npm run build:native
 npm run build:native:edge
 node tests/solver/testNativeNegativeEdgeAnchor.js
+node tests/solver/testNativeNegativeEdgeFinish.js
 cd ../..
 
 PYTHONPATH=scripts python3 -m unittest scripts.tests.test_audioex_native_ladder -v
 
 # New isolated archive (do NOT overwrite the original 270 rejected runs):
 python3 scripts/run_audioex_native_ladder.py --jobs 4 \
-  --out ~/Desktop/audioex_bms_fixed_native_ladder_edgefix
+  --out ~/Desktop/audioex_bms_fixed_native_ladder_edgefix2
 ```
 
 Default archive remains `~/Desktop/audioex_bms_fixed_native_ladder/`,
 but that contains the **old 270 rejected attempts**; use
-`~/Desktop/audioex_bms_fixed_native_ladder_edgefix/` for the repaired native
+`~/Desktop/audioex_bms_fixed_native_ladder_edgefix2/` for the repaired native
 build. If an
 existing run is interrupted, **do not delete the folder**:
 
 ```sh
 python3 scripts/run_audioex_native_ladder.py --jobs 4 --resume \
-  --out ~/Desktop/audioex_bms_fixed_native_ladder_edgefix
+  --out ~/Desktop/audioex_bms_fixed_native_ladder_edgefix2
 ```
 
 Optional small verification without entering the full campaign:
 
 ```sh
 python3 scripts/run_audioex_native_ladder.py --jobs 1 --seeds 1 --moves 5000 \
-  --out ~/Desktop/audioex_bms_edgefix_smoke
+  --out ~/Desktop/audioex_bms_edgefix2_smoke
 ```
 
 **Do not** run a different `--moves`/`--seeds` set in the same archive;

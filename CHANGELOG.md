@@ -167,3 +167,15 @@ documentation together. A Git release tag is separate from the branch version.
   **new output folder** plus a single-seed smoke before rerunning a ladder.
 - No GUI change (2.02), no donor/Python solver and no source fixture edits.
   Run targeted Mac native test to confirm; results not yet independently observed.
+
+### Native Edge finish-gate correction — 24 November 2026
+
+- AUDIOEX 5k smoke advanced past the decoder but reached `NO_PHYSICAL_FINISH`.
+- Corrected `physicalFit()` in `autoLayout5.ts`: a rigid locked Edge part
+  may retain its **negative body anchor** at exactly the original position
+  and rotation; no exemption for non-edge/unlocked parts or electrical pins.
+- Added native CLI integration regression `testNativeNegativeEdgeFinish.js`
+  for an isolated BMS-derived project, including saved anchor verification.
+- Updated AUDIOEX ladder instructions to run the finish regression and use
+  fresh `edgefix2` archives rather than resuming the previous failed builds.
+- No GUI source change: GUI 2.02 retained. Full AUDIOEX strict solve not yet validated.
