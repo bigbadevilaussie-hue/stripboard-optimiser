@@ -18,7 +18,7 @@
 
 | Item | As-of 24 Nov 2026 |
 |---|---|
-| Repository / work branch | `bigbadevilaussie-hue/stripboard-optimiser` · `feature/native-edge-slide-motoex` (keep working on it; no extra branch required) |
+| Repository / work branch | `bigbadevilaussie-hue/stripboard-optimiser` · `main` (single active development branch) |
 | Current focus | **General-purpose native solver quality**: strict 24×56 physical board; real on-board GPS+USB test; drilled cuts, vertical uncrossing/unstacked wires, electrical completeness |
 | Confirmed on the user's Mac | Portable macOS native addon build; Edge decoder build; generic drill rotation and knife-cut synthetic tests; col25 **20k domain ON** first physical fit move **1,194 / 77 ms**, no incomplete nets; domain OFF original signature **`e69806eb68fc`** matches |
 | Observed 500k comparison | Col25 domain ON: **40 wires / 56 cuts, electrically complete, 2 knives, 8 crossings, 4 stacks**; col41 domain ON: **23 wires / 44 cuts, net6 incomplete, 2 knives, 0 crossings, 2 stacks** — user-supplied one-seed results, neither strict PASS |

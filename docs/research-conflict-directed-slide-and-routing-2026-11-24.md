@@ -1,6 +1,6 @@
 # Research: escaping failed USB Slide layouts through conflict-directed routing and placement
 
-**Date:** 24 November 2026 (Australia/Brisbane). **Branch:** `feature/native-edge-slide-motoex`. **Status:** research/engineering design, **not implemented or Mac-tested**. This document intentionally proposes **no production code changes during the in-progress exhaustive 200 seeds × 51 USB columns sweep**.
+**Date:** 24 November 2026 (Australia/Brisbane). **Current branch:** `main` (original research drafted on the former feature branch). **Status:** research/engineering design, **not implemented or Mac-tested**. This document intentionally proposes **no production code changes during the in-progress exhaustive 200 seeds × 51 USB columns sweep**.
 
 ## Problem and empirical evidence
 

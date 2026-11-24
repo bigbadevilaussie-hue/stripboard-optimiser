@@ -1,6 +1,6 @@
 # MOTOEX native exhaustive USB Slide sweep — 200 seeds × up to 51 positions × 25k moves
 
-**Status:** implemented on feature branch \`feature/native-edge-slide-motoex\`. Code and pure controller tests committed, **not yet executed on user's iMac**. This is a separate experiment from the completed **fixed USB col47** 200×25k sweep (0 strict passes).
+**Status:** implemented on feature branch \`main\`. Code and pure controller tests committed, **not yet executed on user's iMac**. This is a separate experiment from the completed **fixed USB col47** 200×25k sweep (0 strict passes).
 
 ## Exact contract
 

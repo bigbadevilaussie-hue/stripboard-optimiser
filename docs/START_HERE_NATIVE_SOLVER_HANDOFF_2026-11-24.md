@@ -1,8 +1,8 @@
 # START HERE — Native stripboard solver handover (24 November 2026)
 
-> **This is the current engineering handover for the next chat or developer.** Read this file, [README.md](../README.md), [project.md](../project.md), and [native Edge/Slide technical notes](native-edge-slide-motoex.md) **before changing code**. Do not infer that a command or test has passed merely because it is committed. All commands and findings below are tied to the existing GitHub feature branch, not a new branch.
+> **This is the current engineering handover for the next chat or developer.** Read this file, [README.md](../README.md), [project.md](../project.md), and [native Edge/Slide technical notes](native-edge-slide-motoex.md) **before changing code**. Do not infer that a command or test has passed merely because it is committed. Work originated on a feature branch; it was fast-forwarded intact to `main` on 24 November 2026. Continue all development on `main`.
 >
-> **As-of:** 24 November 2026, Australia/Brisbane. **Repository:** `bigbadevilaussie-hue/stripboard-optimiser`. **Active work branch:** `feature/native-edge-slide-motoex`. Source-code tip immediately before this documentation update: `240ed008228f5f6c26b3ef3248df1e1503b9ff39`; documentation commits advance the branch afterwards. Run `git status -sb` / `git log -5 --oneline` to establish actual tip.
+> **As-of:** 24 November 2026, Australia/Brisbane. **Repository:** `bigbadevilaussie-hue/stripboard-optimiser`. **Active work branch:** `main`. Source-code tip immediately before this documentation update: `240ed008228f5f6c26b3ef3248df1e1503b9ff39`; documentation commits advance the branch afterwards. Run `git status -sb` / `git log -5 --oneline` to establish actual tip.
 
 ## 1. Mission, user priorities and boundaries
 
@@ -332,6 +332,6 @@ Current key discovery: `src/frontend/components/stripboard/v5wasm/route.c` **alr
 
 ## 9. Starting a new ChatGPT chat
 
-Suggested initial instruction: **“Read `docs/START_HERE_NATIVE_SOLVER_HANDOFF_2026-11-24.md`, root `README.md`, `project.md` and `docs/native-edge-slide-motoex.md` from branch `feature/native-edge-slide-motoex` in `bigbadevilaussie-hue/stripboard-optimiser`. Continue the general-purpose native optimiser where we left off. The immediate job is to compile/test/replay `wireColumnPolish.ts` on existing 500k saved layouts and fix it, then tackle net6 and integrate edge-slide into native anneal. Do not hard-code for MOTOEX. Quality/strict verification first; use existing branch; make code and commits, not just plans.”**
+Suggested initial instruction: **“Read `docs/START_HERE_NATIVE_SOLVER_HANDOFF_2026-11-24.md`, root `README.md`, `project.md` and `docs/native-edge-slide-motoex.md` from branch `main` in `bigbadevilaussie-hue/stripboard-optimiser`. Continue the general-purpose native optimiser where we left off. The immediate job is to compile/test/replay `wireColumnPolish.ts` on existing 500k saved layouts and fix it, then tackle net6 and integrate edge-slide into native anneal. Do not hard-code for MOTOEX. Quality/strict verification first; work on main; make code and commits, not just plans.”**
 
 **This handover is a documentation snapshot. Git code and actual new test output supersede an outdated statement.** When code or measured results change, update the status and the exact commands here and at the top-level README in the same commit.

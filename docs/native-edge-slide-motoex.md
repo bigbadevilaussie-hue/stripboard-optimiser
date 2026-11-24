@@ -119,7 +119,8 @@ The TypeScript seed collector rejects any initial/intermediate out-of-cap events
 ```bash
 cd `/Documents/stripboard-optimiser
 git fetch origin
-git switch -c feature/native-edge-slide-motoex --track origin/feature/native-edge-slide-motoex
+git switch main
+git pull --ff-only
 
 PYTHONPATH=scripts python3 -m unittest discover \
   -s scripts/tests -p 'test_motoex_native_edge_slide.py' -v
