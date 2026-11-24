@@ -196,6 +196,12 @@ export function polishFixedBoardWires(
       for (const col of cols) {
         if (tried >= maxEvaluations) break;
         const from = { row: w.from.row, col }, to = { row: w.to.row, col };
+        // Copper identity invariant: each shifted endpoint must remain on
+        // EXACTLY the same original cut-defined strip segment. Even if a
+        // later knife→drill change modifies segments, the full connectivity
+        // verifier independently checks the final copper graph.
+        if (findSegmentIndex(segs, from.row, from.col) !== si ||
+            findSegmentIndex(segs, to.row, to.col) !== sj) continue;
         const keyA = holeKey(from.row, col), keyB = holeKey(to.row, col);
         if (occupied.has(keyA) || occupied.has(keyB) ||
             (wireEnds.has(keyA) && keyA !== holeKey(w.from.row, w.from.col) && keyA !== holeKey(w.to.row, w.to.col)) ||
