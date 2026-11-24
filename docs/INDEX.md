@@ -2,12 +2,18 @@
 
 ## Start here (current authority)
 
+**New chat / current live work:** [ACTIVE HANDOFF — Audio + Moto WR sweep, multipass and GUI status (24 Nov 2026)](ACTIVE_HANDOFF_2026-11-24.md). This is the most current conversation handoff; older research notes below are dated historical evidence.
+
 1. [README](../README.md) — install, current architecture and commands
 2. [Project contract](../project.md) — accepted native pipeline and rules
 3. [Full repository audit, 24 Nov 2026](REPOSITORY_AUDIT_2026-11-24.md) — verified static findings, known gaps, target-Mac test matrix
 4. [Route-Mate GUI integration](../gui/README.md) — current import/locks/schematic hard-stop workflow
 5. [Standalone renderers](../src/frontend/standalone-renderer/README.md) — Node SVG CLI usage
 6. [Headless solver](../src/frontend/README.md) — builds and strict CLI verification
+
+## Active WR experiment — Audio and Moto
+
+- [WR 12k discovery + native call chain + last reported results + safe-use warning](ACTIVE_HANDOFF_2026-11-24.md). This **passes-only runner wipes output directories on rerun**, has no resume, and is separate from AUDIOEX's resumable forensic ladder.
 
 ## Active AUDIOEX experiment
 
