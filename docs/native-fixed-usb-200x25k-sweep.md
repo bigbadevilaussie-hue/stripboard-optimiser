@@ -1,6 +1,50 @@
 # Native MOTOEX 200 × 25k fixed-USB sweep — reproducible run
 
-**Status:** runner and configuration tests are committed; the user's iMac has **not executed this sweep yet** as of creation. **Active branch:** `feature/native-edge-slide-motoex`.
+**Status updated from the user's iMac log, 24 November 2026:** **200/200 completed, 0 strict solved, 150.08 s wall time.** Exact run command and build tests passed. The earlier pre-run description below is historical. **Active branch:** `feature/native-edge-slide-motoex`. See measured diagnostics in the next section.
+
+## Measured result — Mac run 200 × 25k, USB fixed col47 (no slide)
+
+The user pasted the entire 200-seed terminal run. Native build, config tests (6/6) and fixed tournament completed. There were **0/200 strict passes**, so **no top five solved JSONs exist**. The `top5/` folder was correctly left empty; candidates were retained under `rejected/`, with per-seed timing and diagnostics in `results.jsonl`, `results.csv` and `jobs/`.
+
+| Metric | Measured |
+|---|---:|
+| Seeds finished | **200 / 200** |
+| USB slide | **OFF**, row 13 col 47 for all 200 |
+| Moves per seed | 25,000 |
+| Strict passes | **0** |
+| Wall clock | **150.08 seconds** |
+| Mean per-job duration in terminal | **4.45 seconds** |
+| Electrically complete routed boards | **63 / 199** |
+| No feasible placement | **1 (seed 162)** |
+| Electrically complete AND zero nonvertical wires | **1 (seed 157)** |
+| Electrically complete AND zero component crossings | **1 (seed 129)** |
+| Electrically complete AND both zero | **0** |
+
+**Five closest *strictly invalid* candidates (not claimed solved):**
+
+| Seed | Wires / cuts | Nonvertical | Crossings | Knives (allowed) | Stacks (allowed) | Opens |
+|---:|---:|---:|---:|---:|---:|---:|
+| **157** | 43 / 59 | **0** | **1** | 10 | 7 | 0 |
+| **129** | 40 / 56 | **1** | **0** | 7 | 4 | 0 |
+| 151 | 40 / 56 | 1 | 2 | 9 | 6 | 0 |
+| 111 | 42 / 58 | 1 | 2 | 9 | 6 | 0 |
+| 69 | 56 / 72 | 1 | 2 | 24 | 18 | 0 |
+
+These rankings were derived from the pasted terminal log as an **electrical-first/physical-defect-first post-analysis**, not from the strict top-five winner list (which has zero entries). They are **NOT build-ready**. The original runner already saved their JSONs in `rejected/`; no need to rerun 5 million moves.
+
+**High-value next repair:** inspect wire crossings for seed **157** and nonvertical wiring for seed **129**. The general-purpose solver needs a bounded conflict-directed component/wire reroute rather than more seeds at the same budget. The user explicitly allowed knife cuts and stacking in this sweep. Do **not** relax opens, body crossings, exact locked board bounds, or nonvertical wire rules to manufacture a strict PASS.
+
+**New post-analysis tool:** `scripts/analyze_motoex_native_sweep.py` ranks the nearest **electrically complete** but strictly invalid boards, copies their JSONs to a separate `analysis/near_misses/` directory, and writes `analysis/near_miss_report.md`, `analysis/near_miss_summary.json`, and `analysis/near_misses.csv` including full stored per-wire component-crossing and stack-partner diagnostics, timing and move summary. The source results and JSONs are unchanged.
+
+```bash
+cd ~/Documents/stripboard-optimiser
+git pull --ff-only
+PYTHONPATH=scripts python3 -m unittest discover -s scripts/tests -p 'test_analyze_motoex_native_sweep.py' -v
+python3 scripts/analyze_motoex_native_sweep.py \
+  --out ~/Desktop/motoex_native_fixed_200x25k_v1 --top 5
+```
+
+The analyzer and its synthetic tests were committed **after** the 200-seed run; they must still be run on the Mac. This post-processing is fast and requires **zero** additional anneals. The actual `results.jsonl` files provide more detailed timings than the terminal log, and are the authoritative input for deeper analysis.
 
 ## Decisions and controls
 
