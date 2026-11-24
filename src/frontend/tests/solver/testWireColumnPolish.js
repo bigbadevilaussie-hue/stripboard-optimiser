@@ -1,6 +1,8 @@
 // Pure synthetic regression: inspect independent verifiers on EVERY kept move.
 const assert = require("node:assert/strict");
 const path = require("path");
+// Install the existing test harness @/ alias resolver before loading compiled TS.
+require("./helpers.js");
 const { polishFixedBoardWires } = require(path.join(
   __dirname, "out/components/stripboard/wireColumnPolish.js"));
 const { verify, checkGeometry } = require("./helpers.js");
