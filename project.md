@@ -1,8 +1,8 @@
 # Stripboard Optimiser — Version 2.00 project contract
 
-**Milestone:** Consolidation of Two Repositories (24 November 2026). GUI version **2.02** is independently tracked in `gui/VERSION`.
+**Milestone:** Consolidation of Two Repositories (24 November 2026). GUI version **2.04** is independently tracked in `gui/VERSION` (24 Nov 2026).
 
-**Current audit:** [Repository integrity and integration audit](docs/REPOSITORY_AUDIT_2026-11-24.md). Historical handovers remain useful but their future-phase language may now be outdated.
+**Current live-work handoff:** [Audio/Moto 12k WR sweep, results, multipass plan and GUI boundaries](docs/ACTIVE_HANDOFF_2026-11-24.md). **Historic static audit:** [Repository integrity and integration audit](docs/REPOSITORY_AUDIT_2026-11-24.md). Historical handovers remain useful but their future-phase language may now be outdated.
 
 The current `main` branch is version 2.00. This is a repository-structure and
 version milestone; it is not a claim of a new solver algorithm or independently
@@ -37,6 +37,8 @@ verified before they enter the qualified ranking.
    jumper direction, body collisions, component locks and board dimensions.
 6. Rank **qualified** layouts by wires, cuts, wire length and price.
 7. Preserve best, top-five and rejected candidates with restartable checkpoints.
+
+**Important harness distinction:** Steps 4 and 7 above describe the full forensic/ladder research harness, **not** every script. The current `scripts/run_wr_audio_moto.py` 12k sweep intentionally **keeps only strict-passing saved JSONs**, prints only passes, has **no failure database and no resume**, and **deletes each existing WR output folder before starting that rung**. It must not be restarted casually. It calls the same native V5 engine and saved-board auditor through `scripts/run_audioex_native_ladder.py`; Python is only orchestration and post-pass scoring. See [active handoff](docs/ACTIVE_HANDOFF_2026-11-24.md) for exact datasets and latest reported status.
 
 Current default research policy: drilled-only OFF (knife cuts allowed),
 wire stacking ON (insulated overlapping jumpers allowed), rows and columns
