@@ -103,7 +103,8 @@ def check_repository(root: Path = ROOT) -> dict:
     stats["fixture_files"] = len(actual)
     stats["fixture_hashes_checked"] = len(listed)
 
-    for rel in ("masters/audio/audio.json", "masters/moto/moto.json", "masters/moto/motoex.json"):
+    for rel in ("masters/audio/audio.json", "masters/audio/audioex.json",
+                "masters/moto/moto.json", "masters/moto/motoex.json"):
         project = json.loads((fixture_dir / rel).read_text(encoding="utf-8"))
         parts, nets = project.get("components", []), project.get("nets", [])
         ids = [p.get("id") for p in parts]
@@ -116,7 +117,7 @@ def check_repository(root: Path = ROOT) -> dict:
         board = project.get("board", {})
         if not all(isinstance(board.get(k), int) and board[k] > 0 for k in ("rows", "cols")):
             errors.append(f"Invalid raw board dimensions: {rel}")
-    stats["master_project_jsons_checked"] = 3
+    stats["master_project_jsons_checked"] = 4
 
     # Git index gives a stable audit of the shipped source, not local build debris.
     ts_paths = sorted(root / path for path in tracked if path.endswith(".ts"))

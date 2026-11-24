@@ -9,6 +9,12 @@
 5. [Standalone renderers](../src/frontend/standalone-renderer/README.md) — Node SVG CLI usage
 6. [Headless solver](../src/frontend/README.md) — builds and strict CLI verification
 
+## Active AUDIOEX experiment
+
+- [Fixed BMS overhang native 270-trial ladder](audioex-fixed-bms-native-ladder-2026-11-24.md):
+  24×56, BMS row −2/col 24 locked, Edge ON/Slide OFF, knives/stacking
+  permitted; full strict archive, top five and resumable Mac invocation
+
 ## Source / architecture references
 
 - [Route-Mate code reuse & GUI handover](Route-Mate_GUI_Code_Handover.md):

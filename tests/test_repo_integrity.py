@@ -12,7 +12,7 @@ class RepoIntegrityTests(unittest.TestCase):
         self.assertGreaterEqual(audit["stats"]["fixture_files"], 12)
         self.assertEqual(audit["stats"]["fixture_files"],
                          audit["stats"]["fixture_hashes_checked"])
-        self.assertEqual(audit["stats"]["master_project_jsons_checked"], 3)
+        self.assertEqual(audit["stats"]["master_project_jsons_checked"], 4)
         self.assertGreaterEqual(audit["stats"]["typescript_files_checked"], 76)
         self.assertRegex(audit["versions"]["gui"], r"^2\.\d{2}$")
         self.assertNotEqual(audit["versions"]["gui"], audit["versions"]["repository"])

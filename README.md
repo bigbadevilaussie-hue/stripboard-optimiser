@@ -154,6 +154,30 @@ python3 scripts/requalify_motoex_winner_ladder.py
 See `docs/motoex-seed37-winner-ladder-2026-11-24.md` for the exact original
 reproducible experiment and archive locations.
 
+## AUDIOEX locked-BMS native ladder
+
+The `audioex.json` source retains a case-positioned BMS at **row −2, col 24**.
+The dedicated native CLI ladder prepares an isolated input with BMS **Locked +
+Edge, Slide OFF**, allows its *body* overhang while requiring all electrical
+pins on-board, and runs with **drill OFF / stacking ON**. It executes ten seeds
+per budget: 5k–50k by 5k, then 100k–500k by 25k (270 independent solves).
+Every saved candidate is audited; **all strictly passing boards** are saved,
+with the five best distinct layouts copied to `top5/`.
+
+Build the existing native edge decoder with `npm run build:native:edge`, then:
+
+```sh
+python3 scripts/run_audioex_native_ladder.py --jobs 4
+# After interruption:
+python3 scripts/run_audioex_native_ladder.py --jobs 4 --resume
+```
+
+Outputs default to `~/Desktop/audioex_bms_fixed_native_ladder/`. No GUI,
+fixture JSON, or native solver code changes are needed. The existing four
+manual source cuts are preserved in the original fixture, but the native
+solver **always starts with blank cuts/wires**. See
+[exact procedure and qualification](docs/audioex-fixed-bms-native-ladder-2026-11-24.md).
+
 ## Audit and test coverage
 
 The headless `npm run test:solver` and `npm run test:board` scripts run

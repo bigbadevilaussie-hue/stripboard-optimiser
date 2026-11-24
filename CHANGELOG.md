@@ -137,3 +137,19 @@ documentation together. A Git release tag is separate from the branch version.
 - **No changes** to `gui/main.py`, Qt drawing, standalone SVG/PNG renderer,
   component locks, circuit inputs, native CLI, or the pre-Pass-1 hard stop.
 - Actual PySide6 regression suite must be rerun on the user's Mac.
+
+### Version 2.00 / GUI 2.02 — AUDIOEX fixed-BMS native ladder harness (24 November 2026)
+
+- Added `scripts/run_audioex_native_ladder.py`, a resume-safe **native CLI** controller,
+  with independent saved-board audit, retained every-pass and rejected layouts,
+  a distinct physical top five, and per-seed logs/checkpoints.
+- Uses the 24×56 AUDIOEX source, fixed top-edge BMS anchor (row -2, col 24),
+  Edge ON, Slide OFF, knives allowed and wire stacking allowed.
+- Schedules 5k–50k in 5k increments and 100k–500k in 25k increments,
+  ten independent seeds per budget (270 total).
+- Documents that the native CLI starts with blank cuts/wires; original four
+  source cuts and JSON remain untouched in a preserved copy.
+- Added targeted source/policy/ranking/checkpoint unit regressions and
+  `docs/audioex-fixed-bms-native-ladder-2026-11-24.md`.
+- **No GUI, native C, TS solver, renderer, or source fixture changes.**
+  Version remains repo 2.00 / GUI 2.02.
