@@ -74,6 +74,24 @@ class NativeSweepTests(unittest.TestCase):
         self.assertEqual([x["seed"] for x in sorted(items, key=lambda x: sweep.key_of(x, "cuts"))],
                          [2, 1, 3])
 
+    def test_physical_layout_dedup_includes_alternative_wires_and_cuts(self):
+        common = {"components": [
+            {"id": "p1", "boardPos": {"row": 0, "col": 0}, "rotation": 0},
+            {"id": "p2", "boardPos": {"row": 3, "col": 0}, "rotation": 0},
+        ]}
+        sample = {**common, "board": {"rows": 4, "cols": 6,
+            "cuts": [{"kind": "hole", "row": 1, "col": 1}],
+            "wires": [{"from": {"row": 0, "col": 3}, "to": {"row": 3, "col": 3}}]}}
+        first = sweep.physical_layout_signature(sample)
+        self.assertEqual(first, sweep.physical_layout_signature(sample))
+        alternate_wire = json.loads(json.dumps(sample))
+        alternate_wire["board"]["wires"][0]["from"]["col"] = 4
+        alternate_wire["board"]["wires"][0]["to"]["col"] = 4
+        self.assertNotEqual(first, sweep.physical_layout_signature(alternate_wire))
+        alternate_cut = json.loads(json.dumps(sample))
+        alternate_cut["board"]["cuts"][0]["col"] = 2
+        self.assertNotEqual(first, sweep.physical_layout_signature(alternate_cut))
+
     def test_timing_and_missing_timing(self):
         sample = 'progress 1\ntiming {"solveMs":12.5,"totalMs":16.2,"cpuMs":15,"rssMb":42}\n'
         self.assertEqual(sweep.timing_from_stderr(sample)["solveMs"], 12.5)
