@@ -61,12 +61,12 @@ from PySide6.QtWidgets import (
     QApplication, QCheckBox, QDialog, QDialogButtonBox, QFileDialog,
     QFormLayout, QGraphicsScene, QGraphicsView, QGroupBox, QHBoxLayout,
     QLabel, QMainWindow, QMessageBox, QPlainTextEdit, QPushButton, QRadioButton, QComboBox, QInputDialog,
-    QLineEdit, QSplitter, QToolBar, QVBoxLayout, QWidget, QProgressBar, QTabWidget, QFrame, QSplashScreen, QScrollArea,
+    QLineEdit, QSplitter, QToolBar, QVBoxLayout, QWidget, QProgressBar, QTabWidget, QFrame, QSplashScreen, QScrollArea, QStackedWidget,
 )
 
 
 from gui.arctic_theme import apply_arctic_theme
-from gui.live_scoreboard import LiveScoreboard
+from gui.live_dashboard import LiveDashboard
 from gui.assets_ui import (
     StripSolveSplash, export_assets, load_app_icon, load_button_icon,
 )
@@ -1159,17 +1159,6 @@ class RouteMateWindow(QMainWindow):
         self.sidebar_tabs.setObjectName("sidebarTabs")
         self.sidebar_tabs.addTab(overview_page, "Overview")
         self.sidebar_tabs.addTab(self.log, "Activity")
-        self.scoreboard = LiveScoreboard(self)
-        self.scoreboard.view_winner_requested.connect(self._show_pass_one_winner)
-        self.scoreboard_scroll = QScrollArea()
-        self.scoreboard_scroll.setObjectName("scoreboardScroll")
-        self.scoreboard_scroll.setWidgetResizable(True)
-        self.scoreboard_scroll.setFrameShape(QFrame.Shape.NoFrame)
-        self.scoreboard_scroll.setHorizontalScrollBarPolicy(
-            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
-        )
-        self.scoreboard_scroll.setWidget(self.scoreboard)
-        self.sidebar_tabs.addTab(self.scoreboard_scroll, "🏆 Scoreboard")
         left_panel = QWidget()
         left_layout = QVBoxLayout(left_panel)
         left_layout.setContentsMargins(6, 8, 2, 8)
@@ -1197,18 +1186,32 @@ class RouteMateWindow(QMainWindow):
         heading_text.addWidget(self.board_project_label)
         heading_text.addWidget(self.board_result_label)
         heading_row.addLayout(heading_text, 1)
+        self.dashboard_toggle_button = QPushButton("Live dashboard")
+        self.dashboard_toggle_button.setObjectName("boardZoomButton")
+        self.dashboard_toggle_button.setToolTip("Return to the full-size live Pass One charts")
+        self.dashboard_toggle_button.clicked.connect(self._show_live_dashboard)
+        self.dashboard_toggle_button.hide()
+        heading_row.addWidget(self.dashboard_toggle_button)
         for caption, callback, tip in (
             ("Fit", self.fit_board, "Fit the complete board"),
         ):
             button = QPushButton(caption)
             button.setObjectName("boardZoomButton")
+            self.board_fit_button = button
             button.setIcon(load_button_icon("fit_board"))
             button.setIconSize(QSize(24, 24))
             button.setToolTip(tip)
             button.clicked.connect(callback)
             heading_row.addWidget(button)
         board_layout.addWidget(board_heading)
-        board_layout.addWidget(self.top_view, 1)
+        self.dashboard = LiveDashboard(self)
+        self.dashboard.view_winner_requested.connect(self._show_pass_one_winner)
+        self.dashboard.view_board_requested.connect(self._return_to_board_preview)
+        self.preview_stack = QStackedWidget()
+        self.preview_stack.setObjectName("boardPreviewStack")
+        self.preview_stack.addWidget(self.top_view)
+        self.preview_stack.addWidget(self.dashboard)
+        board_layout.addWidget(self.preview_stack, 1)
         split.addWidget(board_panel)
         split.setStretchFactor(0, 0)
         split.setStretchFactor(1, 1)
@@ -1580,11 +1583,27 @@ class RouteMateWindow(QMainWindow):
             self.log_line("[RENDER] " + renderer_log)
         self.statusBar().showMessage(f"Exported both SVG board views to {output.parent}")
 
+    def _show_live_dashboard(self):
+        """Replace the full board preview with native Qt6 live charts."""
+        self.preview_stack.setCurrentWidget(self.dashboard)
+        self.board_fit_button.hide()
+        project = self.project_path.stem.upper() if self.project_path else "STRIPSOLVE"
+        self.board_project_label.setText(f"{project} · PASS ONE LIVE")
+        self.board_result_label.setText(
+            "Live strict-audit performance · quality, wires, cuts and seed timing"
+        )
+
+    def _return_to_board_preview(self):
+        """Allow inspecting the source board without interrupting live charts."""
+        self._switch_board_side(self._board_side)
+
     def _switch_board_side(self, side: str):
         """Switch cached SVG views without rerouting or changing component locks."""
         if side == "schematic" and not self._schematic_svg:
             return
         self._board_side = side
+        self.preview_stack.setCurrentWidget(self.top_view)
+        self.board_fit_button.show()
         self.top_action.setChecked(side == "top")
         self.copper_action.setChecked(side == "copper")
         self.schematic_action.setChecked(side == "schematic")
@@ -2096,11 +2115,10 @@ class RouteMateWindow(QMainWindow):
         self._calibration_stages["PASS1"] = "running"
         self._refresh_checklist()
         self._winner_svg_files = None
-        self.scoreboard.start(
+        self.dashboard.start(
             self.project_path.stem.upper(), moves, seeds,
-            debug=debug, resumed=resume,
+            debug=debug, resumed=resume, workers=self._recommended_workers,
         )
-        self.sidebar_tabs.setCurrentWidget(self.scoreboard_scroll)
         self._solve_done = snapshot["done"] if resume else 0
         self._pass_one_resume_done = self._solve_done
         self._pass_one_previous_average = (
@@ -2124,6 +2142,8 @@ class RouteMateWindow(QMainWindow):
             "not a final routed board",
             level="working",
         )
+        self.dashboard_toggle_button.show()
+        self._show_live_dashboard()
         self.load_action.setEnabled(False)
         self.pass_one_action.setEnabled(False)
         self.pass_two_action.setEnabled(False)
@@ -2151,7 +2171,7 @@ class RouteMateWindow(QMainWindow):
         worker.start()
 
     def _pass_one_tick(self, progress):
-        self.scoreboard.update_progress(progress)
+        self.dashboard.update_progress(progress)
         self._solve_done = progress["done"]
         self.solve_progress.setValue(self._solve_done)
         passed = progress["qualified"]
@@ -2190,7 +2210,7 @@ class RouteMateWindow(QMainWindow):
             top_file.write_text(top_svg, encoding="utf-8")
             copper_file.write_text(copper_svg, encoding="utf-8")
             self._winner_svg_files = (top_file, copper_file)
-            self.scoreboard.set_winner_available(True)
+            self.dashboard.set_winner_available(True)
             if show_preview:
                 self._top_svg = top_svg
                 self._copper_svg = copper_svg
@@ -2203,7 +2223,7 @@ class RouteMateWindow(QMainWindow):
             )
             if not show_preview:
                 self.board_result_label.setText(
-                    "Winning SVG saved · current board preview unchanged"
+                    "Winning SVG saved · live dashboard remains visible"
                 )
             self.log_line(f"[PASS1][WINNER][JSON] {path}")
             self.log_line(f"[PASS1][WINNER][COMPONENTS] {top_file}")
@@ -2258,7 +2278,7 @@ class RouteMateWindow(QMainWindow):
         self._calibration_stages["PASS1"] = "done" if done else "failed"
         self._refresh_checklist()
         self.solve_progress.setValue(result["checked"])
-        self.scoreboard.finish(
+        self.dashboard.finish(
             completed=done, qualified=int(result["qualified"])
         )
         label = "PASS ONE COMPLETE" if done else "PASS ONE INCOMPLETE — RESUME AVAILABLE"
@@ -2284,7 +2304,7 @@ class RouteMateWindow(QMainWindow):
                         else:
                             self.log_line(
                                 "[PASS1][WINNER][VIEW] Declined; current board unchanged. "
-                                "Use Scoreboard > View saved winner later."
+                                "Use View saved winner on the live dashboard later."
                             )
                 except Exception as exc:
                     self.log_line(f"[PASS1][WINNER][RENDER ERROR] {exc}")
@@ -2314,7 +2334,7 @@ class RouteMateWindow(QMainWindow):
         )
 
     def _pass_one_failed(self, error):
-        self.scoreboard.interrupted("FAILED · partial audited results retained")
+        self.dashboard.interrupted("FAILED · partial audited results retained")
         self._calibration_stages["PASS1"] = "failed"
         self._refresh_checklist()
         self.solve_activity.setText("PASS ONE INCOMPLETE · see Activity; resume available")
@@ -2322,7 +2342,7 @@ class RouteMateWindow(QMainWindow):
         self.log_line("[PASS1][ERROR] " + str(error))
 
     def _pass_one_cancelled(self):
-        self.scoreboard.interrupted("STOPPED · audited results preserved for resume")
+        self.dashboard.interrupted("STOPPED · audited results preserved for resume")
         self.solve_activity.setText("PASS ONE STOPPED · resume preserves PASS/FAIL rows")
         self._set_board_summary("Pass One stopped · resume available", level="working")
         self.log_line("[PASS1][CANCELLED] No Pass Two automatically started.")
@@ -2335,7 +2355,7 @@ class RouteMateWindow(QMainWindow):
             )
         self._solve_started = None
         self._pass_one_worker = None
-        self.scoreboard.eta.setText(self.solve_eta.text())
+        self.dashboard.eta.setText(self.solve_eta.text())
         self._pass_one_resume_done = 0
         self._pass_one_previous_average = None
         self.load_action.setEnabled(True)
@@ -2503,7 +2523,7 @@ class RouteMateWindow(QMainWindow):
                 f"{self._solve_done:,}/{self._solve_budget:,} seeds · "
                 f"ETA: {remaining}"
             )
-            self.scoreboard.eta.setText(self.solve_eta.text())
+            self.dashboard.eta.setText(self.solve_eta.text())
             return
         if self._calibration_worker is not None:
             self.solve_eta.setText(
@@ -3216,7 +3236,10 @@ class RouteMateWindow(QMainWindow):
             self.project_path = path
             self.active_workspace = workspace
             self._winner_svg_files = None
-            self.scoreboard.reset_for_project(path.stem.upper())
+            self.dashboard.reset_for_project(path.stem.upper())
+            self.dashboard_toggle_button.hide()
+            self.preview_stack.setCurrentWidget(self.top_view)
+            self.board_fit_button.show()
             self.log_line(f"[WORK][PROJECT] {path.name} → {workspace}")
             self._solved_verified = False
             self._quick_source = None
