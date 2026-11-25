@@ -128,7 +128,9 @@ class LiveScoreboard(QWidget):
         self.view_winner_button.setToolTip(
             "Open previously saved component and copper SVGs; no rerun"
         )
-        self.view_winner_button.clicked.connect(self.view_winner_requested.emit)
+        self.view_winner_button.clicked.connect(
+            lambda _checked=False: self.view_winner_requested.emit()
+        )
         outer.addWidget(self.view_winner_button)
         outer.addStretch(1)
 
