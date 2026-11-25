@@ -1,5 +1,12 @@
 # Changelog
 
+### GUI 2.18 — Fix false strict-audit failures for unlocked components (25 November 2026)
+- Preserve the exact source JSON `locked` property presence and value when the native CLI saves a candidate. The search deliberately clears `locked:false` from movable components internally; that sanitisation was unintentionally leaking into saved JSONs and falsely triggering `COMPONENT_DEFINITION_CHANGED_*_locked` in the independent strict auditor.
+- Keep strict audit, vertical-wire, electrical, geometry, copper and locked-part-movement checks unchanged. Only the saved output metadata is corrected.
+- Add a native strict auditor regression covering explicit `locked:false`, absent flags, true locked parts and rejection of moved locked parts or diagonal wires.
+- Existing FAIL rows are **not** silently reclassified. Prior native-valid candidates were temporary and need deterministic replay under matching prepared input after the currently running campaign finishes. Do not pull code into a running 2,000-seed campaign.
+- GUI 2.17 footer clutter and stale status-label fixes are also included in this version.
+
 ### GUI 2.17 — Full-width native Qt6 Pass One dashboard (25 November 2026)
 - Move live Pass One analytics to the entire main board-preview canvas via QStackedWidget; restore the large board preview on user request and keep the sidebar as Overview/Activity only.
 - Replace five-row leaderboard with original antialiased QPainter rounded KPI cards, live audited quality and wire/cut plots, outcome donut, per-seed runtime bars and worker/progress/ETA cards in existing Arctic Ice + Colourburst colours. No web content, fake chart samples or extra package dependencies.
