@@ -1,6 +1,7 @@
 // Independent saved-board strict audit, synthetic fixture with legal stacks.
 const assert=require("node:assert/strict");
 const {auditSavedStrict}=require("./auditSavedStrict.js");
+const {preserveInputLockMetadata}=require("./preserveInputLockMetadata.js");
 const part=(id,row,col,locked=false)=>({
   id,defId:"audit-pin",label:id,rotation:0,boardPos:{row,col},locked,
   schematicPos:{x:0,y:0},schematicRotation:0,
@@ -46,6 +47,48 @@ const badCutKind=JSON.parse(JSON.stringify(saved));
 badCutKind.board.cuts=[{row:0,col:5,kind:"mystery"}];
 assert.ok(auditSavedStrict(badCutKind,input).failures.some(x=>x.startsWith("ILLEGAL_CUT")),
   "unknown kinds are never silently accepted");
+// Native blankComps clears "locked" from MOVABLE components, even when the
+// original JSON explicitly contained locked:false. Without restoration, a
+// genuinely strict valid candidate is falsely rejected as a definition edit.
+const sanitisedNative=JSON.parse(JSON.stringify(saved));
+delete sanitisedNative.components[1].locked;
+const nativeRejection=auditSavedStrict(sanitisedNative,input);
+assert.equal(nativeRejection.valid,false);
+assert.ok(nativeRejection.failures.includes("COMPONENT_DEFINITION_CHANGED_b_locked"));
+const restoredNative={
+  ...sanitisedNative,
+  components:preserveInputLockMetadata(input.components,sanitisedNative.components),
+};
+assert.equal(restoredNative.components[1].locked,false);
+assert.equal(auditSavedStrict(restoredNative,input).valid,true,
+  "native strict-valid board must survive saved-JSON metadata normalisation");
+assert.deepEqual(restoredNative.board,sanitisedNative.board,
+  "restoring metadata cannot alter cuts, jumpers or positions");
+
+// Preserve the distinction between ABSENT and false for original inputs.
+const sourceWithoutFlag=JSON.parse(JSON.stringify(input));
+delete sourceWithoutFlag.components[1].locked;
+const writtenWithFalse=JSON.parse(JSON.stringify(saved));
+writtenWithFalse.components[1].locked=false;
+const restoredAbsent={
+  ...writtenWithFalse,
+  components:preserveInputLockMetadata(sourceWithoutFlag.components,
+    writtenWithFalse.components),
+};
+assert.equal(Object.hasOwn(restoredAbsent.components[1],"locked"),false);
+assert.equal(auditSavedStrict(restoredAbsent,sourceWithoutFlag).valid,true);
+
+// Do not relax the independent gates: a moved locked part and diagonal jumper
+// remain invalid even after the only allowed lock-metadata restoration.
+const movedLocked=JSON.parse(JSON.stringify(restoredNative));
+movedLocked.components[0].boardPos.col=1;
+assert.ok(auditSavedStrict(movedLocked,input).failures.some(
+  x=>x.startsWith("LOCKED_PART_MOVED_")));
+const badWire=JSON.parse(JSON.stringify(restoredNative));
+badWire.board.wires[0].to.col=5;
+assert.ok(auditSavedStrict(badWire,input).failures.some(
+  x=>x.startsWith("NONVERTICAL_")));
+
 const forbidden=auditSavedStrict(saved,input,true);
 assert.equal(forbidden.valid,false);
 assert.ok(forbidden.failures.some(f=>f.startsWith("STACKED_")));
