@@ -1,5 +1,11 @@
 # Changelog
 
+### GUI 2.15 — Compact overview with fixed Pass One results (25 November 2026)
+- Keep the champion summary, live Pass One activity/progress, worker count and elapsed/ETA visibly anchored below the scrolling preparation checklist.
+- Reduce checklist padding and row spacing; show cuts and wire-stacking settings inline rather than on extra lines.
+- Drop the redundant long instructions in the checklist and condense lock counts to one line. Full checks remain accessible by scrolling on smaller window sizes.
+- Add a regression test for the separate scrolling checklist and fixed result footer. No solver, source JSON, seed CSV or Work workspace changes.
+
 ### GUI 2.14 — StripSolve copper-trace artwork and splash correction (25 November 2026)
 - Replace improvised 10 toolbar SVGs with consistent Arctic Ice / copper-board / blue-teal routing designs, while preserving the existing QAction connections, 24px icon sizes and HiDPI scaling.
 - Commit the user's approved 1024px copper-circuit S application PNG; retain the SVG fallback for read-only or incomplete installs.
