@@ -12,12 +12,16 @@ Work/
     pass 1/10k/results.csv
     pass 1/10k/activity.log
     pass 1/10k/campaign.json
+    pass 1/10k/debug/results.csv   # 200 seeds only
+    pass 1/10k/debug/activity.log
+    pass 1/10k/debug/campaign.json
     pass 1/20k/results.csv
     pass 1/20k/activity.log
     pass 1/20k/campaign.json
     jsons/10k/winner_seed_XXXX.json
     jsons/10k/winner_seed_XXXX-components.svg
     jsons/10k/winner_seed_XXXX-copper.svg
+    jsons/10k/debug/            # Debug winner JSON/SVG, if a seed qualifies
     jsons/20k/
     pass 2/candidates.csv
     pass 2/activity.log
@@ -42,6 +46,11 @@ accidentally binding a folder to a different file.
 
 - **Load JSON:** after successful import, GUI binds that source to its named
   workspace. All Pass One output goes to its own `pass 1/`.
+- **Debug ON/OFF:** an unchecked Debug box runs all 2,000 seeds; checked
+  Debug runs exactly 200 seeds. Debug results and winner outputs live inside
+  `pass 1/<budget>/debug/` and `jsons/<budget>/debug/` and never clear the
+  corresponding full-run folders. The independent strict-audit requirements
+  are unchanged.
 - **Pass One GO:** keeps 10k and 20k campaigns separate. A fresh campaign
   starts in its own budget folder. If that budget already has files, the GUI
   explicitly offers Resume (for a compatible unfinished run), Overwrite & Start
