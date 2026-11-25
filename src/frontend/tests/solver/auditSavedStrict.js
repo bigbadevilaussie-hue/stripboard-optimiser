@@ -110,16 +110,26 @@ function auditSavedStrict(saved, input, noStack = false) {
 }
 module.exports={auditSavedStrict};
 if (require.main===module) {
-  const [savedPath,inputPath]=process.argv.slice(2);
-  if (!savedPath || !inputPath) {
-    console.error("Usage: node tests/solver/auditSavedStrict.js saved.json original-input.json");
+  const [savedPath,inputPath,...flags]=process.argv.slice(2);
+  if (!savedPath || !inputPath ||
+      (flags.length && (flags.length !== 2 || flags[0] !== "--candidate-policy"))) {
+    console.error("Usage: node tests/solver/auditSavedStrict.js saved.json original-input.json [--candidate-policy strict|diagonal|crossings|archive]");
+    process.exit(64);
+  }
+  let policy;
+  try {
+    if (flags.length) policy=require("./candidatePolicy.js").assertPolicy(flags[1]);
+  } catch (error) {
+    console.error("CLI argument error: " + String(error));
     process.exit(64);
   }
   try {
     const result=auditSavedStrict(JSON.parse(fs.readFileSync(savedPath,"utf8")),
       JSON.parse(fs.readFileSync(inputPath,"utf8")),false);
-    process.stdout.write(JSON.stringify(result)+"\n");
-    if (!result.valid) process.exitCode=2;
+    // No flag preserves the historical strict JSON fields and exit code.
+    const candidate=policy ? require("./candidatePolicy.js").classifySavedAudit(result,policy) : null;
+    process.stdout.write(JSON.stringify(candidate ? { ...result, candidate } : result)+"\n");
+    if (candidate ? !candidate.qualified : !result.valid) process.exitCode=2;
   } catch(error) {
     process.stderr.write("AUDIT_ERROR: "+String(error)+"\n");
     process.exitCode=3;
