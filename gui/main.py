@@ -1161,7 +1161,15 @@ class RouteMateWindow(QMainWindow):
         self.sidebar_tabs.addTab(self.log, "Activity")
         self.scoreboard = LiveScoreboard(self)
         self.scoreboard.view_winner_requested.connect(self._show_pass_one_winner)
-        self.sidebar_tabs.addTab(self.scoreboard, "🏆 Scoreboard")
+        self.scoreboard_scroll = QScrollArea()
+        self.scoreboard_scroll.setObjectName("scoreboardScroll")
+        self.scoreboard_scroll.setWidgetResizable(True)
+        self.scoreboard_scroll.setFrameShape(QFrame.Shape.NoFrame)
+        self.scoreboard_scroll.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+        )
+        self.scoreboard_scroll.setWidget(self.scoreboard)
+        self.sidebar_tabs.addTab(self.scoreboard_scroll, "🏆 Scoreboard")
         left_panel = QWidget()
         left_layout = QVBoxLayout(left_panel)
         left_layout.setContentsMargins(6, 8, 2, 8)
@@ -2092,7 +2100,7 @@ class RouteMateWindow(QMainWindow):
             self.project_path.stem.upper(), moves, seeds,
             debug=debug, resumed=resume,
         )
-        self.sidebar_tabs.setCurrentWidget(self.scoreboard)
+        self.sidebar_tabs.setCurrentWidget(self.scoreboard_scroll)
         self._solve_done = snapshot["done"] if resume else 0
         self._pass_one_resume_done = self._solve_done
         self._pass_one_previous_average = (
