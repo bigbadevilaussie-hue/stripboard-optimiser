@@ -1148,6 +1148,14 @@ class RouteMateWindow(QMainWindow):
         overview_layout.setSpacing(6)
         self.project_summary.hide()
         overview_layout.addWidget(self.checklist)
+        self.open_solved_summary = QLabel()
+        self.open_solved_summary.setWordWrap(True)
+        self.open_solved_summary.setStyleSheet(
+            "background: white; color: #1d425f; border: 1px solid #cbddec; "
+            "border-radius: 12px; padding: 14px; font-size: 13px;"
+        )
+        self.open_solved_summary.hide()
+        overview_layout.addWidget(self.open_solved_summary)
         overview_layout.addStretch()
 
         overview_scroll = QScrollArea()
@@ -1609,16 +1617,31 @@ class RouteMateWindow(QMainWindow):
             }
             self.schematic_action.setEnabled(bool(schematic))
             self.return_project_button.setVisible(bool(self._top_svg))
+            self._show_solved_overview()
             self._switch_board_side("top")
             self.log_line(f"[OPEN SOLVED] Read-only preview: {path}; no solver or audit invoked.")
         except (OSError, ValueError, TypeError, KeyError, RuntimeError, subprocess.SubprocessError) as exc:
             self.log_line(f"[OPEN SOLVED][ERROR] {exc}")
             QMessageBox.warning(self, "Open solved board failed", str(exc))
 
+    def _show_solved_overview(self):
+        """Never display another project's workflow progress for a read-only file."""
+        opened = self._opened_solved
+        if opened is None:
+            return
+        self.checklist.hide()
+        self.open_solved_summary.setText(
+            "OPEN SOLVED\n\n" + opened["name"] + "\n\n" + opened["summary"]
+            + "\n\nRead-only preview\nNo preparation or verification run."
+        )
+        self.open_solved_summary.show()
+
     def _clear_solved_preview(self):
         if self._opened_solved is None:
             return
         self._opened_solved = None
+        self.open_solved_summary.hide()
+        self.checklist.show()
         self.return_project_button.hide()
         self.schematic_action.setEnabled(bool(self._schematic_svg))
         self._board_side = "top"
@@ -1667,6 +1690,7 @@ class RouteMateWindow(QMainWindow):
 
     def _show_live_dashboard(self):
         """Replace the full board preview with native Qt6 live charts."""
+        self._clear_solved_preview()
         self.preview_stack.setCurrentWidget(self.dashboard)
         self.board_fit_button.hide()
         project = self.project_path.stem.upper() if self.project_path else "STRIPSOLVE"

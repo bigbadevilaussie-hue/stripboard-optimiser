@@ -1,5 +1,10 @@
 # Changelog
 
+### GUI 2.32 — Separate Open Solved overview from preparation
+- Hide active-project preparation checklist while inspecting a read-only solved JSON. Display file name, board dimensions and wire/cut counts instead.
+- Restore unchanged checklist when returning to active project or dashboard. No fabricated preparation or verification status.
+
+
 ### GUI 2.31 — Schematic in Open Solved
 - Render and cache the selected solved JSON schematic separately from the active project, using the existing librsvg path. Enable Schematic when available, with existing QtSvg fallback if raster conversion fails.
 - Keep all three views in the main canvas, restore the active project's schematic on return. No solver or artwork changes.
