@@ -1,5 +1,14 @@
 # Changelog
 
+### 26 November 2026 — Native V5 candidate policies and Mac regression verification
+- Added **opt-in** native CLI candidate prequalification and saved-board auditor qualification for `strict`, `diagonal`, `crossings` and `archive`, with unknown, electrical, netlist, locked-position and off-board failures remaining hard blockers. Strict results, existing exit codes and default GUI Pass One are unchanged.
+- Introduced `scripts/run_candidate_hunt.py`: standalone native-controller research campaigns with resumable CSV/manifest, saved JSON gzip archives, Q3 comparisons, and separate strict/diagonal/routing class champions. This does not implement C anneal repair/warm-start or the GUI Pass Two search.
+- Added `candidatePolicy.test.js` and `candidateAuditCli.test.js` to the headless suite. **Owner-reported target-Mac result: all 7 Node suites passed**.
+- Fixed GUI Slide checkbox/search-notice **EXPERIMENTAL** casing and dashboard `_return_to_board_preview` fallback when the project preview lacks cached SVG. **Owner reports the macOS Python GUI regression suite passed** after these fixes (prior run had 2 failures out of 129 tests).
+- The earlier Moto diagonal hunt was deliberately stopped (last shared snapshot: 369 recorded trials, 3 strict passes, 349 archived candidates with diagonal-related failures). The new 5,000-seed candidate run and a built standalone Mac application have **not** been reported as validated.
+- Merged solver candidate-policy changes into `main` at `7d24708`; committed the GUI fixes directly to `main` at `e51b657`. See [candidate policy guide](docs/CANDIDATE_POLICIES.md).
+
+
 ### GUI 2.39 — Real 100-point JSON complexity sniff
 - Replace GUI native 100-decode timing and history-only budget fallback with a static complexity assessment of prepared JSON, footprint pressure, connection demand, board area and locks/rules. No native decodes or optimisation before GO.
 - Preselect 10k or 20k using the Audio/Moto-calibrated heuristic; both choices remain available. Compact budget dialog; report factors and features in Activity and project logs/json_sniff.json.
