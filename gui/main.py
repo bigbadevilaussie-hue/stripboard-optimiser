@@ -1105,7 +1105,9 @@ class RouteMateWindow(QMainWindow):
         self.render_action.setIcon(load_button_icon("open_solved"))
         self.render_action.setToolTip("Preview an existing routed JSON without re-solving")
         self.render_action.triggered.connect(self.render_json)
-        self.render_action.setEnabled(False)
+        self.render_action.setEnabled(self.load_action.isEnabled())
+        self.load_action.changed.connect(
+            lambda: self.render_action.setEnabled(self.load_action.isEnabled()))
         toolbar.addAction(self.render_action)
         toolbar.addSeparator()
         self.exit_action = QAction("Exit", self)
@@ -1562,8 +1564,80 @@ class RouteMateWindow(QMainWindow):
         return len(contacts)
 
     def render_json(self):
-        """All JSON imports use one validated path in this milestone."""
-        self.load_json()
+        """Inspect existing routed JSON read-only, without entering preparation."""
+        if not self.load_action.isEnabled():
+            return
+        directory = self.project_path.parent if self.project_path else default_project_directory()
+        filename, _ = QFileDialog.getOpenFileName(
+            self, "Open solved board", str(directory),
+            "Project JSON (*.json);;All files (*)",
+            options=QFileDialog.Option.DontUseNativeDialog,
+        )
+        if not filename:
+            return
+        path = Path(filename)
+        try:
+            project = json.loads(path.read_text(encoding="utf-8"))
+            if not isinstance(project, dict) or not isinstance(project.get("board"), dict):
+                raise ValueError("Expected a project JSON with a board object.")
+            board = project["board"]
+            if (type(board.get("rows")) is not int or board["rows"] <= 0
+                    or type(board.get("cols")) is not int or board["cols"] <= 0
+                    or not isinstance(board.get("wires"), list)
+                    or not isinstance(board.get("cuts"), list)):
+                raise ValueError("Expected valid board dimensions, wires and cuts.")
+            from render.standalone_bridge import render_project_data
+            top, copper, diagnostic = render_project_data(project)
+            self._show_tool_revision(diagnostic, "RENDER")
+            dialog = QDialog(self)
+            dialog.setWindowTitle(f"Open Solved — {path.name}")
+            dialog.resize(1200, 760)
+            layout = QVBoxLayout(dialog)
+            heading = QLabel(
+                f"{path.name}  ·  {board['rows']} × {board['cols']} holes  ·  "
+                f"{len(board['wires'])} jumpers  ·  {len(board['cuts'])} cuts"
+            )
+            heading.setWordWrap(True)
+            heading.setStyleSheet("font-size: 15px; font-weight: 750;")
+            layout.addWidget(heading)
+            note = QLabel("Read-only preview · no optimisation or new verification")
+            layout.addWidget(note)
+            controls = QHBoxLayout()
+            view = BoardView()
+            view.render_warning.connect(self.log_line)
+            top_button = QPushButton("Component side")
+            copper_button = QPushButton("Copper side (mirrored)")
+            for button in (top_button, copper_button):
+                button.setCheckable(True)
+                button.setAutoExclusive(True)
+                controls.addWidget(button)
+            top_button.setChecked(True)
+
+            def show_side(svg):
+                try:
+                    view.show_svg(svg)
+                except (OSError, RuntimeError, ValueError) as exc:
+                    self.log_line(f"[OPEN SOLVED][ERROR] {exc}")
+                    QMessageBox.warning(dialog, "Preview failed", str(exc))
+
+            top_button.clicked.connect(lambda: show_side(top))
+            copper_button.clicked.connect(lambda: show_side(copper))
+            controls.addStretch()
+            for caption, action in (("Fit", view.fit_board),
+                                    ("Zoom +", lambda: view.zoom(1.25)),
+                                    ("Zoom −", lambda: view.zoom(0.8)),
+                                    ("Close", dialog.accept)):
+                button = QPushButton(caption)
+                button.clicked.connect(action)
+                controls.addWidget(button)
+            layout.addLayout(controls)
+            layout.addWidget(view, 1)
+            view.show_svg(top)
+            self.log_line(f"[OPEN SOLVED] Read-only preview: {path}; no solver or audit invoked.")
+            dialog.exec()
+        except (OSError, ValueError, TypeError, KeyError, RuntimeError, subprocess.SubprocessError) as exc:
+            self.log_line(f"[OPEN SOLVED][ERROR] {exc}")
+            QMessageBox.warning(self, "Open solved board failed", str(exc))
 
     def export_board_svgs(self):
         """Refresh the current board and save both production SVG views."""
@@ -3075,7 +3149,7 @@ class RouteMateWindow(QMainWindow):
         self._stop_requested = False
         self.stop_action.setEnabled(False)
         self.load_action.setEnabled(True)
-        self.render_action.setEnabled(False)  # Import-only milestone
+        self.render_action.setEnabled(self.load_action.isEnabled())
 
 
         if self._close_when_idle:

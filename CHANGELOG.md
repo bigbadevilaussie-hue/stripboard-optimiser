@@ -1,5 +1,10 @@
 # Changelog
 
+### GUI 2.27 — Restore Open Solved preview (25 November 2026)
+- GUI 2.27 restores Open Solved as an idle-only, read-only JSON preview. It opens both sides in a separate BoardView with the same librsvg pipeline, Fit and zoom controls; it does not enter project preparation, change the active campaign or certify the imported board.
+- Add regression tests for idle action state, both views, cancellation and untouched input/project. Mac verification outstanding.
+
+
 ### GUI 2.26 — Isolate board preview rendering backend (25 November 2026)
 - Use the existing 2400 px librsvg/PNG pipeline for both component and copper preview, with bounded content cache and logged QtSvg fallback.
 - Remove GUI-injected board text styling. Preserve original generated and exported SVGs, overlays, schematic display and solver.
