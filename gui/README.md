@@ -1,5 +1,15 @@
 # StripSolve GUI 2.16 — Arctic Ice + Colourburst
 
+**Live Pass One scoreboard (2.16):** Click 🏆 Scoreboard next to Overview and
+Activity. The separate scrollable tab displays completed seed counts, strictly
+audited PASS count, errors, and the five best audited seeds (Q descending,
+then lower W/C and lower seed). It updates on worker progress ticks and
+restores previous verified leaders when resuming an interrupted campaign.
+Winner JSON and both component/copper SVGs are saved as before. The GUI now
+asks before displaying the winner, so choosing **No** keeps the current board
+preview. The scoreboard's **View saved winner** button opens the saved SVGs
+later without another solver run.
+
 **Current app name: StripSolve.** The original Route-Mate donor lineage
 described below is historical and still relevant for provenance. The GitHub
 repository and `Work/` project identifiers intentionally keep their existing
