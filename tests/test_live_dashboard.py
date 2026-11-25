@@ -209,8 +209,11 @@ class LiveDashboardGuiTests(unittest.TestCase):
                 def render(_project):
                     window._copper_svg = svg
                     return svg,'native renderer'
+                def decline(seed):
+                    self.assertEqual(window.statusBar().currentMessage(), "PASS ONE COMPLETE")
+                    return False
                 with patch.object(window,'_render_component_side',side_effect=render), \
-                     patch.object(window,'_ask_to_view_pass_one_winner',return_value=False) as ask:
+                     patch.object(window,'_ask_to_view_pass_one_winner',side_effect=decline) as ask:
                     window._pass_one_completed(result)
                 ask.assert_called_once_with(50)
                 self.assertIs(window.preview_stack.currentWidget(),window.dashboard)

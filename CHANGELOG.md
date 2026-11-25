@@ -1,5 +1,11 @@
 # Changelog
 
+### GUI 2.23 — File picker navigation and completion status (25 November 2026)
+- Scope compact navigation-button styling to Qt Open/Save dialogs; use 22 px icons and adequate padding without altering the main toolbar or window controls.
+- Publish the Pass One completion/incomplete status before the modal champion popup; do not overwrite a later winner-preview status.
+- Add real Qt file-dialog icon sizing coverage and assert completion status at the moment of winner consent. Mac 2.22 baseline: all 103 tests passed in 9.057s. 2.23 target-Mac test and visual check outstanding.
+
+
 ### GUI 2.22 — Separate campaign completion from qualification rate (25 November 2026)
 - Ring centre displays completed seeds as a percentage of all scheduled seeds; errors are retryable and not counted as complete.
 - Restore proportional outcome segments including pending and errors. Display qualification rate separately, excluding errors and pending.

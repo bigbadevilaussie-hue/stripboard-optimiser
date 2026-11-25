@@ -129,6 +129,20 @@ QPushButton:checked, QToolButton:checked {
     border-color: #6aaddc;
     color: #1a5b92;
 }
+/* QFileDialog uses compact icon-only buttons, not the main toolbar's
+   text-button padding. Give each navigation control room for its icon. */
+QFileDialog QToolButton#backButton,
+QFileDialog QToolButton#forwardButton,
+QFileDialog QToolButton#toParentButton,
+QFileDialog QToolButton#newFolderButton,
+QFileDialog QToolButton#listModeButton,
+QFileDialog QToolButton#detailModeButton {
+    qproperty-iconSize: 22px 22px;
+    min-width: 28px;
+    min-height: 28px;
+    padding: 4px;
+    border-radius: 8px;
+}
 QPushButton#nextActionButton {
     background-color: #159d6b;
     border-color: #0e895c;

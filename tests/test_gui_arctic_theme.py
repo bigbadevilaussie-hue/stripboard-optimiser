@@ -10,6 +10,7 @@ try:
     from PySide6.QtWidgets import (
         QApplication, QDialog, QDialogButtonBox, QLabel, QPushButton,
         QCheckBox, QRadioButton, QPlainTextEdit, QComboBox, QSpinBox,
+        QFileDialog, QToolButton,
     )
     from gui.arctic_theme import COLORS, STYLESHEET, apply_arctic_theme
     from gui.main import RoutingRulesDialog, PassOneDialog, PassTwoDialog
@@ -54,6 +55,27 @@ class ArcticIceThemeTests(unittest.TestCase):
         self.assertIn("QFileDialog", STYLESHEET)
         self.assertIn("QToolBar QToolButton:checked", STYLESHEET)
         self.assertIn("QPushButton#nextActionButton", STYLESHEET)
+
+    def test_file_dialog_navigation_icons_have_room(self):
+        for mode in (QFileDialog.AcceptMode.AcceptOpen, QFileDialog.AcceptMode.AcceptSave):
+            with self.subTest(mode=mode):
+                dialog = QFileDialog()
+                try:
+                    dialog.setOption(QFileDialog.Option.DontUseNativeDialog, True)
+                    dialog.setAcceptMode(mode)
+                    dialog.ensurePolished()
+                    for name in ("backButton", "forwardButton", "toParentButton",
+                                 "newFolderButton", "listModeButton", "detailModeButton"):
+                        button = dialog.findChild(QToolButton, name)
+                        self.assertIsNotNone(button, name)
+                        button.ensurePolished()
+                        self.assertFalse(button.icon().isNull(), name)
+                        self.assertGreaterEqual(button.iconSize().width(), 22, name)
+                        self.assertGreaterEqual(button.iconSize().height(), 22, name)
+                        self.assertGreaterEqual(button.sizeHint().width(), button.iconSize().width() + 8, name)
+                        self.assertGreaterEqual(button.sizeHint().height(), button.iconSize().height() + 8, name)
+                finally:
+                    dialog.close()
 
     def test_confirmation_buttons_are_only_semantic_green_actions(self):
         dialogs = [

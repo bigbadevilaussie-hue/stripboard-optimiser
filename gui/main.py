@@ -2298,6 +2298,7 @@ class RouteMateWindow(QMainWindow):
             completed=done, qualified=int(result["qualified"])
         )
         label = "PASS ONE COMPLETE" if done else "PASS ONE INCOMPLETE — RESUME AVAILABLE"
+        self.statusBar().showMessage(label)
         self.solve_activity.setText(
             f"{label} · {result['qualified']:,} verified CSV rows"
         )
@@ -2346,9 +2347,6 @@ class RouteMateWindow(QMainWindow):
                 "Pass One incomplete · resume to retry missing/error seeds",
                 level="working",
             )
-        self.statusBar().showMessage(
-            f"Pass One {'complete' if done else 'incomplete'}"
-        )
 
     def _pass_one_failed(self, error):
         self.statusBar().showMessage("PASS ONE FAILED · results preserved · see Activity")

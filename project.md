@@ -1,6 +1,6 @@
 # Stripboard Optimiser — Version 2.00 project contract
 
-## Current release: StripSolve GUI 2.22 / Q2 (25 November 2026)
+## Current release: StripSolve GUI 2.23 / Q2 (25 November 2026)
 
 The live construction score is Q2, with W = jumper count, C = cut count,
 L = total jumper span in mm (2.54 mm pitch), D = nonvertical jumper count,
@@ -30,7 +30,7 @@ See [Q2 research](docs/QUALITY_Q2_2026-11-25.md) for the 1,053-board comparison.
 
 **Earlier GUI integration milestones below are historical where they conflict with the current release.**
 
-**Milestone:** Consolidation of Two Repositories (24 November 2026). GUI version **2.22** is independently tracked in `gui/VERSION` (24 Nov 2026).
+**Milestone:** Consolidation of Two Repositories (24 November 2026). GUI version **2.23** is independently tracked in `gui/VERSION` (24 Nov 2026).
 
 **Current live-work handoff:** [Audio/Moto 12k WR sweep, results, multipass plan and GUI boundaries](docs/ACTIVE_HANDOFF_2026-11-24.md). **Historic static audit:** [Repository integrity and integration audit](docs/REPOSITORY_AUDIT_2026-11-24.md). Historical handovers remain useful but their future-phase language may now be outdated.
 
