@@ -1,206 +1,187 @@
-"""Pass One live leaderboard and consent-gated winner preview regression tests."""
+"""StripSolve full-preview live Qt6 dashboard and winner-consent tests.
+
+Use the real PySide6 widgets offscreen. No native solver is run by these tests.
+"""
 from __future__ import annotations
 
-import os
 import json
+import os
 import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from gui.pass_one import top_five_audited
+from gui.pass_one import best_audited
 
 
-class TopFiveAuditedTests(unittest.TestCase):
-    def test_only_strict_pass_ranked_by_q_then_wires_cuts_seed(self):
-        rows = [
-            dict(seed="0007", status="FAIL", q="", w="", cut="", time_taken="0.2"),
-            dict(seed="0006", status="ERROR", q="", w="", cut="", time_taken="0.2"),
-            dict(seed="0011", status="PASS", q="80.00", w="9", cut="20", time_taken="1"),
-            dict(seed="0005", status="PASS", q="82.00", w="13", cut="21", time_taken="1"),
-            dict(seed="0003", status="PASS", q="82.00", w="13", cut="20", time_taken="1"),
-            dict(seed="0002", status="PASS", q="82.00", w="12", cut="25", time_taken="1"),
-            dict(seed="0009", status="PASS", q="82.00", w="13", cut="20", time_taken="1"),
-            dict(seed="0001", status="PASS", q="79.00", w="8", cut="16", time_taken="1"),
+class AuditedChampionTests(unittest.TestCase):
+    def test_best_only_strict_pass_and_deterministic_tie_breaking(self):
+        data = [
+            dict(seed='0001',status='FAIL',q='',w='',cut='',time_taken='0.2'),
+            dict(seed='0002',status='ERROR',q='',w='',cut='',time_taken='0.2'),
+            dict(seed='0003',status='PASS',q='79.40',w='31',cut='45',time_taken='1.0'),
+            dict(seed='0004',status='PASS',q='82.10',w='32',cut='44',time_taken='1.0'),
+            dict(seed='0005',status='PASS',q='82.10',w='29',cut='50',time_taken='1.0'),
+            dict(seed='0006',status='PASS',q='82.10',w='29',cut='40',time_taken='1.0'),
+            dict(seed='0007',status='PASS',q='82.10',w='29',cut='40',time_taken='1.0'),
         ]
-        leaders = top_five_audited(rows)
-        self.assertEqual([x["seed"] for x in leaders], [2, 3, 9, 5, 11])
-        self.assertTrue(all(isinstance(x["q"], float) for x in leaders))
-        self.assertEqual(top_five_audited(rows[:2]), [])
+        best = best_audited(data)
+        self.assertEqual(best['seed'],6)
+        self.assertEqual(best['q'],82.10)
+        self.assertEqual(best['status'],'PASS')
+        self.assertIsNone(best_audited(data[:2]))
 
-    def test_incremental_and_resumed_candidates_agree(self):
-        rows = [
-            dict(seed=f"{i:04d}", status="PASS", q=f"{60+i/10:.2f}",
-                 w=str(30-i % 3), cut=str(40+i % 4), time_taken="0.5")
-            for i in range(1, 40)
-        ]
-        leaders = []
-        for row in rows:
-            leaders = top_five_audited([*leaders, row])
-        self.assertEqual(leaders, top_five_audited(rows))
+    def test_single_new_pass_competes_against_retained_champion(self):
+        old = dict(seed=50,status='PASS',q=78.24,w=29,cut=44,time_taken=2.2)
+        worse = dict(seed='0120',status='PASS',q='77.00',w='25',cut='37',time_taken='1.4')
+        better = dict(seed='0122',status='PASS',q='78.24',w='27',cut='40',time_taken='1.4')
+        self.assertEqual(best_audited([old,worse])['seed'],50)
+        self.assertEqual(best_audited([old,better])['seed'],122)
 
 
-os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+os.environ.setdefault('QT_QPA_PLATFORM','offscreen')
 try:
-    from PySide6.QtWidgets import QApplication, QMessageBox, QScrollArea
+    from PySide6.QtWidgets import QApplication, QStackedWidget
+    from gui.live_dashboard import LiveDashboard, SmoothPlot, OutcomeRing
     from gui.main import RouteMateWindow
-    from gui.live_scoreboard import LiveScoreboard
 except ImportError:
     QApplication = None
 
 
-@unittest.skipIf(QApplication is None, "PySide6 unavailable")
-class LiveScoreboardGuiTests(unittest.TestCase):
+@unittest.skipIf(QApplication is None,'PySide6 unavailable')
+class LiveDashboardGuiTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.app = QApplication.instance() or QApplication([])
 
     @staticmethod
-    def _progress():
+    def _sample():
         return {
-            "done": 125, "total": 200, "qualified": 2, "failed": 123,
-            "errors": 0,
-            "leaders": [
-                dict(seed=50, q=78.24, w=29, cut=44, time_taken=0.7),
-                dict(seed=18, q=77.00, w=30, cut=45, time_taken=0.5),
+            'done':125,'total':200,'qualified':2,'failed':123,'errors':0,
+            'best':dict(seed=50,status='PASS',q=78.24,w=29,cut=44,time_taken=2.2),
+            'history':[
+                dict(seed='0050',status='PASS',q='78.24',w='29',cut='44',time_taken='2.2'),
+                dict(seed='0084',status='PASS',q='76.21',w='31',cut='46',time_taken='1.9'),
+                dict(seed='0011',status='FAIL',q='',w='',cut='',time_taken='2.3'),
             ],
-            "last": {"seed": 125, "valid": False, "seconds": 1.4},
+            'last':{'seed':125,'valid':False,'seconds':1.4},
         }
 
-    def test_live_updates_counters_ranking_and_latest_status(self):
-        view = LiveScoreboard()
+    def test_large_rounded_dashboard_tracks_real_worker_data(self):
+        board = LiveDashboard()
         try:
-            view.start("AUDIO", 10000, 200, debug=True)
-            view.update_progress(self._progress())
-            self.assertIn("AUDIO", view.mode.text())
-            self.assertEqual(view.progress.value(), 125)
-            self.assertEqual(view.stat_values["done"].text(), "125")
-            self.assertEqual(view.stat_values["qualified"].text(), "2")
-            self.assertEqual(view.stat_values["errors"].text(), "0")
-            self.assertEqual(view.leader_rows[0][0].text(), "0050")
-            self.assertEqual(view.leader_rows[0][1].text(), "Q 78.24")
-            self.assertEqual(view.leader_rows[0][2].text(), "29W/44C")
-            self.assertEqual(view.leader_rows[1][0].text(), "0018")
-            self.assertIn("0125 · FAIL", view.recent.text())
-            view.finish(completed=True, qualified=2)
-            self.assertIn("COMPLETE", view.state.text())
+            board.start('AUDIO',10000,200,debug=True,workers=3,resumed=True)
+            board.update_progress(self._sample())
+            self.assertIn('AUDIO',board.subtitle.text())
+            self.assertIn('10k moves',board.subtitle.text())
+            self.assertEqual(board.checked.value.text(),'125')
+            self.assertEqual(board.verified.value.text(),'2')
+            self.assertEqual(board.bestq.value.text(),'78.24')
+            self.assertIn('29W',board.build.value.text())
+            self.assertEqual(board.progress.value(),125)
+            self.assertEqual(board.ring.counts,(2,123,0,75))
+            self.assertEqual(list(board.quality_plot.points),[78.24,76.21])
+            self.assertEqual(list(board.wc_plot.points),[(29.0,44.0),(31.0,46.0)])
+            self.assertEqual(len(board.runtime_plot.points),4)
+            self.assertIn('0125',board.last.text())
+            self.assertFalse(board.winner_button.isEnabled())
+            self.assertFalse(hasattr(board,'leader_rows'))
+            self.assertIsInstance(board.quality_plot,SmoothPlot)
+            self.assertIsInstance(board.ring,OutcomeRing)
         finally:
-            view.close()
+            board.close()
 
-    def test_scoreboard_is_own_scrollable_tab_not_clipped_overview(self):
+    def test_dashboard_is_main_preview_not_sidebar(self):
         window = RouteMateWindow()
         try:
-            self.assertIsInstance(window.scoreboard_scroll, QScrollArea)
-            self.assertIs(window.scoreboard_scroll.widget(), window.scoreboard)
-            self.assertEqual(window.sidebar_tabs.indexOf(window.scoreboard_scroll), 2)
-            self.assertEqual(window.sidebar_tabs.widget(0).objectName(), "overviewPage")
+            self.assertIsInstance(window.preview_stack,QStackedWidget)
+            self.assertEqual(window.preview_stack.count(),2)
+            self.assertEqual(window.sidebar_tabs.count(),2) # Overview + Activity only
+            self.assertIs(window.preview_stack.widget(0),window.top_view)
+            self.assertIs(window.preview_stack.widget(1),window.dashboard)
+            window.dashboard.start('AUDIO',10000,200,debug=True,workers=3)
+            window._show_live_dashboard()
+            self.assertIs(window.preview_stack.currentWidget(),window.dashboard)
+            self.assertFalse(window.board_fit_button.isVisible())
+            window._return_to_board_preview()
+            self.assertIs(window.preview_stack.currentWidget(),window.top_view)
         finally:
             window.close()
 
-    def test_loading_another_project_clears_stale_scoreboard_values(self):
-        window = RouteMateWindow()
+    def test_new_project_resets_dashboard_and_chart_history(self):
+        dashboard = LiveDashboard()
         try:
-            board = window.scoreboard
-            board.start("AUDIO", 10000, 200, debug=True)
-            board.update_progress(self._progress())
-            self.assertEqual(board.leader_rows[0][0].text(), "0050")
-            board.set_winner_available(True)
-            board.reset_for_project("MOTO")
-            self.assertIn("MOTO", board.mode.text())
-            self.assertIn("No Pass One campaign", board.mode.text())
-            self.assertEqual(board.leader_rows[0][0].text(), "—")
-            self.assertFalse(board.view_winner_button.isEnabled())
-            self.assertEqual(board.stat_values["qualified"].text(), "0")
+            dashboard.start('AUDIO',10000,200,debug=True)
+            dashboard.update_progress(self._sample())
+            dashboard.set_winner_available(True)
+            dashboard.reset_for_project('MOTO')
+            self.assertEqual(dashboard.verified.value.text(),'0')
+            self.assertEqual(len(dashboard.quality_plot.points),0)
+            self.assertFalse(dashboard.winner_button.isEnabled())
+            self.assertIn('MOTO',dashboard.subtitle.text())
         finally:
-            window.close()
+            dashboard.close()
 
-    def test_declining_winner_preview_preserves_board_and_keeps_saved_svgs(self):
-        valid_svg = (
-            '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20">'
-            '<rect width="20" height="20"/></svg>'
-        )
+    def _champion(self, temp, seed=50):
+        path = Path(temp) / f'winner_seed_{seed:04d}.json'
+        path.write_text(json.dumps({'board':{'rows':24,'cols':56},'components':[]}),encoding='utf-8')
+        result = {
+            'winner_json':str(path),'winner_seed':seed,'moves':10000,
+            'checked':200,'qualified':17,'errors':0,'completed':True,
+            'csv':str(Path(temp)/'results.csv'),
+            'log':str(Path(temp)/'activity.log'),
+        }
+        svg = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"><rect width="20" height="20"/></svg>'
+        return path,result,svg
+
+    def test_decline_keeps_big_dashboard_visible_and_saves_both_svgs(self):
         with tempfile.TemporaryDirectory() as temp:
-            path = Path(temp) / "winner_seed_0050.json"
-            path.write_text(json.dumps({
-                "board": {"rows": 24, "cols": 56}, "components": []
-            }), encoding="utf-8")
+            path,result,svg = self._champion(temp)
             window = RouteMateWindow()
             try:
-                window._top_svg = "original top"
-                window._copper_svg = "original copper"
-
-                def fake_render(project):
-                    window._copper_svg = valid_svg
-                    return valid_svg, "test renderer"
-
-                result = {
-                    "winner_json": str(path), "winner_seed": 50, "moves": 10000,
-                    "checked": 200, "qualified": 17, "errors": 0,
-                    "completed": True, "csv": str(Path(temp) / "results.csv"),
-                    "log": str(Path(temp) / "activity.log"),
-                }
-                with patch.object(window, "_render_component_side",
-                                  side_effect=fake_render), \
-                     patch.object(window, "_ask_to_view_pass_one_winner",
-                                  return_value=False) as ask:
+                window._top_svg = 'pre-run board'
+                window._copper_svg = 'pre-run copper'
+                window.dashboard.start('AUDIO',10000,200,debug=True)
+                window._show_live_dashboard()
+                def render(_project):
+                    window._copper_svg = svg
+                    return svg,'native renderer'
+                with patch.object(window,'_render_component_side',side_effect=render), \
+                     patch.object(window,'_ask_to_view_pass_one_winner',return_value=False) as ask:
                     window._pass_one_completed(result)
                 ask.assert_called_once_with(50)
-                self.assertEqual(window._top_svg, "original top")
-                self.assertEqual(window._copper_svg, "original copper")
-                self.assertIn("preview unchanged", window.board_result_label.text())
-                self.assertTrue(window.scoreboard.view_winner_button.isEnabled())
-                self.assertTrue(
-                    (Path(temp) / "winner_seed_0050-components.svg").is_file()
-                )
-                self.assertTrue(
-                    (Path(temp) / "winner_seed_0050-copper.svg").is_file()
-                )
-                # The user can open the saved winner later with no re-solve.
-                window.scoreboard.view_winner_button.click()
-                self.assertEqual(window._top_svg, valid_svg)
-                self.assertEqual(window._copper_svg, valid_svg)
-                self.assertIn("champion", window.board_result_label.text().lower())
+                self.assertIs(window.preview_stack.currentWidget(),window.dashboard)
+                self.assertEqual(window._top_svg,'pre-run board')
+                self.assertEqual(window._copper_svg,'pre-run copper')
+                self.assertTrue(window.dashboard.winner_button.isEnabled())
+                self.assertTrue(path.with_name(path.stem+'-components.svg').is_file())
+                self.assertTrue(path.with_name(path.stem+'-copper.svg').is_file())
+                window.dashboard.winner_button.click()
+                self.assertIs(window.preview_stack.currentWidget(),window.top_view)
+                self.assertEqual(window._top_svg,svg)
             finally:
                 window.close()
 
-
-    def test_accepting_winner_prompt_displays_saved_svg_immediately(self):
-        valid_svg = (
-            '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20">'
-            '<rect width="20" height="20"/></svg>'
-        )
+    def test_yes_opens_saved_winner_in_board_preview(self):
         with tempfile.TemporaryDirectory() as temp:
-            winner = Path(temp) / "winner_seed_0007.json"
-            winner.write_text(json.dumps({
-                "board": {"rows": 24, "cols": 56}, "components": []
-            }), encoding="utf-8")
+            path,result,svg = self._champion(temp,seed=17)
             window = RouteMateWindow()
             try:
-                window._top_svg = "old board"
-
+                window.dashboard.start('AUDIO',10000,200,debug=True)
+                window._show_live_dashboard()
                 def render(_project):
-                    window._copper_svg = valid_svg
-                    return valid_svg, "verified renderer"
-
-                result = {
-                    "winner_json": str(winner), "winner_seed": 7,
-                    "moves": 20000, "checked": 200, "qualified": 1,
-                    "errors": 0, "completed": True,
-                    "csv": str(Path(temp) / "results.csv"),
-                    "log": str(Path(temp) / "activity.log"),
-                }
-                with patch.object(window, "_render_component_side",
-                                  side_effect=render), \
-                     patch.object(window, "_ask_to_view_pass_one_winner",
-                                  return_value=True) as ask:
+                    window._copper_svg=svg
+                    return svg,'native renderer'
+                with patch.object(window,'_render_component_side',side_effect=render), \
+                     patch.object(window,'_ask_to_view_pass_one_winner',return_value=True) as ask:
                     window._pass_one_completed(result)
-                ask.assert_called_once()
-                self.assertEqual(window._top_svg, valid_svg)
-                self.assertEqual(window._copper_svg, valid_svg)
-                self.assertTrue(window.scoreboard.view_winner_button.isEnabled())
+                ask.assert_called_once_with(17)
+                self.assertIs(window.preview_stack.currentWidget(),window.top_view)
+                self.assertEqual(window._top_svg,svg)
+                self.assertEqual(window._copper_svg,svg)
             finally:
                 window.close()
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main()
