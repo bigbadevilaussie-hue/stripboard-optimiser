@@ -71,7 +71,10 @@ def check_repository(root: Path = ROOT) -> dict:
         errors.append("GUI window is not reading gui/VERSION")
     _, _, stop_tail = gui.partition("    def solve_board(self):")
     stop, _, _ = stop_tail.partition("    def stop_solve(self):")
-    if not stop or "self.solve_action.setEnabled(False)" not in stop or "return" not in stop:
+    # Quick Solve intentionally hard-stops; the retired solve_action no longer
+    # exists in the current GUI. Check the real STOP action and disable path.
+    if (not stop or "self.stop_action.setEnabled(False)" not in stop
+            or "[SOLVER][DISABLED]" not in stop or "return" not in stop):
         errors.append("GUI solver hard-stop guard missing")
     if "self.solve_action.setEnabled(True)" in gui:
         errors.append("GUI unexpectedly enables solver action")
