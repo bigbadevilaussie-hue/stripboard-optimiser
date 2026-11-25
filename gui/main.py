@@ -504,7 +504,7 @@ class LockDialog(QDialog):
         self.locked = QRadioButton("Fixed")
         self.unlocked = QRadioButton("Movable")
         self.edge = QCheckBox("Edge lock")
-        self.slide = QCheckBox("Slide along edge (experimental)")
+        self.slide = QCheckBox("Slide along edge (EXPERIMENTAL)")
         self.slide.setStyleSheet(
             "QCheckBox { color: #ff1744; font-weight: 800; font-size: 13px; }"
         )
@@ -528,7 +528,7 @@ class LockDialog(QDialog):
         hint.setWordWrap(True)
         layout.addWidget(hint)
         self.search_notice = QLabel(
-            "Slide search is experimental; the audit does not test slide positions."
+            "EXPERIMENTAL: Slide search is not verified; the audit does not test slide positions."
         )
         self.search_notice.setWordWrap(True)
         self.search_notice.setStyleSheet(
@@ -1693,6 +1693,10 @@ class RouteMateWindow(QMainWindow):
     def _return_to_board_preview(self):
         """Allow inspecting the source board without interrupting live charts."""
         self._switch_board_side(self._board_side)
+        # An empty/uncached source board must not strand the user on charts.
+        if self.preview_stack.currentWidget() is self.dashboard:
+            self.preview_stack.setCurrentWidget(self.top_view)
+            self.board_fit_button.show()
 
     def _switch_board_side(self, side: str):
         """Switch cached SVG views without rerouting or changing component locks."""
