@@ -219,7 +219,7 @@ width="1024" height="1024">
  </linearGradient>
  <linearGradient id="app-copper" x1="0" x2="0" y1="0" y2="1">
   <stop stop-color="#ffe5bd"/><stop offset=".3" stop-color="#ecad7f"/>
-  <stop offset=".65" stop-color="#ba6d42"/><stop offset="1" stop-color="#ebae79"/>
+  <stop offset=".65" stop-color="#c87d4b"/><stop offset="1" stop-color="#ebae79"/>
  </linearGradient>
  <linearGradient id="route" x1="0" x2="1" y1="0" y2="1">
   <stop stop-color="#1de8ed"/><stop offset=".25" stop-color="#13b9d6"/>
