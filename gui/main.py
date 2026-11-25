@@ -355,6 +355,11 @@ class PassOneDialog(QDialog):
                 "this is not a verified quality recommendation."
             )
         timing.setWordWrap(True)
+        guess_heading = QLabel("GUESS-O-MATIC · 100-point decoder timing")
+        guess_heading.setStyleSheet(
+            "font-size: 12px; font-weight: 800; color: #153e5b;"
+        )
+        layout.addWidget(guess_heading)
         layout.addWidget(timing)
         if self._recommended == 10000:
             self.ten_k.setText("10,000 moves — suggested for first-pass screening")
