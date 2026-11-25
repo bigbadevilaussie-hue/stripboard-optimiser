@@ -26,4 +26,4 @@ tools/
 /gui/icons/*.svg
 /gui/icons/*.png
 /gui/assets/app_icon.svg
-/gui/assets/app_icon.png
+/gui/assets/.stripsolve_artwork_revision
