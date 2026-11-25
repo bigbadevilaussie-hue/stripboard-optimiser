@@ -992,6 +992,7 @@ class RouteMateWindow(QMainWindow):
         self.pipeline_run = None
         self._top_svg = None
         self._copper_svg = None
+        self._opened_solved = None  # Display-only snapshot, separate from active project
         self._schematic_svg = None
         self._schematic_png = None  # Old Tk GUI’s rsvg-convert preview bytes
         self._board_side = "top"
@@ -1234,6 +1235,11 @@ class RouteMateWindow(QMainWindow):
         self.dashboard_toggle_button.clicked.connect(self._show_live_dashboard)
         self.dashboard_toggle_button.hide()
         heading_row.addWidget(self.dashboard_toggle_button)
+        self.return_project_button = QPushButton("Project board")
+        self.return_project_button.setObjectName("boardZoomButton")
+        self.return_project_button.clicked.connect(self._close_solved_preview)
+        self.return_project_button.hide()
+        heading_row.addWidget(self.return_project_button)
         for caption, callback, tip in (
             ("Fit", self.fit_board, "Fit the complete board"),
         ):
@@ -1589,55 +1595,37 @@ class RouteMateWindow(QMainWindow):
             from render.standalone_bridge import render_project_data
             top, copper, diagnostic = render_project_data(project, web_preview=True)
             self._show_tool_revision(diagnostic, "RENDER")
-            dialog = QDialog(self)
-            dialog.setWindowTitle(f"Open Solved — {path.name}")
-            dialog.resize(1200, 760)
-            layout = QVBoxLayout(dialog)
-            heading = QLabel(
-                f"{path.name}  ·  {board['rows']} × {board['cols']} holes  ·  "
-                f"{len(board['wires'])} jumpers  ·  {len(board['cuts'])} cuts"
-            )
-            heading.setWordWrap(True)
-            heading.setStyleSheet("font-size: 15px; font-weight: 750;")
-            layout.addWidget(heading)
-            note = QLabel("Read-only preview · no optimisation or new verification")
-            layout.addWidget(note)
-            controls = QHBoxLayout()
-            view = BoardView()
-            view.render_warning.connect(self.log_line)
-            top_button = QPushButton("Component side")
-            copper_button = QPushButton("Copper side (mirrored)")
-            for button in (top_button, copper_button):
-                button.setCheckable(True)
-                button.setAutoExclusive(True)
-                controls.addWidget(button)
-            top_button.setChecked(True)
-
-            def show_side(svg):
-                try:
-                    view.show_svg(svg)
-                except (OSError, RuntimeError, ValueError) as exc:
-                    self.log_line(f"[OPEN SOLVED][ERROR] {exc}")
-                    QMessageBox.warning(dialog, "Preview failed", str(exc))
-
-            top_button.clicked.connect(lambda: show_side(top))
-            copper_button.clicked.connect(lambda: show_side(copper))
-            controls.addStretch()
-            for caption, action in (("Fit", view.fit_board),
-                                    ("Zoom +", lambda: view.zoom(1.25)),
-                                    ("Zoom −", lambda: view.zoom(0.8)),
-                                    ("Close", dialog.accept)):
-                button = QPushButton(caption)
-                button.clicked.connect(action)
-                controls.addWidget(button)
-            layout.addLayout(controls)
-            layout.addWidget(view, 1)
-            view.show_svg(top)
+            # Display first; if decoding fails, retain the prior preview state.
+            self.top_view.show_svg(top)
+            self._opened_solved = {
+                "name": path.name, "top": top, "copper": copper,
+                "summary": (f"{board['rows']} × {board['cols']} holes · "
+                            f"{len(board['wires'])} jumpers · {len(board['cuts'])} cuts"),
+            }
+            self.schematic_action.setEnabled(False)
+            self.return_project_button.setVisible(bool(self._top_svg))
+            self._switch_board_side("top")
             self.log_line(f"[OPEN SOLVED] Read-only preview: {path}; no solver or audit invoked.")
-            dialog.exec()
         except (OSError, ValueError, TypeError, KeyError, RuntimeError, subprocess.SubprocessError) as exc:
             self.log_line(f"[OPEN SOLVED][ERROR] {exc}")
             QMessageBox.warning(self, "Open solved board failed", str(exc))
+
+    def _clear_solved_preview(self):
+        if self._opened_solved is None:
+            return
+        self._opened_solved = None
+        self.return_project_button.hide()
+        self.schematic_action.setEnabled(bool(self._schematic_svg))
+        self._board_side = "top"
+
+    def _close_solved_preview(self):
+        self._clear_solved_preview()
+        self._switch_board_side("top")
+        board = self.project.get("board", {}) if isinstance(self.project, dict) else {}
+        name = self.project_path.stem.upper() if self.project_path else "BOARD"
+        self.board_project_label.setText(
+            f"{name} · {board.get('rows', '?')} × {board.get('cols', '?')} holes")
+        self.board_result_label.setText(self.solve_summary.text())
 
     def export_board_svgs(self):
         """Refresh the current board and save both production SVG views."""
@@ -1692,6 +1680,21 @@ class RouteMateWindow(QMainWindow):
 
     def _switch_board_side(self, side: str):
         """Switch cached SVG views without rerouting or changing component locks."""
+        if self._opened_solved is not None:
+            if side == "schematic":
+                return
+            opened = self._opened_solved
+            self._board_side = side
+            self.preview_stack.setCurrentWidget(self.top_view)
+            self.board_fit_button.show()
+            self.top_action.setChecked(side == "top")
+            self.copper_action.setChecked(side == "copper")
+            self.schematic_action.setChecked(False)
+            self.board_project_label.setText(opened["name"] + " · " + opened["summary"])
+            self.board_result_label.setText("Open Solved · read-only preview")
+            self.top_view.show_svg(opened[side])
+            self.statusBar().showMessage("Open Solved — no optimisation or new verification.")
+            return
         if side == "schematic" and not self._schematic_svg:
             return
         was_dashboard = self.preview_stack.currentWidget() is self.dashboard
@@ -1728,6 +1731,7 @@ class RouteMateWindow(QMainWindow):
 
     def _show_board(self, top_svg: str):
         """Display renderer output without importing another optimiser."""
+        self._clear_solved_preview()
         self._top_svg = top_svg
         self._switch_board_side(self._board_side)
         if self.project is not None:
@@ -2204,6 +2208,7 @@ class RouteMateWindow(QMainWindow):
             QMessageBox.critical(self, "Pass One startup", str(exc))
             return
 
+        self._clear_solved_preview()
         self._calibration_stages["PASS1"] = "running"
         self._refresh_checklist()
         self._winner_svg_files = None
@@ -2293,6 +2298,7 @@ class RouteMateWindow(QMainWindow):
             self._winner_svg_files = (top_file, copper_file)
             self.dashboard.set_winner_available(True)
             if show_preview:
+                self._clear_solved_preview()
                 self._top_svg = top_svg
                 self._copper_svg = copper_svg
                 self._board_side = "top"
@@ -2328,6 +2334,7 @@ class RouteMateWindow(QMainWindow):
             for side, svg in (("component", top_svg), ("copper", copper_svg)):
                 if not QSvgRenderer(QByteArray(svg.encode("utf-8"))).isValid():
                     raise ValueError(f"Saved winner {side} SVG is invalid")
+            self._clear_solved_preview()
             self._top_svg = top_svg
             self._copper_svg = copper_svg
             self._board_side = "top"
@@ -3385,6 +3392,7 @@ class RouteMateWindow(QMainWindow):
                 )
 
             workspace = project_workspace(path, self.work_root, create=True)
+            self._clear_solved_preview()
             self.project = project
             self.project_path = path
             self.active_workspace = workspace
@@ -3407,7 +3415,7 @@ class RouteMateWindow(QMainWindow):
             self._set_board_summary("Imported · reviewing placement constraints", project=project)
             top_svg, renderer_log = self._render_component_side(project)
             self._show_board(top_svg)
-            self.log_line("[RENDER] Existing component-side layout rendered with alternating row bands.")
+            self.log_line("[RENDER] Existing component-side layout rendered in web style.")
             if renderer_log:
                 self.log_line("[RENDER] " + renderer_log)
 

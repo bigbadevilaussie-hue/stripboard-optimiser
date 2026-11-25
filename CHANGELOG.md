@@ -1,5 +1,11 @@
 # Changelog
 
+### GUI 2.29 — Keep Open Solved in the main board canvas
+- Replace separate preview dialog with the existing board viewport and toolbar side controls.
+- Keep read-only solved preview separate from active project; Project board returns to the active view. New load or campaign/winner preview clears it.
+- No renderer or solver changes. Mac regression check outstanding.
+
+
 ### GUI 2.28 — Karl web-style board preview (25 November 2026)
 - Port interactive canvas drawing rules to a browser-free SVG generator for component-side import, lock highlighting, Open Solved and winner previews.
 - Use Karl's virtual off-board pads, segment opacity, pin assignments, package fills, label sizes, wire lanes and cut marks; remove redundant top-side legacy overlays in web mode except advisory contact markings.

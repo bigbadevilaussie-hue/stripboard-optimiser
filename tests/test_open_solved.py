@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 try:
-    from PySide6.QtWidgets import QApplication, QDialog, QPushButton
+    from PySide6.QtWidgets import QApplication, QDialog
     from gui.main import RouteMateWindow, BoardView
 except ImportError:
     QApplication = None
@@ -38,22 +38,23 @@ class OpenSolvedTests(unittest.TestCase):
                 path.write_text(json.dumps(payload))
                 before = path.read_bytes()
 
-                def inspect(dialog):
-                    buttons = {button.text(): button for button in dialog.findChildren(QPushButton)}
-                    buttons["Copper side (mirrored)"].click()
-                    buttons["Component side"].click()
-                    return QDialog.DialogCode.Accepted
-
                 with patch("gui.main.QFileDialog.getOpenFileName", return_value=(str(path), "")), \
                      patch("render.standalone_bridge.render_project_data", return_value=("top", "copper", "")) as render, \
                      patch.object(BoardView, "show_svg") as display, \
-                     patch.object(QDialog, "exec", new=inspect), \
+                     patch.object(QDialog, "exec", side_effect=AssertionError("Unexpected preview dialog")), \
                      patch.object(window, "load_json") as load, \
                      patch.object(window, "start_pass_one") as solve:
                     window.render_action.trigger()
                     render.assert_called_once_with(payload, web_preview=True)
+                    self.assertIs(window.preview_stack.currentWidget(), window.top_view)
+                    self.assertIn("solved.json", window.board_project_label.text())
+                    window.copper_action.trigger()
+                    window.top_action.trigger()
                     self.assertEqual([call.args[0] for call in display.call_args_list],
-                                     ["top", "copper", "top"])
+                                     ["top", "top", "copper", "top"])
+                    window.return_project_button.click()
+                    self.assertIsNone(window._opened_solved)
+                    self.assertEqual(display.call_args.args[0], "old top")
                     load.assert_not_called()
                     solve.assert_not_called()
                 self.assertEqual(path.read_bytes(), before)
