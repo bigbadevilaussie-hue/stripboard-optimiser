@@ -141,11 +141,10 @@ class LiveScoreboardGuiTests(unittest.TestCase):
                 }
                 with patch.object(window, "_render_component_side",
                                   side_effect=fake_render), \
-                     patch.object(QMessageBox, "question",
-                                  return_value=QMessageBox.StandardButton.No) as ask:
+                     patch.object(window, "_ask_to_view_pass_one_winner",
+                                  return_value=False) as ask:
                     window._pass_one_completed(result)
-                ask.assert_called_once()
-                self.assertIn("Do you want to see", ask.call_args.args[2])
+                ask.assert_called_once_with(50)
                 self.assertEqual(window._top_svg, "original top")
                 self.assertEqual(window._copper_svg, "original copper")
                 self.assertIn("preview unchanged", window.board_result_label.text())
@@ -192,8 +191,8 @@ class LiveScoreboardGuiTests(unittest.TestCase):
                 }
                 with patch.object(window, "_render_component_side",
                                   side_effect=render), \
-                     patch.object(QMessageBox, "question",
-                                  return_value=QMessageBox.StandardButton.Yes) as ask:
+                     patch.object(window, "_ask_to_view_pass_one_winner",
+                                  return_value=True) as ask:
                     window._pass_one_completed(result)
                 ask.assert_called_once()
                 self.assertEqual(window._top_svg, valid_svg)
