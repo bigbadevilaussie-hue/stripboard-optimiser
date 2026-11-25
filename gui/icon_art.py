@@ -1,22 +1,19 @@
-"""Deterministic, source-controlled StripSolve icon artwork.
+"""StripSolve icon masters — polished copper / Arctic-Ice electrical identity.
 
-SVG is the master format: crisp at 24px, 48px and Retina resolutions.
-No network, image-generation service or proprietary font is required.
+SVG artwork is deterministic and independent of Qt. 48px toolbar SVGs are
+rasterized at 24px by the GUI; the app SVG produces the 1024px master PNG.
 """
 from __future__ import annotations
 
 from html import escape
 
-INK = "#19334d"
-NAVY = "#183c59"
-BLUE = "#257ac2"
+INK = "#17364d"
+BLUE = "#2b7de9"
 CYAN = "#00b4d8"
 TEAL = "#0d9488"
 GREEN = "#16a34a"
 COPPER = "#c87d4b"
 CORAL = "#e85d4a"
-AMBER = "#f59e0b"
-ICE = "#e6f5ff"
 WHITE = "#ffffff"
 
 ICON_KEYS = (
@@ -24,180 +21,265 @@ ICON_KEYS = (
     "copper_side", "schematic", "open_solved", "exit", "fit_board",
 )
 
+_DEFS = '''
+<defs>
+ <linearGradient id="board" x1="0" y1="0" x2="1" y2="1">
+  <stop stop-color="#fff1dd"/><stop offset=".48" stop-color="#f2bf92"/>
+  <stop offset="1" stop-color="#d99163"/>
+ </linearGradient>
+ <linearGradient id="copper" x1="0" y1="0" x2="0" y2="1">
+  <stop stop-color="#ffddb5"/><stop offset=".25" stop-color="#eea66d"/>
+  <stop offset=".58" stop-color="#bb6c41"/><stop offset="1" stop-color="#f5bd88"/>
+ </linearGradient>
+ <linearGradient id="trace" x1="0" y1="0" x2="1" y2="1">
+  <stop stop-color="#3ff2f0"/><stop offset=".36" stop-color="#29b8df"/>
+  <stop offset=".7" stop-color="#2778c6"/><stop offset="1" stop-color="#11b594"/>
+ </linearGradient>
+ <linearGradient id="ice" x1="0" y1="0" x2="1" y2="1">
+  <stop stop-color="#ffffff"/><stop offset="1" stop-color="#d8f0fc"/>
+ </linearGradient>
+ <linearGradient id="chip" x1="0" y1="0" x2="1" y2="1">
+  <stop stop-color="#526f82"/><stop offset=".5" stop-color="#24465f"/>
+  <stop offset="1" stop-color="#102839"/>
+ </linearGradient>
+</defs>
+'''
 
-def _path(d: str, *, color: str = NAVY, width: float = 2.6,
-          fill: str = "none") -> str:
+
+def _p(d, color=INK, width=2.3, fill="none"):
     return (f'<path d="{escape(d)}" fill="{fill}" stroke="{color}" '
             f'stroke-width="{width}" stroke-linecap="round" '
             'stroke-linejoin="round"/>')
 
 
-def _circle(x, y, radius, fill=WHITE, stroke=TEAL, width=2):
-    return (f'<circle cx="{x}" cy="{y}" r="{radius}" fill="{fill}" '
-            f'stroke="{stroke}" stroke-width="{width}"/>')
+def _r(x, y, w, h, rad=3, fill='url(#board)', stroke=INK, sw=2):
+    return (f'<rect x="{x}" y="{y}" width="{w}" height="{h}" '
+            f'rx="{rad}" fill="{fill}" stroke="{stroke}" stroke-width="{sw}"/>')
 
 
-def _rect(x, y, w, h, r=3, fill=WHITE, stroke=NAVY, width=2):
-    return (f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="{r}" '
-            f'fill="{fill}" stroke="{stroke}" stroke-width="{width}"/>')
+def _c(x, y, rad=2.2, fill='#f1fcff', stroke='#8d624d', sw=1.6):
+    return (f'<circle cx="{x}" cy="{y}" r="{rad}" '
+            f'fill="{fill}" stroke="{stroke}" stroke-width="{sw}"/>')
 
 
-def _board(x=7, y=9, w=34, h=30):
-    parts = [_rect(x, y, w, h, 4, "#efb38b", COPPER, 1.6)]
-    for yy in (y+7, y+15, y+23):
-        parts.append(_path(f"M{x+3} {yy} H{x+w-3}", color="#bf7040", width=3.2))
-        for xx in (x+7, x+16, x+25):
-            parts.append(_circle(xx, yy, 1.9, "#fff6ed", COPPER, 1))
-    return "".join(parts)
+def _pcb(x=6, y=9, w=36, h=30, *, density=3):
+    a = [_r(x, y, w, h, 4.2, 'url(#board)', '#966749', 1.8)]
+    for n in range(density):
+        yy = y + h * (n+1)/(density+1)
+        a.append(_p(f'M{x+3} {yy} H{x+w-3}', 'url(#copper)', 3.5))
+        for xx in [x+8, x+18, x+28]:
+            if xx < x+w-3:
+                a.append(_c(xx, yy, 2.1, '#fcffff', '#bd784f', 1.4))
+    return ''.join(a)
+
+
+def _via(x, y, fill='#bdf7f8'):
+    return _c(x, y, 3.1, fill, '#0d8d9c', 1.8)+_c(x, y, 1.15, '#ffffff', '#e2fbff', .3)
 
 
 def icon_svg(key: str) -> str:
-    """Return a complete, valid 48x48 standalone SVG for a known button."""
+    """Standalone, legible 48x48 icon in the approved blue/teal/copper system."""
     if key not in ICON_KEYS:
         raise KeyError(key)
-    art = {
-        "load_json": (
-            _path("M10 4 H28 L37 13 V41 H10 Z", fill="#f3faff")
-            + _path("M28 4 V13 H37", color=BLUE)
-            + _path("M17 20 C13 20 13 24 17 24 C13 24 13 28 17 28", color=TEAL, width=2.5)
-            + _path("M30 20 C34 20 34 24 30 24 C34 24 34 28 30 28", color=TEAL, width=2.5)
-            + _circle(24, 34, 2.6, CYAN, BLUE, 1.2)
+    designs = {
+        'load_json': (
+            _p('M11 5 H28 L38 15 V40 Q38 43 35 43 H11 Q8 43 8 40 V8 Q8 5 11 5Z',
+               '#234960', 2.3, 'url(#ice)')
+            + _p('M28 5 V15 H38', '#2b7de9', 2.4)
+            + _p('M18 21 C13 21 17 24 13 25 C17 26 13 29 18 30', '#2b7de9', 2.7)
+            + _p('M28 21 C33 21 29 24 33 25 C29 26 33 29 28 30', '#2b7de9', 2.7)
+            + _c(23,25,2.8,'url(#copper)','#955c39',1)
+            + _p('M17 35 H30', '#0d9488', 2.7)
         ),
-        "stop_solve": (
-            _rect(6, 6, 36, 36, 11, "#fff0ed", CORAL, 2.4)
-            + _path("M19 11 V23 M25 11 V23 M31 13 V23 M15 17 V27 "
-                    "C15 35 20 38 26 38 C33 38 36 33 36 27 V21", color=CORAL, width=3)
-            + _path("M14 28 L9 23", color=CORAL, width=3)
+        'stop_solve': (
+            _p('M16 5 H32 L43 16 V32 L32 43 H16 L5 32 V16Z', '#8c3b38', 2.4, '#f26954')
+            + _p('M16 7 H31 L41 17', '#ffb49e', 2.5)
+            + _r(16, 16, 16, 16, 3.5, '#fffaf8', '#943d3e', 2.6)
+            + _p('M20 20 V28 M28 20 V28', '#e85d4a', 3)
         ),
-        "pass_one": (
-            _circle(9, 36, 4, WHITE, TEAL, 2.7)
-            + _circle(24, 23, 4, WHITE, BLUE, 2.7)
-            + _circle(39, 11, 4, WHITE, CYAN, 2.7)
-            + _path("M13 33 L20 27 M28 20 L35 14", color=BLUE, width=3.5)
-            + _path("M7 10 H20 M7 16 H14", color=NAVY, width=2.2)
-            + _path("M36 38 H43", color=NAVY, width=2.2)
+        'pass_one': (
+            _pcb(5,12,38,28, density=3)
+            + _p('M10 32 H20 V22 H31', '#133e59', 5.5)
+            + _p('M10 32 H20 V22 H31', 'url(#trace)', 3.7)
+            + _via(10,32) + _via(31,22)
+            + _c(36, 10, 9, '#2b7de9', '#ffffff', 1.9)
+            + _p('M36 6 V14 M33.5 7 L36 6', 'white', 2.6)
         ),
-        "pass_two": (
-            _circle(9, 35, 4, WHITE, TEAL, 2.6)
-            + _circle(23, 25, 4, WHITE, BLUE, 2.6)
-            + _circle(39, 13, 4, WHITE, CYAN, 2.6)
-            + _path("M13 32 L19 28 M27 22 L34 16", color=TEAL, width=3)
-            + _path("M8 11 L17 11 L23 5 L31 5", color=NAVY, width=2)
-            + _path("M17 8 L17 13", color=CORAL, width=2.5)
-            + _path("M36 35 L41 40 L47 30", color=GREEN, width=2.8)
+        'pass_two': (
+            _pcb(5,12,38,28, density=3)
+            + _p('M9 33 H16 L24 21 H34', '#164b59', 5.4)
+            + _p('M9 33 H16 L24 21 H34', 'url(#trace)', 3.6)
+            + _via(9,33) + _via(34,21)
+            + _p('M30 26 L35 21 L30 17', '#10a997', 2)
+            + _c(36,10,9,'#0d9488','#ffffff',1.9)
+            + _p('M32.4 7.5 Q36 5 39 8 Q38 10 32.5 14 H39', 'white',2.3)
         ),
-        "component_side": (
-            _board()
-            + _rect(15, 15, 18, 10, 2, "#426b81", NAVY, 1.4)
-            + _path("M17 29 V35 M24 29 V35 M31 29 V35", color=TEAL, width=2.1)
+        'component_side': (
+            _pcb(5,8,38,32,density=4)
+            + _r(16, 15, 16, 18, 3, 'url(#chip)', '#0e2839', 1.9)
+            + ''.join(_p(f'M12 {yy} H16 M32 {yy} H36', '#e9f2f7',2.3)
+                      for yy in (18,23,28))
+            + _p('M20 19 H28', '#23c4de',2)
+            + _c(20, 27,1.9,'#35c7b0','#0d9488',.7)
         ),
-        "copper_side": (
-            _board()
-            + _path("M11 17 H20 V26 H34 M12 32 H29 V22 H37", color=CYAN, width=2.7)
-            + _circle(21, 17, 2, COPPER, NAVY, 1)
-            + _circle(30, 32, 2, COPPER, NAVY, 1)
-            + _path("M32 10 L40 18 M40 10 L32 18", color=CORAL, width=2.5)
+        'copper_side': (
+            _pcb(5,8,38,32,density=4)
+            + _p('M12 31 V21 H29 V16 H35', '#174b60',5)
+            + _p('M12 31 V21 H29 V16 H35', '#0cc6d1',3.1)
+            + _via(12,31) + _via(35,16)
+            + _p('M21 25 L28 32 M28 25 L21 32', '#e85d4a',3.3)
         ),
-        "schematic": (
-            _path("M6 16 H17 L23 10 L29 16 H42 M6 33 H16 L22 27 H31 L36 33 H42",
-                  color=NAVY, width=2.4)
-            + _rect(17, 18, 14, 12, 2, "#e3f5ff", BLUE, 2)
-            + _path("M20 22 H28 M20 26 H28", color=TEAL, width=2)
-            + _circle(6, 16, 2.4, WHITE, BLUE, 1.5)
-            + _circle(42, 33, 2.4, WHITE, BLUE, 1.5)
+        'schematic': (
+            _p('M4 24 H13 L17 16 L22 32 L27 16 L31 24 H44', '#254f75',3.1)
+            + _p('M21 10 H27 M24 6 V14 M18 38 H30 M24 34 V42', 'url(#copper)',2.9)
+            + _via(6,24) + _via(42,24)
+            + _p('M11 8 H16 M32 39 H37', '#0d9488',2.3)
         ),
-        "open_solved": (
-            _path("M12 5 H29 L36 13 V39 H12 Z", fill="#e8f6ff")
-            + _path("M29 5 V13 H36", color=BLUE)
-            + _path("M15 30 L23 36 L35 20", color=GREEN, width=4)
-            + _circle(17, 17, 2, COPPER, "#9b613c", 1)
-            + _circle(25, 17, 2, COPPER, "#9b613c", 1)
+        'open_solved': (
+            _p('M11 5 H29 L38 14 V41 H11 Z', '#24495f',2.4,'url(#ice)')
+            + _p('M29 5 V14 H38', '#2b7de9',2.1)
+            + _p('M16 19 H30 M16 25 H25 M16 31 H24', 'url(#copper)',2.7)
+            + _c(32,33,10,'#16a34a','#fffdf5',2.4)
+            + _p('M27 33 L31 37 L38 28','white',3.3)
         ),
-        "exit": (
-            _path("M25 7 H11 V41 H25", color=NAVY, width=3)
-            + _path("M19 24 H42 M34 16 L42 24 L34 32", color=CORAL, width=4)
-            + _circle(18, 31, 2, TEAL, TEAL, 1)
+        'exit': (
+            _r(7,5,25,38,4,'url(#ice)','#24495f',2.7)
+            + _p('M17 13 H24 V35 H17', 'url(#copper)',2.8)
+            + _c(26,26,1.7,'#cb8452','#9e613f',.8)
+            + _p('M24 24 H43 M35 16 L43 24 L35 32', '#2b7de9',4)
         ),
-        "fit_board": (
-            _rect(15, 15, 18, 18, 2, "#fff1e6", COPPER, 2)
-            + _path("M7 18 V7 H18 M30 7 H41 V18 M41 30 V41 H30 M18 41 H7 V30",
-                    color=BLUE, width=3)
-            + _path("M18 19 H30 M18 25 H30 M18 30 H30", color=TEAL, width=1.7)
+        'fit_board': (
+            _p('M17 5 H5 V17 M31 5 H43 V17 M5 31 V43 H17 M43 31 V43 H31',
+               '#2b7de9',3.5)
+            + _pcb(12,12,24,24,density=3)
+            + _p('M22 20 L27 25 L22 30', '#0d9488',2.4)
         ),
-    }[key]
-    return ('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" '
-            'width="48" height="48">' + art + '</svg>')
+    }
+    return ('<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" '
+            'viewBox="0 0 48 48" fill="none" stroke-linecap="round" '
+            'stroke-linejoin="round">'+_DEFS+designs[key]+'</svg>')
 
 
 def app_icon_svg() -> str:
-    """Bright StripSolve squircle with copper strips and a bold routed S."""
-    copper_strips = []
-    for y in range(310, 745, 56):
-        copper_strips.append(
-            f'<rect x="248" y="{y}" width="528" height="26" rx="13" '
-            'fill="url(#copper)" opacity=".9"/>'
+    """1024px squircle: blueprint, copper strips, and luminous multi-trace S."""
+    strips = []
+    for i in range(12):
+        y = 278 + i * 44
+        strips.append(
+            f'<rect x="241" y="{y}" width="542" height="23" rx="11.5" '
+            'fill="url(#app-copper)" opacity=".86"/>'
         )
-        for x in range(280, 745, 66):
-            copper_strips.append(
-                f'<circle cx="{x}" cy="{y+13}" r="8" '
-                'fill="#fbfcff" stroke="#ad6d46" stroke-width="4"/>'
+        for x in range(262, 762, 44):
+            strips.append(
+                f'<circle cx="{x}" cy="{y+11}" r="7.4" '
+                'fill="#f5faff" stroke="#c58a68" stroke-width="3"/>'
             )
-    grid = []
-    for x in range(206, 830, 83):
-        grid.append(f'<path d="M{x} 186 V840" stroke="#bed8e8" stroke-width="2" opacity=".55"/>')
-    for y in range(195, 830, 83):
-        grid.append(f'<path d="M186 {y} H838" stroke="#bed8e8" stroke-width="2" opacity=".55"/>')
-    circuit = ('M688 310 H473 Q367 310 367 413 Q367 500 475 515 '
-               'L573 541 Q677 566 677 656 Q677 756 555 756 H335')
-    copper_route = ('M698 346 H496 Q411 346 411 422 Q411 474 502 501 '
-                    'L588 531 Q642 548 642 634 Q642 713 541 713 H321')
-    traces = "".join([
-        '<path d="M262 361 H341 M692 410 H784 M242 574 H348 '
-        'M684 661 H796 M325 725 H250" stroke="#0c8e94" stroke-width="10" '
-        'stroke-linecap="round" opacity=".9"/>',
-        '<g fill="#e3fff9" stroke="#118f9e" stroke-width="7">',
-        '<circle cx="262" cy="361" r="12"/><circle cx="784" cy="410" r="12"/>',
-        '<circle cx="242" cy="574" r="12"/><circle cx="796" cy="661" r="12"/>',
-        '<circle cx="250" cy="725" r="12"/></g>',
-    ])
-    return f'''<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024"
-viewBox="0 0 1024 1024">
+    grid = ''.join(f'<path d="M{x} 155 V869"/>' for x in range(165,860,88)) + \
+           ''.join(f'<path d="M155 {y} H869"/>' for y in range(165,860,88))
+    # A continuous conductor, with angular, hexagonal turns (not a font S).
+    spine = ('M613 346 L509 265 L387 353 L387 440 L469 513 '
+             'L638 598 L638 692 L512 788 L384 689 L384 610')
+    inner = ('M618 345 L509 284 L409 361 L409 432 L487 496 '
+             'L616 601 L616 677 L513 756 L404 680 L404 620')
+    # Copper companions follow the same board contour, not a generic S glyph.
+    copper = ('M616 345 L510 282 L406 358 L406 438 L487 517 '
+              'L619 600 L619 689 L511 771 L392 684 L392 619')
+    nodes = [(509,265),(613,346),(387,440),(469,513),(638,598),
+             (638,692),(512,788),(384,689)]
+    pins = ''.join(
+        f'<circle cx="{x}" cy="{y}" r="12" fill="url(#app-copper)" '
+        'stroke="#8b4e2c" stroke-width="4"/>'
+        f'<circle cx="{x}" cy="{y}" r="5" fill="#efffff"/>'
+        for x,y in nodes
+    )
+    aux = [
+        ('M314 330 H360 V382 H389','teal'),
+        ('M238 438 H376','copper'),
+        ('M316 522 H396 L433 493','teal'),
+        ('M641 358 H732','copper'),
+        ('M643 600 H748','teal'),
+        ('M642 678 H738 L776 643','copper'),
+        ('M514 789 V833','teal'),
+        ('M378 716 H306 L266 748','copper'),
+        ('M508 265 V233 H581 L604 205','teal'),
+    ]
+    aux_art = ''.join(
+        f'<path d="{d}" fill="none" stroke="{INK if color=="teal" else "#a56945"}" '
+        'stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>'
+        f'<path d="{d}" fill="none" stroke="{CYAN if color=="teal" else "url(#app-copper)"}" '
+        'stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>'
+        for d,color in aux
+    )
+    return f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024"
+width="1024" height="1024">
 <defs>
- <linearGradient id="ice" x1="0" y1="0" x2=".9" y2="1">
-  <stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#d9effb"/>
+ <linearGradient id="app-ice" x1="0" x2="1" y1="0" y2="1">
+  <stop stop-color="#ffffff"/><stop offset=".52" stop-color="#eff8ff"/>
+  <stop offset="1" stop-color="#d4eaf7"/>
  </linearGradient>
- <linearGradient id="copper" x1="0" x2="0" y1="0" y2="1">
-  <stop offset="0" stop-color="#f5c49c"/><stop offset=".5" stop-color="#c87d4b"/>
-  <stop offset="1" stop-color="#a85e38"/>
+ <linearGradient id="app-copper" x1="0" x2="0" y1="0" y2="1">
+  <stop stop-color="#ffe5bd"/><stop offset=".3" stop-color="#ecad7f"/>
+  <stop offset=".65" stop-color="#ba6d42"/><stop offset="1" stop-color="#ebae79"/>
  </linearGradient>
  <linearGradient id="route" x1="0" x2="1" y1="0" y2="1">
-  <stop offset="0" stop-color="#00cfe8"/><stop offset=".48" stop-color="#257ac2"/>
-  <stop offset="1" stop-color="#0e9687"/>
+  <stop stop-color="#1de8ed"/><stop offset=".25" stop-color="#13b9d6"/>
+  <stop offset=".55" stop-color="#266fc9"/><stop offset=".79" stop-color="#1278ba"/>
+  <stop offset="1" stop-color="#11bd99"/>
  </linearGradient>
+ <linearGradient id="app-edge" x1="0" x2="1" y1="0" y2="1">
+  <stop stop-color="#c1ffff"/><stop offset=".5" stop-color="#60bcd8"/>
+  <stop offset="1" stop-color="#17869c"/>
+ </linearGradient>
+ <filter id="bloom" x="-35%" y="-35%" width="170%" height="170%">
+  <feGaussianBlur stdDeviation="12"/>
+ </filter>
+ <clipPath id="panel-clip"><rect x="130" y="133" width="764" height="755" rx="158"/></clipPath>
 </defs>
-<rect x="45" y="45" width="934" height="934" rx="230"
- fill="#6bb6d0" opacity=".32"/>
-<rect x="70" y="65" width="884" height="884" rx="205"
- fill="url(#ice)" stroke="#68aecb" stroke-width="18"/>
-<rect x="110" y="108" width="805" height="805" rx="167"
- fill="none" stroke="#eaffff" stroke-width="12"/>
-<g>{''.join(grid)}</g>
-<rect x="217" y="265" width="590" height="532" rx="56"
- fill="#fff5ed" opacity=".28"/>
-<g>{''.join(copper_strips)}</g>
-<g>{traces}</g>
-<path d="{copper_route}" fill="none" stroke="#ac603b" stroke-width="94"
- stroke-linecap="round" stroke-linejoin="round" opacity=".6"/>
-<path d="{circuit}" fill="none" stroke="#103955" stroke-width="128"
+<!-- cyan glass squircle, without a raster square background -->
+<rect x="62" y="63" width="900" height="900" rx="210" fill="#36a8c8" opacity=".25"
+ filter="url(#bloom)"/>
+<rect x="62" y="60" width="900" height="900" rx="209" fill="url(#app-ice)"
+ stroke="url(#app-edge)" stroke-width="21"/>
+<rect x="82" y="79" width="860" height="862" rx="194" fill="none"
+ stroke="#dffaff" stroke-width="11"/>
+<rect x="126" y="130" width="772" height="760" rx="162" fill="none"
+ stroke="#b2d1e0" stroke-width="2.8"/>
+<g clip-path="url(#panel-clip)">
+ <g stroke="#c0d9e8" stroke-width="2" opacity=".67" fill="none">{grid}</g>
+ <g opacity=".68">{''.join(strips)}</g>
+ <g fill="none" stroke="#a0cadd" stroke-width="3" opacity=".8">
+  <path d="M140 490 H886 M140 552 H886"/>
+ </g>
+</g>
+<!-- diagnostic trace branches and solder vias -->
+<g>{aux_art}</g>
+<g fill="#e4fff9" stroke="#108d9c" stroke-width="6">
+ <circle cx="314" cy="330" r="10"/><circle cx="238" cy="438" r="10"/>
+ <circle cx="316" cy="522" r="10"/><circle cx="732" cy="358" r="10"/>
+ <circle cx="748" cy="600" r="10"/><circle cx="776" cy="643" r="10"/>
+ <circle cx="514" cy="833" r="10"/><circle cx="266" cy="748" r="10"/>
+ <circle cx="604" cy="205" r="10"/>
+</g>
+<!-- deep layered routing ribbon makes the central S legible as a chip icon -->
+<path d="{spine}" fill="none" stroke="#10455b" stroke-width="123"
+ stroke-linecap="round" stroke-linejoin="round" opacity=".2" filter="url(#bloom)"/>
+<path d="{spine}" fill="none" stroke="#16364f" stroke-width="104"
  stroke-linecap="round" stroke-linejoin="round"/>
-<path d="{circuit}" fill="none" stroke="url(#route)" stroke-width="101"
+<path d="{spine}" fill="none" stroke="url(#route)" stroke-width="90"
  stroke-linecap="round" stroke-linejoin="round"/>
-<path d="{circuit}" fill="none" stroke="#9ceffd" stroke-width="10"
+<path d="{spine}" fill="none" stroke="#65f6f1" stroke-width="8"
+ stroke-linecap="round" stroke-linejoin="round" opacity=".7"/>
+<path d="{inner}" fill="none" stroke="#0f4d70" stroke-width="24"
+ stroke-linecap="round" stroke-linejoin="round"/>
+<path d="{inner}" fill="none" stroke="#25adf2" stroke-width="12"
+ stroke-linecap="round" stroke-linejoin="round"/>
+<path d="{copper}" fill="none" stroke="#9b593a" stroke-width="17"
  stroke-linecap="round" stroke-linejoin="round" opacity=".9"/>
-<path d="{copper_route}" fill="none" stroke="#e9a06b" stroke-width="16"
- stroke-linecap="round" stroke-linejoin="round" opacity=".9"/>
-<g fill="#e6fffc" stroke="#33bfc5" stroke-width="8">
- <circle cx="367" cy="413" r="17"/><circle cx="677" cy="656" r="17"/>
- <circle cx="555" cy="756" r="17"/><circle cx="688" cy="310" r="17"/>
+<path d="{copper}" fill="none" stroke="url(#app-copper)" stroke-width="12"
+ stroke-linecap="round" stroke-linejoin="round"/>
+<g>{pins}</g>
+<g fill="#edfaff" stroke="#a36b44" stroke-width="5">
+ <rect x="429" y="396" width="14" height="35" rx="4"/>
+ <rect x="583" y="623" width="14" height="35" rx="4"/>
 </g>
 </svg>'''
