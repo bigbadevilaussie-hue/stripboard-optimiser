@@ -2,7 +2,7 @@
 
 **Release milestone:** Version 2.00 — Consolidation of Two Repositories (24 November 2026).
 
-**Consolidation designation:** `2.00` (no Git tag published) · **npm/package version:** `2.0.0` · **StripSolve GUI:** `2.16` (`gui/VERSION`).
+**Consolidation designation:** `2.00` (no Git tag published) · **npm/package version:** `2.0.0` · **StripSolve GUI:** `2.17` (`gui/VERSION`).
 
 **START HERE IF CONTINUING IN A NEW CHAT:** [Active handoff — WR Audio/Moto discovery, multipass plans and current GUI boundary](docs/ACTIVE_HANDOFF_2026-11-24.md). It records the native solver call chain, completed 5k/10k Audio results, unfinished work, reference WRs, and the **destructive rerun warning**.
 
@@ -15,6 +15,15 @@ The audit records verified source checks and outstanding target-Mac tests; it do
 **StripSolve** is the Arctic Ice + Colourburst desktop GUI for the existing
 native stripboard solver. It is the successor brand to the original Route-Mate
 GUI; the GitHub repository path and historical donor docs retain their names.
+
+**Live dashboard (2.17):** During Pass One, the entire large board-preview
+canvas becomes a native Qt6 analytics dashboard, with rounded Arctic Ice
+cards, live quality and W/C plots, verified outcome ring, runtime bars,
+elapsed/ETA, and no top-five leaderboard. Use the board toolbar or the
+dashboard's Board preview control to inspect the board; return via Live
+dashboard. After a completed Pass One run, the verified winner JSON and both
+SVGs are saved, then Yes/No asks whether to display it. Choosing No keeps
+the dashboard visible, and View saved winner opens it later.
 
 The GUI imports donor JSON files, checks electrical/physical preparation,
 shows component/copper/schematic views, reviews locks and routing policy, and
