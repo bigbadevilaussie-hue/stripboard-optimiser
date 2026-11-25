@@ -1428,7 +1428,7 @@ class RouteMateWindow(QMainWindow):
 
         # Both views come from the same production render pass and solved project.
         top_svg, copper_svg, _renderer_log = render_project_data(
-            project, highlight_component_id=highlight_component_id
+            project, highlight_component_id=highlight_component_id, web_preview=True
         )
         self._copper_svg = copper_svg
         self._show_tool_revision(_renderer_log, "RENDER")
@@ -1587,7 +1587,7 @@ class RouteMateWindow(QMainWindow):
                     or not isinstance(board.get("cuts"), list)):
                 raise ValueError("Expected valid board dimensions, wires and cuts.")
             from render.standalone_bridge import render_project_data
-            top, copper, diagnostic = render_project_data(project)
+            top, copper, diagnostic = render_project_data(project, web_preview=True)
             self._show_tool_revision(diagnostic, "RENDER")
             dialog = QDialog(self)
             dialog.setWindowTitle(f"Open Solved — {path.name}")
@@ -1658,10 +1658,10 @@ class RouteMateWindow(QMainWindow):
             output = output.with_suffix(".svg")
         copper_output = output.with_name(output.stem + "-copper.svg")
         try:
-            top_svg, renderer_log = self._render_component_side(self.project)
-            self._show_board(top_svg)
+            from render.standalone_bridge import render_project_data
+            top_svg, copper_svg, renderer_log = render_project_data(self.project)
             output.write_text(top_svg, encoding="utf-8")
-            copper_output.write_text(self._copper_svg, encoding="utf-8")
+            copper_output.write_text(copper_svg, encoding="utf-8")
         except (OSError, ValueError, TypeError) as exc:
             self.log_line(f"[RENDER][ERROR] {exc}")
             QMessageBox.warning(self, "SVG export failed", str(exc))

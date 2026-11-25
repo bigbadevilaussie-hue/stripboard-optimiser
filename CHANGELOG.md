@@ -1,5 +1,11 @@
 # Changelog
 
+### GUI 2.28 — Karl web-style board preview (25 November 2026)
+- Port interactive canvas drawing rules to a browser-free SVG generator for component-side import, lock highlighting, Open Solved and winner previews.
+- Use Karl's virtual off-board pads, segment opacity, pin assignments, package fills, label sizes, wire lanes and cut marks; remove redundant top-side legacy overlays in web mode except advisory contact markings.
+- Keep print export and mirrored copper rendering; no native solver changes.
+- Rebuild TypeScript renderer before launching. Mac visual parity and tests outstanding.
+
 ### GUI 2.27 — Restore Open Solved preview (25 November 2026)
 - GUI 2.27 restores Open Solved as an idle-only, read-only JSON preview. It opens both sides in a separate BoardView with the same librsvg pipeline, Fit and zoom controls; it does not enter project preparation, change the active campaign or certify the imported board.
 - Add regression tests for idle action state, both views, cancellation and untouched input/project. Mac verification outstanding.

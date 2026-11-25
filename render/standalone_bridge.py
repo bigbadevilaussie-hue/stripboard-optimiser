@@ -485,7 +485,7 @@ def _cap_label_clearance_adjustments(project: dict[str, Any]) -> list[dict]:
     return adjustments
 
 
-def _renderer_input(project: dict[str, Any]) -> dict[str, Any]:
+def _renderer_input(project: dict[str, Any], *, web_preview: bool = False) -> dict[str, Any]:
     """Copy the project and remove components not mounted on the stripboard."""
     from placement_policy import is_off_board_component
 
@@ -496,6 +496,9 @@ def _renderer_input(project: dict[str, Any]) -> dict[str, Any]:
         render_project["components"] = []
         for component in components:
             if is_off_board_component(component):
+                if web_preview and component.get("boardExcluded") is not True:
+                    # Karl's virtual pads supply net colours and terminal labels.
+                    render_project["components"].append(dict(component, offBoard=True))
                 continue
             part = dict(component)
             # The production renderer accepts explicit package IDs. Supply
@@ -514,12 +517,12 @@ def _renderer_input(project: dict[str, Any]) -> dict[str, Any]:
 
 def render_project(
     project_path: Path, output_dir: Path, *,
-    highlight_component_id: str | None = None,
+    highlight_component_id: str | None = None, web_preview: bool = False,
 ) -> tuple[str, str, str]:
     """Render both production board sides and return top SVG, copper SVG and log."""
     cli = ensure_renderer()
     source_project = json.loads(project_path.read_text(encoding="utf-8"))
-    project = _renderer_input(source_project)
+    project = _renderer_input(source_project, web_preview=True) if web_preview else _renderer_input(source_project)
     output_dir.mkdir(parents=True, exist_ok=True)
 
     # Never rewrite the caller's project file: the production renderer receives
@@ -531,9 +534,12 @@ def render_project(
         )
         runtime = _bundled_runtime()
         node = str(runtime[0]) if runtime else "node"
-        result = _run([
-            node, str(cli), str(render_input), "--output", str(output_dir),
-        ])
+        args = [node, str(cli), str(render_input), "--output", str(output_dir)]
+        if web_preview:
+            args.append("--web-preview")
+            if highlight_component_id is not None:
+                args.extend(["--highlight", str(highlight_component_id)])
+        result = _run(args)
     if result.returncode:
         raise RuntimeError("Production renderer failed:\n" + result.stdout)
     top = output_dir / "board-top.svg"
@@ -543,11 +549,16 @@ def render_project(
 
     rows = int(project["board"]["rows"])
     cols = int(project["board"]["cols"])
-    top_svg = add_alternating_row_bands(top.read_text(encoding="utf-8"), rows)
-    top_svg = add_top_side_cuts(top_svg, project)
-    top_svg = add_offboard_terminals(top_svg, source_project)
-    top_svg = add_component_highlight(top_svg, project, highlight_component_id)
-    top_svg = add_board_coordinate_labels(top_svg, rows, cols)
+    top_svg = top.read_text(encoding="utf-8")
+    if web_preview:
+        if 'data-render-style="web"' not in top_svg:
+            raise RuntimeError("Web preview missing; rebuild with npm run build:renderers.")
+    else:
+        top_svg = add_alternating_row_bands(top_svg, rows)
+        top_svg = add_top_side_cuts(top_svg, project)
+        top_svg = add_offboard_terminals(top_svg, source_project)
+        top_svg = add_component_highlight(top_svg, project, highlight_component_id)
+        top_svg = add_board_coordinate_labels(top_svg, rows, cols)
     top_svg = add_assumed_contact_highlights(top_svg, source_project)
     copper_svg = add_board_coordinate_labels(
         copper.read_text(encoding="utf-8"), rows, cols, mirrored=True
@@ -568,7 +579,8 @@ def render_project(
 
 
 def render_project_data(
-    project: dict[str, Any], *, highlight_component_id: str | None = None
+    project: dict[str, Any], *, highlight_component_id: str | None = None,
+    web_preview: bool = False,
 ) -> tuple[str, str, str]:
     """Render an in-memory project through the production renderer."""
     with tempfile.TemporaryDirectory(prefix="route-mate-render-") as tmp:
@@ -580,4 +592,5 @@ def render_project_data(
         return render_project(
             project_path, root / "output",
             highlight_component_id=highlight_component_id,
+            **({"web_preview": True} if web_preview else {}),
         )

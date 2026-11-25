@@ -51,7 +51,7 @@ class OpenSolvedTests(unittest.TestCase):
                      patch.object(window, "load_json") as load, \
                      patch.object(window, "start_pass_one") as solve:
                     window.render_action.trigger()
-                    render.assert_called_once_with(payload)
+                    render.assert_called_once_with(payload, web_preview=True)
                     self.assertEqual([call.args[0] for call in display.call_args_list],
                                      ["top", "copper", "top"])
                     load.assert_not_called()

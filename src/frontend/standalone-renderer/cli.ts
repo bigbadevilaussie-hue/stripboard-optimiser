@@ -6,6 +6,7 @@
 import * as fs from "fs";
 import * as path from "path";
 import { renderStripboard } from "./render";
+import { renderWebPreview } from "./web_preview";
 import { printRendererSplash } from "./toolSplash";
 
 function usage(): never {
@@ -20,9 +21,16 @@ function main(): void {
 
   let inputPath: string | null = null;
   let outputDir = ".";
+  let webPreview = false;
+  let highlight: string | undefined;
   for (let i = 0; i < args.length; i++) {
     const a = args[i];
-    if (a === "--output" || a === "-o") {
+    if (a === "--web-preview") {
+      webPreview = true;
+    } else if (a === "--highlight") {
+      if (i + 1 >= args.length) usage();
+      highlight = args[++i];
+    } else if (a === "--output" || a === "-o") {
       if (i + 1 >= args.length) {
         console.error("Error: --output requires a directory");
         process.exit(1);
@@ -73,6 +81,7 @@ function main(): void {
   let result;
   try {
     result = renderStripboard(projectData, { color: true, showLabels: true, showPinLabels: true });
+    if (webPreview) result.top = renderWebPreview(projectData, highlight);
   } catch (e) {
     console.error(`Error: rendering failed: ${e instanceof Error ? e.message : String(e)}`);
     process.exit(1);
