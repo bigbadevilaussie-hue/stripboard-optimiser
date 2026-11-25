@@ -19,7 +19,9 @@ class CleanRenderTests(unittest.TestCase):
             source = root / "project.json"
             output = root / "output"
             project = {"board": {"rows": 3, "cols": 3, "cuts": [], "wires": []},
-                       "components": [], "componentDefs": [], "nets": [], "netAssignments": []}
+                       "components": [{"id": "part", "defId": "unknown-test-def",
+                                       "boardPos": {"row": 1, "col": 1}}],
+                       "componentDefs": [], "nets": [], "netAssignments": []}
             source.write_text(json.dumps(project))
 
             def run(args):
@@ -36,9 +38,15 @@ class CleanRenderTests(unittest.TestCase):
                  patch("render.standalone_bridge.add_assumed_contact_highlights") as warnings:
                 top, copper, _ = render_project(source, output, web_preview=True)
                 self.assertNotIn("data-web-selected", top)
+                self.assertNotIn("data-route-mate-highlight", top)
+                self.assertNotIn("data-route-mate-highlight", copper)
                 self.assertIn("data-web-cut", top)
                 top, copper, _ = render_project(source, output, web_preview=True,
                                                highlight_component_id="part")
                 self.assertIn('data-web-selected="1"', top)
+                self.assertEqual(top.count('data-route-mate-highlight="1"'), 1)
+                self.assertNotIn("data-route-mate-highlight", copper)
+                top, copper, _ = render_project(source, output, web_preview=True)
+                self.assertNotIn("data-route-mate-highlight", top)
                 render_project(source, output)
                 warnings.assert_not_called()

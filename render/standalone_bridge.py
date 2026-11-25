@@ -557,8 +557,10 @@ def render_project(
         top_svg = add_alternating_row_bands(top_svg, rows)
         top_svg = add_top_side_cuts(top_svg, project)
         top_svg = add_offboard_terminals(top_svg, source_project)
-        top_svg = add_component_highlight(top_svg, project, highlight_component_id)
         top_svg = add_board_coordinate_labels(top_svg, rows, cols)
+    # Lock review needs a visible box, not just the thin package selection stroke.
+    # Both render styles use this explicit selection-only overlay.
+    top_svg = add_component_highlight(top_svg, project, highlight_component_id)
     # Nominal contact warnings belong in Activity and physical reports,
     # not the board artwork. Keep only the explicit lock-review highlight.
     copper_svg = add_board_coordinate_labels(

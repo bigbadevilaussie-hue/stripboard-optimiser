@@ -1,5 +1,9 @@
 # Changelog
 
+### GUI 2.33 — Restore lock-review selection box
+- Restore the existing orange selection rectangle in web-style previews only when a component is explicitly selected for lock review. No contact warnings in board artwork, and no renderer rebuild needed.
+
+
 ### GUI 2.32 — Separate Open Solved overview from preparation
 - Hide active-project preparation checklist while inspecting a read-only solved JSON. Display file name, board dimensions and wire/cut counts instead.
 - Restore unchanged checklist when returning to active project or dashboard. No fabricated preparation or verification status.
