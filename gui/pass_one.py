@@ -30,6 +30,7 @@ from gui.work_directory import (
 
 AUDITOR = FRONTEND / "tests/solver/auditSavedStrict.js"
 DEFAULT_SEEDS = 2000
+DEBUG_SEEDS = 200
 MOVE_CHOICES = (10000, 20000)
 
 
@@ -159,7 +160,7 @@ def _prepared_input(project):
 
 
 def _campaign_identity(fingerprint, moves, workers, drilled_only,
-                       stacking_allowed, seeds):
+                       stacking_allowed, seeds, debug=False):
     return {
         "schema": 1,
         "input_sha256": fingerprint,
@@ -168,6 +169,7 @@ def _campaign_identity(fingerprint, moves, workers, drilled_only,
         "drilled_only": bool(drilled_only),
         "stacking_allowed": bool(stacking_allowed),
         "seeds": seeds,
+        "debug": bool(debug),
     }
 
 
@@ -183,11 +185,11 @@ def _save_state(path, state):
 
 def inspect_pass_one_campaign(project, moves, workers, drilled_only,
                               stacking_allowed, pass_directory,
-                              seeds=DEFAULT_SEEDS):
+                              seeds=DEFAULT_SEEDS, *, debug=False):
     """Preflight resume BEFORE the GUI offers Resume, Restart or Cancel."""
     _, fingerprint = _prepared_input(project)
     expected = _campaign_identity(
-        fingerprint, moves, workers, drilled_only, stacking_allowed, seeds
+        fingerprint, moves, workers, drilled_only, stacking_allowed, seeds, debug
     )
     folder = Path(pass_directory)
     metadata = folder / CAMPAIGN_MANIFEST
@@ -223,7 +225,7 @@ def inspect_pass_one_campaign(project, moves, workers, drilled_only,
 
 def run_pass_one(project, moves, workers, drilled_only, stacking_allowed,
                  pass_directory, on_progress, on_log, cancelled,
-                 seeds=DEFAULT_SEEDS, *, resume=False):
+                 seeds=DEFAULT_SEEDS, *, resume=False, debug=False):
     """Persist PASS/FAIL/ERROR per seed; resume only missing or errored seeds.
 
     The caller chooses an empty budget folder (Restart) or a matching existing
@@ -233,12 +235,14 @@ def run_pass_one(project, moves, workers, drilled_only, stacking_allowed,
         raise ValueError("Pass One requires 10k/20k moves and 3/4 workers")
     if not isinstance(seeds, int) or seeds < 1:
         raise ValueError("Seed count must be positive")
+    if debug and seeds != DEBUG_SEEDS:
+        raise ValueError("Debug ON must run exactly 200 seeds")
     prerequisites()
     if not AUDITOR.is_file():
         raise RuntimeError(f"Independent saved-board auditor is missing: {AUDITOR}")
     prepared, fingerprint = _prepared_input(project)
     identity = _campaign_identity(
-        fingerprint, moves, workers, drilled_only, stacking_allowed, seeds
+        fingerprint, moves, workers, drilled_only, stacking_allowed, seeds, debug
     )
     folder = Path(pass_directory)
     if not folder.is_dir() or folder.is_symlink():
@@ -249,7 +253,7 @@ def run_pass_one(project, moves, workers, drilled_only, stacking_allowed,
     if resume:
         snapshot = inspect_pass_one_campaign(
             project, moves, workers, drilled_only, stacking_allowed,
-            folder, seeds=seeds
+            folder, seeds=seeds, debug=debug
         )
         if snapshot["state"] == "COMPLETED":
             raise ValueError("Campaign already complete; use Restart to run again")
@@ -398,7 +402,8 @@ def run_pass_one(project, moves, workers, drilled_only, stacking_allowed,
                         key=lambda r: (-float(r["q"]), int(r["w"]),
                                        int(r["cut"]), int(r["seed"])))[0]
         seed = int(winner["seed"])
-        winner_folder = winner_budget_dir(folder.parent.parent, moves, create=True)
+        workspace = folder.parents[2] if debug else folder.parents[1]
+        winner_folder = winner_budget_dir(workspace, moves, create=True, debug=debug)
         target = winner_folder / f"winner_seed_{seed:04d}.json"
         try:
             replay = _run_seed(
