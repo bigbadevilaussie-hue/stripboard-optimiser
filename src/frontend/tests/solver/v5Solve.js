@@ -13,6 +13,8 @@
 //        [--wire-polish 0|1]  verified fixed-board wire-column and drill-hole local search (default OFF)
 //        [--nostack 1]       no wire stacking
 //        [--strict 1]        reject invalid/physically noncompliant layouts (exit 2; retain --save for diagnosis)
+//        [--candidate-policy strict|diagonal|crossings|archive]  diagnostic prequalification; strict exit code unchanged
+//                            saved-board audit --candidate-policy is required for actual qualification
 //        [--move-summary 1]  count anneal outcomes in memory (no massive per-move gzip file)
 //        [--finish-trace 1]  print both repair/router candidate scores and violations (stderr)
 //        [--protect 1]       strip groups are never dissolved by the decoder (contradicting proposals refused)
@@ -58,7 +60,7 @@ const argVal = (name) => {
 };
 const CLI_AUDIT_VERSION = "v1.60-cli-audit";
 const valueFlags = new Set([
-  "data", "drilled", "dump", "effort", "exact", "finish-trace", "hint", "id",
+  "candidate-policy", "data", "drilled", "dump", "effort", "exact", "finish-trace", "hint", "id",
   "levels", "macro", "macrogap", "mincompress", "mix", "move-summary", "movelog",
   "moves", "native", "nostack", "out", "portcap", "progress", "protect",
   "repair", "routewasm", "routing-preference", "drill-domain", "wire-polish", "save", "sched", "seed", "debug-bypass-drill-precheck",
@@ -87,6 +89,11 @@ if (argVal("seed") !== undefined && !Number.isSafeInteger(Number(argVal("seed"))
 if (argVal("moves") !== undefined && (!Number.isSafeInteger(Number(argVal("moves"))) || Number(argVal("moves")) <= 0)) cliUsageError("--moves must be a positive integer");
 if (argVal("routing-preference") !== undefined && !["wires", "cuts"].includes(argVal("routing-preference"))) cliUsageError("--routing-preference must be wires or cuts");
 if (argVal("repair") !== undefined && !["0", "1", "2"].includes(argVal("repair"))) cliUsageError("--repair must be 0, 1 or 2");
+if (argVal("candidate-policy") !== undefined) {
+  try { require("./candidatePolicy.js").assertPolicy(argVal("candidate-policy")); }
+  catch (error) { cliUsageError(String(error)); }
+  if (argVal("strict") !== "1") cliUsageError("--candidate-policy requires --strict 1");
+}
 
 const OUT = path.resolve(argVal("out") ?? path.join(__dirname, "out"));
 const { computeAutoLayout5, finishFromSkeleton } = require(path.join(OUT, "components/stripboard/autoLayout5.js"));
@@ -115,6 +122,7 @@ const wirePolish = argVal("wire-polish") === "1";
 let wirePolishStats = null;
 const noStack = argVal("nostack") === "1";
 const strict = argVal("strict") === "1";
+const candidatePolicy = argVal("candidate-policy");
 const moveSummaryEnabled = argVal("move-summary") === "1";
 const finishTraceEnabled = argVal("finish-trace") === "1";
 const routingPreference = argVal("routing-preference") === "cuts" ? "cuts" : "wires";
@@ -591,6 +599,11 @@ if (strict) {
   if (drilled && knife !== 0) strictFailures.push(`KNIFE_${knife}`);
   if (noStack && stacked !== 0) strictFailures.push(`STACKED_${stacked}`);
 }
+const candidate = candidatePolicy
+  ? require("./candidatePolicy.js").classifyNativeDiagnostic({
+    strictValid: strictFailures.length === 0, strictFailures,
+  }, candidatePolicy)
+  : null;
 const timingVerifyEnd = performance.now();
 if (timingEnabled) {
   const cpu = process.cpuUsage(timingCpuStart);
@@ -627,6 +640,7 @@ console.log(JSON.stringify({
   bodyOverhangWarnings, issues: res.issues,
   ...(strict ? { cliVersion: CLI_AUDIT_VERSION, strictValid: strictFailures.length === 0, strictFailures,
     diagonalsActual, slantedWires, horizontalWires } : {}),
+  ...(candidate ? { candidate } : {}),
   ...(moveSummary ? { moveSummary: { ...moveSummary, percent: {
     mutateFailed: +(100 * moveSummary.mutateFailed / Math.max(1, moveSummary.attempted)).toFixed(2),
     decodeFailed: +(100 * moveSummary.decodeFailed / Math.max(1, moveSummary.attempted)).toFixed(2),
