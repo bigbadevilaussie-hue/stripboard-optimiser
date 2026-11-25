@@ -1,4 +1,4 @@
-# Documentation index — Version 2.00 / StripSolve GUI 2.25
+# Documentation index — Version 2.00 / StripSolve GUI 2.26
 
 ## Start here (current authority)
 
@@ -65,3 +65,5 @@ Do not use a historical “next step” or version number as the current GUI
 integration status. Current authority is this index, the latest audit,
 `gui/VERSION` and the checked-in source. GUI features that have not been
 wired to the native CLI remain disabled.
+
+- [Board preview backend diagnostic](BOARD_PREVIEW_BACKEND.md)

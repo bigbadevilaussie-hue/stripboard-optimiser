@@ -1,14 +1,14 @@
-# StripSolve GUI 2.25 — Arctic Ice + Colourburst
+# StripSolve GUI 2.26 — Arctic Ice + Colourburst
 
-## Current release: StripSolve GUI 2.25 / Q2 (25 November 2026)
+## Current release: StripSolve GUI 2.26 / Q2 (25 November 2026)
 
-GUI 2.25 gives Open/Save file-dialog navigation buttons a 22 px icon and dedicated compact padding, preserving the Arctic Ice theme. Pass One completion updates the status bar before the winner-consent popup; viewing a winner may then show its own status.
+GUI 2.26 gives Open/Save file-dialog navigation buttons a 22 px icon and dedicated compact padding, preserving the Arctic Ice theme. Pass One completion updates the status bar before the winner-consent popup; viewing a winner may then show its own status.
 
-GUI 2.25: the run-outcomes ring shows campaign completion (definitive PASS + FAIL divided by scheduled seeds). Qualification rate is displayed separately, to one decimal. Errors remain retryable, not completed seeds.
+GUI 2.26: the run-outcomes ring shows campaign completion (definitive PASS + FAIL divided by scheduled seeds). Qualification rate is displayed separately, to one decimal. Errors remain retryable, not completed seeds.
 
-GUI 2.25 uses plain-English quality and construction labels, displays the live audited pass rate to one decimal place (excluding errors and pending seeds), and separates elapsed time from estimated remaining time. The winner dialog displays actual verified metrics and freezes the campaign timer before the user decides whether to view the saved board. Q2 remains the internal scoring version; the formula and data formats are unchanged.
+GUI 2.26 uses plain-English quality and construction labels, displays the live audited pass rate to one decimal place (excluding errors and pending seeds), and separates elapsed time from estimated remaining time. The winner dialog displays actual verified metrics and freezes the campaign timer before the user decides whether to view the saved board. Q2 remains the internal scoring version; the formula and data formats are unchanged.
 
-GUI 2.25: renderer-version popup windows removed entirely; revision stamps remain in Activity and CLI stderr. Seed count appears only above the progress bar, not inside the ETA text.
+GUI 2.26: renderer-version popup windows removed entirely; revision stamps remain in Activity and CLI stderr. Seed count appears only above the progress bar, not inside the ETA text.
 
 The live construction score is Q2, with W = jumper count, C = cut count,
 L = total jumper span in mm (2.54 mm pitch), D = nonvertical jumper count,
@@ -132,7 +132,7 @@ The actual future engine is the existing native C/TypeScript CLI.
 
 ## Current budget selection
 
-GUI 2.25: speed calibration remains a 100-decode timing-only measurement. The separate actual-JSON budget probe uses strict native solves and independent saved-board audits, targets 100 survivors per 2,000 seeds (5%), and compares 10k/20k only as needed. Compatible completed FULL history takes priority. See [budget probe](../docs/BUDGET_PROBE.md). Locked Edge mounts automatically select the Edge decoder in speed calibration, probe, Pass One and replay. No Slide search or strict-rule change.
+GUI 2.26: speed calibration remains a 100-decode timing-only measurement. The separate actual-JSON budget probe uses strict native solves and independent saved-board audits, targets 100 survivors per 2,000 seeds (5%), and compares 10k/20k only as needed. Compatible completed FULL history takes priority. See [budget probe](../docs/BUDGET_PROBE.md). Locked Edge mounts automatically select the Edge decoder in speed calibration, probe, Pass One and replay. No Slide search or strict-rule change.
 
 ## Standalone macOS build
 
@@ -192,7 +192,7 @@ invisible. `render/qt_schematic_svg.py` removes that white halo from **text
 elements only**, solely in the in-memory Qt schematic preview.
 
 The compiled standalone schematic renderer and the original `schematic.svg`
-output are unchanged. This is not applied to the component/copper board views.
+output are unchanged. This schematic-only fallback remains separate from the board raster path.
 Regression tests: `python3 -m unittest tests.test_qt_schematic_svg -v`
 
 ## Visual parity with the original Tk GUI
@@ -356,3 +356,8 @@ has fully finished, Route-Mate automatically opens the **existing Pass One**
 `Work/pass 1`. **Cancel** changes no work files; Pass One can be opened
 again with its toolbar button. No prompt is shown for a failed, cancelled,
 or closing calibration. Pass Two remains independently available on startup.
+
+
+## Board preview backend (2.26)
+
+GUI 2.26 diagnostic: component and mirrored copper previews now use the same 2400 px librsvg → PNG display path as schematic, with a bounded cache. Original SVG bytes go directly to librsvg; the Qt-only text CSS overrides are removed. QtSvg fallback is logged in Activity. Standalone SVG generation, Python overlays, exports and solver remain unchanged. This isolates display-backend effects from Karl's print-vs-interactive renderer differences; visual parity is not yet established. See [details](../docs/BOARD_PREVIEW_BACKEND.md).

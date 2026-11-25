@@ -1,5 +1,11 @@
 # Changelog
 
+### GUI 2.26 — Isolate board preview rendering backend (25 November 2026)
+- Use the existing 2400 px librsvg/PNG pipeline for both component and copper preview, with bounded content cache and logged QtSvg fallback.
+- Remove GUI-injected board text styling. Preserve original generated and exported SVGs, overlays, schematic display and solver.
+- Add backend-isolation tests. Mac test and visual comparison outstanding; no interactive-style port yet.
+
+
 ### GUI 2.25 — Actual JSON search-budget probe and Edge decoder selection (25 November 2026)
 - Separate the 100-decode timing probe from actual independently audited qualification samples; reuse matching complete FULL history, target 5% survival, compare 20k only when 10k is below target.
 - Present measured results and approximate runtime/survivor projections before explicit GO, preserving DEBUG/FULL and overwrite gates. Report zero-survivor uncertainty; save separate budget_probe.json diagnostics.

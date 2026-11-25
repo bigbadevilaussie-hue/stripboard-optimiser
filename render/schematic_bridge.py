@@ -56,6 +56,11 @@ def render_schematic_data(project: dict[str, Any]) -> tuple[str, str]:
         return svg, result.stdout.strip()
 
 
+def rasterize_board_svg(svg: str) -> bytes:
+    """Render the unmodified board SVG through the same librsvg path as schematic."""
+    return _rasterize_svg(svg, "board")
+
+
 def rasterize_schematic_svg(svg: str) -> bytes:
     """Use the exact SVG-to-PNG conversion used by the working Tk GUI.
 
@@ -66,19 +71,23 @@ def rasterize_schematic_svg(svg: str) -> bytes:
     causing apparently missing component labels. librsvg produces the same
     raster preview that the old Tk GUI used without changing the schematic SVG.
     """
+    return _rasterize_svg(svg, "schematic")
+
+
+def _rasterize_svg(svg: str, kind: str) -> bytes:
     if not isinstance(svg, str) or "<svg" not in svg:
-        raise ValueError("Standalone schematic must be a valid SVG string.")
+        raise ValueError(f"Standalone {kind} must be a valid SVG string.")
     converter = tool_path("rsvg-convert")
     if converter is None:
         raise RuntimeError(
-            "Original Tk schematic preview requires rsvg-convert "
-            "(install it with 'brew install librsvg'). "
-            "The standalone schematic SVG itself is still available."
+            f"{kind.capitalize()} preview requires rsvg-convert "
+            "(install it with 'brew install librsvg' or MacPorts librsvg). "
+            f"The standalone {kind} SVG itself is still available."
         )
-    with tempfile.TemporaryDirectory(prefix="route-mate-schematic-png-") as scratch:
+    with tempfile.TemporaryDirectory(prefix=f"stripsolve-{kind}-png-") as scratch:
         folder = Path(scratch)
-        svg_path = folder / "schematic.svg"
-        png_path = folder / "schematic.png"
+        svg_path = folder / f"{kind}.svg"
+        png_path = folder / f"{kind}.png"
         svg_path.write_text(svg, encoding="utf-8")
         try:
             result = subprocess.run(
@@ -87,14 +96,14 @@ def rasterize_schematic_svg(svg: str) -> bytes:
                 capture_output=True, text=True, timeout=60, check=False,
             )
         except (OSError, subprocess.TimeoutExpired) as exc:
-            raise RuntimeError(f"Tk-compatible schematic rasterization failed: {exc}") from exc
+            raise RuntimeError(f"{kind.capitalize()} rasterization failed: {exc}") from exc
         if result.returncode != 0:
             raise RuntimeError(
-                "Tk-compatible schematic rasterization failed: "
+                f"{kind.capitalize()} rasterization failed: "
                 + (result.stderr or result.stdout).strip()
             )
         if not png_path.is_file():
-            raise RuntimeError("rsvg-convert did not produce schematic.png.")
+            raise RuntimeError(f"rsvg-convert did not produce {kind}.png.")
         data = png_path.read_bytes()
         if not data.startswith(b"\x89PNG\r\n\x1a\n"):
             raise ValueError("rsvg-convert returned an invalid PNG.")
