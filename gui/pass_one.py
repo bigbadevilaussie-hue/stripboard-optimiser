@@ -232,6 +232,7 @@ def top_five_audited(rows):
     """
     verified = [
         {
+            "status": "PASS",  # Retain provenance when ranking incrementally.
             "seed": int(row["seed"]),
             "q": float(row["q"]),
             "w": int(row["w"]),
