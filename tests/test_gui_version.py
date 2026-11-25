@@ -15,8 +15,8 @@ class GuiVersionTests(unittest.TestCase):
     def test_window_reads_gui_version_file(self):
         source = (ROOT / "gui" / "main.py").read_text(encoding="utf-8")
         self.assertIn('REPO_ROOT / "gui" / "VERSION"', source)
-        self.assertIn('self.setWindowTitle(f"Route-Mate {GUI_VERSION}', source)
-        self.assertIn('self.log_line(f"Route-Mate {GUI_VERSION}', source)
+        self.assertIn('self.setWindowTitle(f"StripSolve {GUI_VERSION}', source)
+        self.assertIn('self.log_line(f"StripSolve {GUI_VERSION}', source)
 
 
 if __name__ == "__main__":
