@@ -96,10 +96,8 @@ class CampaignStorageTests(unittest.TestCase):
                 self.assertEqual(snapshot["remaining"], 1)
                 self.assertEqual(snapshot["errors"], 1)
                 self.assertTrue(events)
-                self.assertEqual(
-                    [x["seed"] for x in events[-1]["leaders"]], [4, 1]
-                )
-                self.assertEqual(events[-1]["leaders"][0]["q"], 83.5)
+                self.assertEqual(events[-1]["best"]["seed"], 4)
+                self.assertEqual(events[-1]["best"]["q"], 83.5)
                 with self.assertRaisesRegex(ValueError, "INCOMPLETE"):
                     read_pass_one(workspace, csv_path=folder / "results.csv")
 
@@ -112,10 +110,9 @@ class CampaignStorageTests(unittest.TestCase):
                     seeds=5, resume=True,
                 )
                 self.assertTrue(result2["completed"])
-                self.assertEqual(
-                    [x["seed"] for x in events[previous_ticks]["leaders"]],
-                    [4, 1],  # Restored before retrying missing/error seeds
-                )
+                self.assertEqual(events[previous_ticks]["best"]["seed"], 4)
+                self.assertEqual(len(events[previous_ticks]["history"]), 4)
+                # The dashboard receives confirmed historical rows before retries.
                 self.assertEqual(result2["checked"], 5)
                 self.assertEqual(result2["qualified"], 2)
                 self.assertEqual(result2["errors"], 0)
