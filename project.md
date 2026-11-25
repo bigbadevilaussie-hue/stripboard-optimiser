@@ -1,6 +1,8 @@
 # Stripboard Optimiser — Version 2.00 project contract
 
-## Current release: StripSolve GUI 2.38 / Q3 (25 November 2026)
+## Current release: StripSolve GUI 2.39 / Q3 (25 November 2026)
+
+Budget recommendation: [100-point JSON complexity sniff](docs/JSON_SNIFF.md). CPU allocation is separate; no native decodes or qualification trials run before GO.
 
 GUI 2.26: speed calibration remains a 100-decode timing-only measurement. The separate actual-JSON budget probe uses strict native solves and independent saved-board audits, targets 100 survivors per 2,000 seeds (5%), and compares 10k/20k only as needed. Compatible completed FULL history takes priority. See [budget probe](docs/BUDGET_PROBE.md). Locked Edge mounts automatically select the Edge decoder in speed calibration, probe, Pass One and replay. No Slide search or strict-rule change.
 
@@ -25,8 +27,8 @@ optimum.
 The dashboard displays W/C/S/Q3, champion wire length in mm/inches, audited
 outcomes, runtime and one progress/ETA control. No duplicated sidebar progress,
 project/workspace box, worker count or noisy quality/complexity chart. CPU
-allocation is max(1, available logical CPUs - 1); the 100-decode calibration
-only estimates speed. CPU allocation is recorded in disk logs. On completion,
+allocation is max(1, available logical CPUs - 1); the 100-point JSON sniff
+assesses board complexity and recommends 10k/20k, without solver calls. CPU allocation is recorded in disk logs. On completion,
 save winner JSON and both SVGs before the themed trophy consent dialog.
 Pass Two is still an import-only stage.
 

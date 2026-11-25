@@ -1,3 +1,5 @@
+> Historical workflow; superseded in GUI 2.39 by [JSON complexity sniff](JSON_SNIFF.md). The GUI no longer invokes either native decoding or qualification sampling during preparation.
+
 # JSON search-budget probe — GUI 2.25
 
 ## Evidence and decision rule

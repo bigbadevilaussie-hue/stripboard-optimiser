@@ -59,7 +59,7 @@ class PassControlTests(unittest.TestCase):
             window._probe_stacking_allowed = True
             window._recommended_workers = 3
             window._calibration_worker = object()
-            result = {"ms_per_decode": 0.17, "decodes_per_second": 5882.0}
+            result = {"json_sniff": {"complexity_score": 78.03, "recommended_moves": 20000}}
             with patch("gui.main.QTimer.singleShot") as queue, \
                  patch.object(window, "start_pass_one") as launch:
                 window._calibration_completed(result)
@@ -131,24 +131,22 @@ class PassControlTests(unittest.TestCase):
         finally:
             dialog.close()
 
-    def test_pass_one_budget_uses_qualification_not_speed(self):
-        from gui.budget_probe import summary, choose
-        def data(moves, count):
-            return summary(moves, [{"status": "PASS" if i < count else "FAIL",
-                                    "q": 65, "time_taken": 1.0}
-                                   for i in range(100)], "100-seed probe", 3)
-        for ten, twenty, selected in [(9, 0, 10000), (1, 4, 20000), (0, 0, 20000)]:
-            a, b = data(10000, ten), data(20000, twenty)
-            budget, reason = choose(a, b)
-            dialog = PassOneDialog({"ms_per_decode": 0.01,
-                "budget_probe": {"recommended_moves": budget, "reason": reason,
-                                 "ten": a, "twenty": b}})
+    def test_pass_one_budget_uses_json_sniff(self):
+        from gui.json_sniff import assess
+        repo = Path(__file__).resolve().parents[1]
+        import json
+        for name, expected in (("audio", 10000), ("moto", 20000)):
+            project = json.loads((repo / "test-fixtures" / "masters" /
+                                  name / (name + ".json")).read_text())
+            sniff = assess(project)
+            dialog = PassOneDialog({"json_sniff": sniff})
             try:
-                self.assertEqual(dialog.moves(), selected)
+                self.assertEqual(dialog.moves(), expected)
                 labels = " ".join(label.text() for label in dialog.findChildren(QLabel))
-                self.assertIn(f"{ten}/100 qualified", labels)
-                self.assertIn(f"{twenty}/100 qualified", labels)
-                self.assertNotIn("suggested from decoder timing", labels)
+                self.assertIn("JSON complexity", labels)
+                self.assertIn(sniff["reason"], labels)
+                self.assertNotIn("decoder timing", labels)
+                self.assertNotIn("Previous campaign results", labels)
             finally:
                 dialog.close()
 

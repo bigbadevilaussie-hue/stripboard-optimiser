@@ -284,7 +284,7 @@ class RoutingRulesDialog(QDialog):
 
         note = QLabel(
             "Drilled-only affects decoder constraints. Stacking affects "
-            "routing/finishing, not the 100-decode timing measurement. "
+            "routing/finishing, not the JSON complexity assessment. "
             "This confirmation does not start Pass One."
         )
         note.setWordWrap(True)
@@ -318,76 +318,42 @@ class PassOneDialog(QDialog):
         self.setWindowFlag(Qt.WindowType.FramelessWindowHint, True)
         self.setWindowTitle("Pass One — Move Budget")
         self.setModal(True)
-        self.setMinimumWidth(550)
+        self.setMinimumWidth(420)
         layout = QVBoxLayout(self)
-        heading = QLabel("Pass One — Search budget")
-        heading.setStyleSheet("font-size: 17px; font-weight: 800;")
-        layout.addWidget(heading)
-        explanation = QLabel(
-            "Run 200 seeds in DEBUG mode, or 2,000 in normal mode. "
-            "Save every seed result, including its quality score and construction statistics "
-            "and seconds to this project's "
-            "selected 10k/20k directory. The verified winner is replayed "
-            "and saved separately when the campaign completes."
-        )
-        explanation.setWordWrap(True)
-        layout.addWidget(explanation)
+        data = (probe_result or {}).get("json_sniff") or {}
+        self._recommended = data.get("recommended_moves", 10000)
+        if self._recommended not in (10000, 20000):
+            self._recommended = 10000
+        if data:
+            features = data["features"]
+            title = QLabel(f"JSON complexity: {data['complexity_score']:.1f} / 100")
+            title.setStyleSheet("font-size: 17px; font-weight: 800; color: #166c77;")
+            layout.addWidget(title)
+            detail = QLabel(
+                f"{features['on_board_parts']} parts · {features['nets']} nets · "
+                f"{features['on_board_assignments']} board pin assignments\n"
+                f"{features['effective_rows']} × {features['effective_cols']} available holes"
+            )
+            detail.setWordWrap(True)
+            layout.addWidget(detail)
+            reason = QLabel(data["reason"])
+            reason.setWordWrap(True)
+            layout.addWidget(reason)
+        else:
+            layout.addWidget(QLabel("JSON complexity assessment unavailable."))
         if isinstance(drilled_only, bool) and isinstance(stacking_allowed, bool):
             policies = QLabel(
-                "Confirmed routing rules for Pass One:\n"
                 f"Cuts: {'Drilled only' if drilled_only else 'Knife allowed'}\n"
                 f"Wire stacking: {'Allowed' if stacking_allowed else 'Off'}"
             )
             policies.setWordWrap(True)
-            policies.setStyleSheet("font-weight: 700;")
             layout.addWidget(policies)
-        self.ten_k = QRadioButton("10,000 moves per seed")
-        self.twenty_k = QRadioButton("20,000 moves per seed")
-        data = (probe_result or {}).get("budget_probe") or {}
-        self._recommended = data.get("recommended_moves", 10000)
-        evidence = QFrame()
-        evidence.setStyleSheet("QFrame { background: #f1f8fd; border: 1px solid #cbddec; border-radius: 10px; } QLabel { border: none; background: transparent; }")
-        details = QVBoxLayout(evidence)
-        details.setContentsMargins(13, 10, 13, 10)
-        title = QLabel("Previous campaign results")
-        title.setStyleSheet("font-size: 13px; font-weight: 800; color: #153e5b;")
-        details.addWidget(title)
-        for key, moves in (("ten", 10000), ("twenty", 20000)):
-            stats = data.get(key)
-            if stats:
-                count = stats["qualified"]
-                tested = stats["tested"]
-                low, high = stats["rate_interval"]
-                minutes = max(1, round(stats["estimated_full_seconds"] / 60))
-                label = QLabel(
-                    f"{moves//1000}k · {stats['source']} · {count:,}/{tested:,} qualified "
-                    f"({stats['rate']:.1%})\n"
-                    f"Full run: ~{stats['estimated_survivors']:,} survivors · ~{minutes} min\n"
-                    f"Sampling interval: {low:.1%}–{high:.1%}"
-                )
-            else:
-                label = QLabel(f"{moves//1000}k · No matching campaign")
-            label.setWordWrap(True)
-            details.addWidget(label)
-        reason = QLabel(data.get("reason", "No qualification evidence; 10k is the default."))
-        reason.setWordWrap(True)
-        reason.setStyleSheet("font-weight: 700; color: #166c77;")
-        details.addWidget(reason)
-        layout.addWidget(evidence)
-        ms = (probe_result or {}).get("ms_per_decode")
-        timing = QLabel(
-            (f"100-point decoder check: {ms:.5f} ms/decode. " if ms else "")
-            + "Decoder timing is not a full solve estimate. Only GO starts a campaign."
-        )
-        timing.setWordWrap(True)
-        layout.addWidget(timing)
-        if self._recommended == 10000:
-            self.ten_k.setText("10,000 moves — recommended" if data.get("ten") or data.get("twenty")
-                               else "10,000 moves — default")
-            self.ten_k.setChecked(True)
-        else:
-            self.twenty_k.setText("20,000 moves — selected for deeper search")
-            self.twenty_k.setChecked(True)
+        self.ten_k = QRadioButton("10,000 moves" +
+                                  (" — recommended" if data and self._recommended == 10000 else ""))
+        self.twenty_k = QRadioButton("20,000 moves" +
+                                     (" — recommended" if data and self._recommended == 20000 else ""))
+        self.ten_k.setChecked(self._recommended == 10000)
+        self.twenty_k.setChecked(self._recommended == 20000)
         layout.addWidget(self.ten_k)
         layout.addWidget(self.twenty_k)
         self.debug_mode = QCheckBox("DEBUG MODE — ON: 200 seeds · OFF: 2,000 seeds")
@@ -922,19 +888,23 @@ class NativeCalibrationWorker(QThread):
         self.workspace = workspace
 
     def run(self):
-        from gui.native_calibration import calibrate, Cancelled
-        from gui.budget_probe import history_budget
+        from gui.json_sniff import assess, save_report
         try:
-            result = calibrate(
-                self.project, self.workers,
-                self.drilled_only, self.stacking_allowed,
-                self.tick.emit, self.diagnostic.emit, self.isInterruptionRequested)
-            result["budget_probe"] = history_budget(
-                self.project, self.workers, self.drilled_only, self.stacking_allowed,
-                workspace=self.workspace)
-            self.completed.emit(result)
-        except Cancelled:
-            self.cancelled.emit()
+            if self.isInterruptionRequested():
+                self.cancelled.emit()
+                return
+            self.tick.emit({"phase": "running"})
+            result = assess(self.project, self.drilled_only, self.stacking_allowed)
+            if self.isInterruptionRequested():
+                self.cancelled.emit()
+                return
+            save_report(self.workspace, result)
+            self.diagnostic.emit("[JSON100][FACTORS] " + json.dumps(result["factors"], sort_keys=True))
+            self.diagnostic.emit("[JSON100][FEATURES] " + json.dumps(result["features"], sort_keys=True))
+            self.diagnostic.emit(f"[JSON100][RESULT] {result['complexity_score']:.2f}/100; "
+                                 f"{result['recommended_moves']//1000}k; {result['reason']}")
+            self.tick.emit({"phase": "done", "completed": 100})
+            self.completed.emit({"json_sniff": result})
         except Exception as exc:
             self.failed.emit(f"{type(exc).__name__}: {exc}")
 
@@ -1167,7 +1137,7 @@ class RouteMateWindow(QMainWindow):
         )
         overview_scroll.setWidget(overview)
 
-        self.solve_activity = QLabel("100-point move check pending · STOP before Pass 1")
+        self.solve_activity = QLabel("100-point JSON sniff pending · STOP before Pass 1")
         self.solve_activity.setWordWrap(True)
         self.solve_activity.setStyleSheet(
             "font-size: 12px; font-weight: 750; color: #123f61; padding: 2px;"
@@ -1180,7 +1150,7 @@ class RouteMateWindow(QMainWindow):
         self.solve_progress.setToolTip("Pass progress; completed seed count appears above")
         self.solve_progress.setRange(0, 100)
         self.solve_progress.setValue(0)
-        self.solve_progress.setFormat("100-point move check: %v/%m")
+        self.solve_progress.setFormat("100-point JSON sniff: %v/%m")
         self.solve_worker_status = QLabel("")
         self.solve_worker_status.setWordWrap(True)
         self.solve_eta = QLabel("Elapsed: —   Estimated remaining: —")
@@ -1309,7 +1279,7 @@ class RouteMateWindow(QMainWindow):
         self.log_line(f"StripSolve {GUI_VERSION} — {QUALITY_VERSION} native Pass One")
         self.log_line(f"[GUI][REVISION] git={GUI_GIT_REVISION}")
         self.log_line("Workflow: import → input sanity → footprints → dimensions → locks → cuts → stacking → speed and 100-point JSON audit → Pass One GO.")
-        self.log_line("[SOLVER] Preparation uses CPU allocation and 100 native decoder checks; no campaign solves before GO.")
+        self.log_line("[SOLVER] Preparation uses CPU allocation and a static JSON complexity assessment; no campaign solves before GO.")
         try:
             ensure_workspace_root(self.work_root)  # Work root only; legacy remains untouched
             self.log_line(f"[WORK] Project workspaces root: {self.work_root}")
@@ -2047,7 +2017,7 @@ class RouteMateWindow(QMainWindow):
 
 
     def _start_speed_probe(self):
-        """Allocate logical CPUs; the native 100-decode probe measures speed."""
+        """Allocate logical CPUs before the JSON complexity assessment."""
         if self.project is None or self._calibration_worker is not None:
             return
         if (type(self._probe_cut_drilled_only) is not bool
@@ -2063,7 +2033,7 @@ class RouteMateWindow(QMainWindow):
                     log.write(f"logical_cpus={cpus} workers={self._recommended_workers}\n")
             except OSError as exc:
                 self.log_line(f"[SPEED][LOG ERROR] {exc}")
-        self.log_line("[SPEED] CPU allocation ready; measuring native decoder speed.")
+        self.log_line("[SPEED] CPU allocation ready; analysing JSON complexity.")
         if QApplication.platformName() == "offscreen":
             return
         self._start_calibration()
@@ -2083,7 +2053,7 @@ class RouteMateWindow(QMainWindow):
             self.close()
 
     def _start_calibration(self):
-        """Run the original 100-point native decoder check; no campaign solves."""
+        """Assess prepared JSON complexity; no decoder or campaign solves."""
         if self.project is None or self._calibration_worker is not None:
             return
         workers = self._recommended_workers
@@ -2098,11 +2068,11 @@ class RouteMateWindow(QMainWindow):
         self._solve_budget = 100
         self._worker_time_stats = {}
         self.solve_progress.setRange(0, 0)  # no invented per-decode progress
-        self.solve_activity.setText("100-point move check · measuring decoder speed")
+        self.solve_activity.setText("100-point JSON sniff · analysing board complexity")
         self._calibration_stages["CALIBRATION"] = "running"
         self._refresh_checklist()
         self._solve_clock.start()
-        self.log_line("[MOVE100][START] JSON decoder check only; no qualification searches.")
+        self.log_line("[JSON100][START] Static complexity rubric; no native decodes or qualification searches.")
         worker = NativeCalibrationWorker(
             self.project, workers,
             self._probe_cut_drilled_only, self._probe_stacking_allowed, self,
@@ -2118,9 +2088,9 @@ class RouteMateWindow(QMainWindow):
 
     def _calibration_tick(self, event):
         if event["phase"] == "running":
-            self.solve_activity.setText("100-point move check · native measurement running")
+            self.solve_activity.setText("100-point JSON sniff · analysing prepared input")
             self.solve_worker_status.setText(
-                "Native decoder measurement · no per-sample progress available")
+                "Read-only placement and routing pressure assessment")
         else:
             self._solve_done = int(event["completed"])
             self.solve_progress.setRange(0, 100)
@@ -2137,11 +2107,13 @@ class RouteMateWindow(QMainWindow):
         self.solve_progress.setValue(100)
         self.solve_activity.setText("JSON AUDIT COMPLETE · Pass One awaits GO")
         self.solve_worker_status.setText(
-            f"100 decodes · {result['ms_per_decode']:.5f}ms/decode · "
-            f"{result['decodes_per_second']:,.0f} decodes/s")
-        self.log_line("[MOVE100][READY] 100 decoder checks complete; campaign starts only after GO.")
+            f"Complexity {result['json_sniff']['complexity_score']:.1f}/100 · "
+            f"{result['json_sniff']['recommended_moves']//1000}k recommended")
+        self.log_line("[JSON100][READY] JSON assessment complete; campaign starts only after GO.")
         self.statusBar().showMessage("JSON AUDIT COMPLETE — Choose Pass One budget.")
-        self._set_board_summary("100-point JSON audit complete", level="neutral")
+        self._set_board_summary(
+            f"JSON complexity {result['json_sniff']['complexity_score']:.1f}/100 · "
+            f"{result['json_sniff']['recommended_moves']//1000}k recommended", level="neutral")
 
     def _calibration_failed(self, error):
         self._pass_one_prompt_pending = False
@@ -2151,15 +2123,15 @@ class RouteMateWindow(QMainWindow):
         self.solve_progress.setValue(0)
         self.solve_activity.setText("JSON audit failed · see Activity")
         self.solve_worker_status.setText(str(error))
-        self.log_line("[MOVE100][ERROR] " + str(error))
-        self.log_line("[MOVE100][STOP] No optimisation pass started.")
+        self.log_line("[JSON100][ERROR] " + str(error))
+        self.log_line("[JSON100][STOP] No optimisation pass started.")
 
     def _calibration_cancelled(self):
         self._pass_one_prompt_pending = False
         self.solve_progress.setRange(0, 100)
         self.solve_progress.setValue(0)
         self.solve_activity.setText("JSON audit cancelled")
-        self.log_line("[MOVE100][CANCELLED] No optimiser pass started.")
+        self.log_line("[JSON100][CANCELLED] No optimiser pass started.")
 
     def _calibration_finished(self):
         self._solve_clock.stop()
@@ -2753,7 +2725,7 @@ class RouteMateWindow(QMainWindow):
         if self._calibration_worker is not None and self._calibration_worker.isRunning():
             self._calibration_worker.requestInterruption()
             self.stop_action.setEnabled(False)
-            self.log_line("[MOVE100][STOP] Cancellation requested.")
+            self.log_line("[JSON100][STOP] Cancellation requested.")
             return
         worker = self._solver_worker
         if worker is None or not worker.isRunning() or self._stop_requested:
@@ -3435,7 +3407,7 @@ class RouteMateWindow(QMainWindow):
             self.checklist.reset()
             self.solve_progress.setRange(0, 100)
             self.solve_progress.setValue(0)
-            self.solve_activity.setText("100-point move check pending")
+            self.solve_activity.setText("100-point JSON sniff pending")
             self.pipeline_run = PipelineRun.create(
                 path, source,
                 sources=[{"kind": "project_json", "path": str(path.resolve())}],

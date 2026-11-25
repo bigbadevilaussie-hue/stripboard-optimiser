@@ -1,4 +1,6 @@
-# Documentation index — Version 2.00 / StripSolve GUI 2.26
+# Documentation
+
+- [Current 100-point JSON complexity assessment](JSON_SNIFF.md) index — Version 2.00 / StripSolve GUI 2.26
 
 ## Start here (current authority)
 

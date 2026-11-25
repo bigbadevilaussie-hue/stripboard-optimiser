@@ -16,7 +16,9 @@ The audit records verified source checks and outstanding target-Mac tests; it do
 native stripboard solver. It is the successor brand to the original Route-Mate
 GUI; the GitHub repository path and historical donor docs retain their names.
 
-## Current release: StripSolve GUI 2.38 / Q3 (25 November 2026)
+## Current release: StripSolve GUI 2.39 / Q3 (25 November 2026)
+
+Budget recommendation: [100-point JSON complexity sniff](docs/JSON_SNIFF.md). CPU allocation is separate; no native decodes or qualification trials run before GO.
 
 GUI 2.26 gives Open/Save file-dialog navigation buttons a 22 px icon and dedicated compact padding, preserving the Arctic Ice theme. Pass One completion updates the status bar before the winner-consent popup; viewing a winner may then show its own status.
 
@@ -45,8 +47,8 @@ optimum.
 The dashboard displays W/C/S/Q3, champion wire length in mm/inches, audited
 outcomes, runtime and one progress/ETA control. No duplicated sidebar progress,
 project/workspace box, worker count or noisy quality/complexity chart. CPU
-allocation is max(1, available logical CPUs - 1); the 100-decode calibration
-only estimates speed. CPU allocation is recorded in disk logs. On completion,
+allocation is max(1, available logical CPUs - 1); the 100-point JSON sniff
+assesses board complexity and recommends 10k/20k, without solver calls. CPU allocation is recorded in disk logs. On completion,
 save winner JSON and both SVGs before the themed trophy consent dialog.
 Pass Two is still an import-only stage.
 

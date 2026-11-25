@@ -1,5 +1,11 @@
 # Changelog
 
+### GUI 2.39 — Real 100-point JSON complexity sniff
+- Replace GUI native 100-decode timing and history-only budget fallback with a static complexity assessment of prepared JSON, footprint pressure, connection demand, board area and locks/rules. No native decodes or optimisation before GO.
+- Preselect 10k or 20k using the Audio/Moto-calibrated heuristic; both choices remain available. Compact budget dialog; report factors and features in Activity and project logs/json_sniff.json.
+- Preserve CPU allocation, Q3, solver, strict audit, board rendering and GO confirmation.
+
+
 ### GUI 2.38 — Q3 construction-quality calibration
 - Scale all Q2 construction penalties to 40% of their previous values, before clipping/rounding. Preserve strict qualification, stack definition and relative penalty weights.
 - Version new campaigns as Q3; older Q1/Q2 campaigns remain on disk and must not be mixed into current ranking or resumed. Open Solved recalculates Q3 from the JSON.
