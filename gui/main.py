@@ -2201,6 +2201,10 @@ class RouteMateWindow(QMainWindow):
                 f"seed {result['winner_seed']:04d} · strictly verified",
                 project=champion, level="pass",
             )
+            if not show_preview:
+                self.board_result_label.setText(
+                    "Winning SVG saved · current board preview unchanged"
+                )
             self.log_line(f"[PASS1][WINNER][JSON] {path}")
             self.log_line(f"[PASS1][WINNER][COMPONENTS] {top_file}")
             self.log_line(f"[PASS1][WINNER][COPPER] {copper_file}")
@@ -2227,6 +2231,7 @@ class RouteMateWindow(QMainWindow):
             self._copper_svg = copper_svg
             self._board_side = "top"
             self._switch_board_side("top")
+            self.board_result_label.setText(self.solve_summary.text())
             self.statusBar().showMessage(
                 "🏆 Pass One winner SVG displayed · switch sides using the toolbar."
             )
