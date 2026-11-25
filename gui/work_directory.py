@@ -25,12 +25,14 @@ CAMPAIGN_MANIFEST = "campaign.json"
 MOVE_BUDGETS = (10000, 20000)
 
 
-def pass_one_budget_dir(root: Path, moves: int, *, create: bool = False) -> Path:
-    """Per-project, per-budget isolation; never delete sibling campaigns."""
+def pass_one_budget_dir(root: Path, moves: int, *, create: bool = False,
+                        debug: bool = False) -> Path:
+    """Full and 200-seed debug campaigns are isolated for each move budget."""
     if moves not in MOVE_BUDGETS:
         raise ValueError(f"Unsupported Pass One move budget: {moves}")
-    folder = Path(root) / PASS_ONE / f"{moves // 1000}k"
-    if folder.is_symlink():
+    base = Path(root) / PASS_ONE / f"{moves // 1000}k"
+    folder = base / "debug" if debug else base
+    if base.is_symlink() or folder.is_symlink():
         raise ValueError(f"Refusing symlinked Pass One campaign: {folder}")
     if create:
         ensure_work(root)
@@ -38,11 +40,13 @@ def pass_one_budget_dir(root: Path, moves: int, *, create: bool = False) -> Path
     return folder
 
 
-def winner_budget_dir(root: Path, moves: int, *, create: bool = False) -> Path:
+def winner_budget_dir(root: Path, moves: int, *, create: bool = False,
+                      debug: bool = False) -> Path:
     if moves not in MOVE_BUDGETS:
         raise ValueError(f"Unsupported Pass One move budget: {moves}")
-    folder = Path(root) / "jsons" / f"{moves // 1000}k"
-    if folder.is_symlink():
+    base = Path(root) / "jsons" / f"{moves // 1000}k"
+    folder = base / "debug" if debug else base
+    if base.is_symlink() or folder.is_symlink():
         raise ValueError(f"Refusing symlinked winner directory: {folder}")
     if create:
         ensure_work(root)
@@ -62,37 +66,51 @@ def pass_one_campaign_sources(root: Path) -> list[tuple[str, Path]]:
         csv_file = folder / "results.csv"
         if csv_file.is_file() and not csv_file.is_symlink():
             result.append((f"{moves // 1000}k moves", csv_file))
+        debug_csv = pass_one_budget_dir(root, moves, debug=True) / "results.csv"
+        if debug_csv.is_file() and not debug_csv.is_symlink():
+            result.append((f"{moves // 1000}k moves (DEBUG 200)", debug_csv))
     old = base / "results.csv"
     if old.is_file() and not old.is_symlink():
         result.append(("Legacy Pass One (preserved)", old))
     return result
 
 
-def campaign_existing_files(root: Path, moves: int) -> list[Path]:
-    """Inventory files before displaying an overwrite confirmation."""
-    paths = (pass_one_budget_dir(root, moves), winner_budget_dir(root, moves))
+def campaign_existing_files(root: Path, moves: int, *, debug: bool = False) -> list[Path]:
+    """Inventory only the selected full or debug campaign for confirmation."""
+    paths = (pass_one_budget_dir(root, moves, debug=debug),
+             winner_budget_dir(root, moves, debug=debug))
     found = []
     for folder in paths:
         if folder.is_symlink():
             raise ValueError(f"Refusing symlinked campaign directory: {folder}")
         if folder.is_dir():
-            found.extend(sorted(folder.iterdir()))
+            for child in sorted(folder.iterdir()):
+                if not debug and child.name == "debug":
+                    if child.is_symlink():
+                        raise ValueError(f"Refusing symlinked debug directory: {child}")
+                    continue
+                found.append(child)
     return found
 
 
-def clear_pass_one_budget(root: Path, moves: int) -> Path:
-    """Clear ONLY one approved budget and its winner output, after GO."""
+def clear_pass_one_budget(root: Path, moves: int, *, debug: bool = False) -> Path:
+    """Clear ONLY the approved full/debug campaign, preserving its sibling."""
     workspace = ensure_work(root)
-    for folder in (pass_one_budget_dir(workspace, moves, create=True),
-                   winner_budget_dir(workspace, moves, create=True)):
+    folders = (pass_one_budget_dir(workspace, moves, create=True, debug=debug),
+               winner_budget_dir(workspace, moves, create=True, debug=debug))
+    for folder in folders:
         if folder.is_symlink():
             raise ValueError(f"Refusing symlinked campaign directory: {folder}")
         for child in folder.iterdir():
+            if not debug and child.name == "debug":
+                if child.is_symlink():
+                    raise ValueError(f"Refusing symlinked debug directory: {child}")
+                continue
             if child.is_dir() and not child.is_symlink():
                 shutil.rmtree(child)
             else:
                 child.unlink()
-    return pass_one_budget_dir(workspace, moves)
+    return pass_one_budget_dir(workspace, moves, debug=debug)
 
 
 def load_campaign_records(csv_file: Path) -> dict[int, dict]:
