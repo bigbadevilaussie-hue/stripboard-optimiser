@@ -154,14 +154,9 @@ def process_seed(seed, args, prepared_path, native_dir, out):
                 elif (native.get("strictValid") is True) != (native_proc.returncode == 0):
                     row["status"] = "ERROR_NATIVE_MISMATCH"
                 elif (audit.get("valid") is True) != (native.get("strictValid") is True):
-                    # Native vs audited strict disagreement is diagnostic;
-                    # never accidentally award a strict WR.
-                    if audit.get("valid") is True:
-                        row["status"] = "ERROR_STRICT_DISAGREEMENT"
-                    elif choice["qualified"]:
-                        row["status"] = choice["status"]
-                    else:
-                        row["status"] = "FAIL"
+                    # Strict status disagreement requires investigation.
+                    # Never promote either side to a champion.
+                    row["status"] = "ERROR_STRICT_DISAGREEMENT"
                 elif choice["qualified"]:
                     row["status"] = choice["status"]
                 else:
