@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any
 
 from render.standalone_bridge import _run, ensure_renderer
+from gui.runtime_paths import node_command, tool_path
 
 
 def render_schematic_data(project: dict[str, Any]) -> tuple[str, str]:
@@ -39,7 +40,7 @@ def render_schematic_data(project: dict[str, Any]) -> tuple[str, str]:
             json.dumps(project, ensure_ascii=False), encoding="utf-8"
         )
         result = _run([
-            "node", str(schematic_cli), str(input_path), "--output", str(folder),
+            node_command(), str(schematic_cli), str(input_path), "--output", str(folder),
         ])
         if result.returncode != 0:
             raise RuntimeError(
@@ -67,7 +68,7 @@ def rasterize_schematic_svg(svg: str) -> bytes:
     """
     if not isinstance(svg, str) or "<svg" not in svg:
         raise ValueError("Standalone schematic must be a valid SVG string.")
-    converter = shutil.which("rsvg-convert")
+    converter = tool_path("rsvg-convert")
     if converter is None:
         raise RuntimeError(
             "Original Tk schematic preview requires rsvg-convert "

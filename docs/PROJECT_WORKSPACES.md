@@ -1,5 +1,7 @@
 # StripSolve: one Work directory per source JSON
 
+Standalone GUI 2.24 uses `~/Library/Application Support/StripSolve/Work/`. Source mode continues to use repository `Work/`. No automatic migration or deletion. See [macOS packaging](STANDALONE_MACOS.md).
+
 GUI 2.19 uses Q2 in the same paths shown below. Old Q1 campaigns must be replaced through explicit overwrite; they cannot resume or feed Pass Two. CPU allocation is recorded in `logs/cpu.log` and campaign activity.log.
 
 Each loaded source JSON gets an isolated workspace under the existing repo

@@ -358,6 +358,7 @@ def _bundled_runtime() -> tuple[Path, Path] | None:
     required = (
         cli,
         dist / "standalone-renderer" / "render.js",
+        dist / "standalone-renderer" / "schematic" / "cli.js",
         dist / "data" / "defaultComponents.js",
         dist / "components" / "stripboard" / "boardLayout.js",
         dist / "utils" / "resolveComponentDef.js",

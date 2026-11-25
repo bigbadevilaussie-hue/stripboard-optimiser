@@ -11,8 +11,9 @@ import shutil
 import subprocess
 import tempfile
 from time import perf_counter
+from gui.runtime_paths import bundled_root, node_command, tool_path
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = bundled_root() or Path(__file__).resolve().parents[1]
 FRONTEND = ROOT / "src/frontend"
 CLI = FRONTEND / "tests/solver/v5Solve.js"
 NATIVE = FRONTEND / "tests/solver/native/build"
@@ -24,7 +25,7 @@ class Cancelled(Exception):
 
 
 def prerequisites():
-    if not shutil.which("node"):
+    if not tool_path("node"):
         raise RuntimeError("Node.js is required for the native decoder probe.")
     for item in (
         CLI, NATIVE / "v5native.node", NATIVE / "libv5decode.so",
@@ -103,7 +104,7 @@ def calibrate(project, workers, drilled_only, stacking_allowed, progress, diagno
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(payload)
         command = [
-            "node", str(CLI), "--data", scratch, "--id", "1",
+            node_command(), str(CLI), "--data", scratch, "--id", "1",
             "--native", "1", "--speedprobe", str(POINTS),
             "--drilled", "1" if drilled_only else "0",
             "--drill-domain", "1" if drilled_only else "0",

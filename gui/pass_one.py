@@ -28,6 +28,7 @@ from gui.work_directory import (
 )
 
 from gui.quality import QUALITY_VERSION, construction_metrics, cpu_allocation
+from gui.runtime_paths import node_command
 
 AUDITOR = FRONTEND / "tests/solver/auditSavedStrict.js"
 DEFAULT_SEEDS = 2000
@@ -67,7 +68,7 @@ def _run_seed(project, moves, seed, drilled_only, stacking_allowed, cancelled,
         env.pop("V5_NATIVE_ROUTE_LIB_DIR", None)
         env["STRIPBOARD_TIMING"] = "1"
         command = [
-            "node", str(CLI), "--data", str(job / "input"), "--id", "1",
+            node_command(), str(CLI), "--data", str(job / "input"), "--id", "1",
             "--seed", str(seed), "--moves", str(moves), "--native", "1",
             "--strict", "1", "--drilled", "1" if drilled_only else "0",
             "--drill-domain", "1" if drilled_only else "0",
@@ -94,7 +95,7 @@ def _run_seed(project, moves, seed, drilled_only, stacking_allowed, cancelled,
             raise RuntimeError(f"Seed {seed} strict PASS missing candidate")
         saved = json.loads(candidate.read_text(encoding="utf-8"))
         audit_code, audit_stdout, audit_stderr = run_process(
-            ["node", str(AUDITOR), str(candidate), str(inp)], env, cancelled,
+            [node_command(), str(AUDITOR), str(candidate), str(inp)], env, cancelled,
         )
         audit = _last_json(audit_stdout) or {}
         if audit_code not in (0, 2):

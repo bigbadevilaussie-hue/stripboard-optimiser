@@ -1,6 +1,8 @@
-# Documentation index — Version 2.00 / StripSolve GUI 2.23
+# Documentation index — Version 2.00 / StripSolve GUI 2.24
 
 ## Start here (current authority)
+
+- [Standalone macOS build and verification](STANDALONE_MACOS.md)
 
 - [Q2 construction-quality research and current contract](QUALITY_Q2_2026-11-25.md)
 

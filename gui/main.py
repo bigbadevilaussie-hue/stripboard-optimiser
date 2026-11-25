@@ -38,7 +38,10 @@ CODE_VERSION = GUI_VERSION
 
 
 def _git_revision() -> str:
-    """Report the checked-out repository revision; no solver or renderer runs."""
+    """Report the checked-out or packaged revision; no solver or renderer runs."""
+    if getattr(sys, "frozen", False):
+        stamp = REPO_ROOT / "BUILD_REVISION"
+        return stamp.read_text(encoding="utf-8").strip() if stamp.is_file() else "unavailable"
     try:
         result = subprocess.run(
             ["git", "-C", str(REPO_ROOT), "rev-parse", "--short=12", "HEAD"],
@@ -3339,10 +3342,11 @@ def main():
     app.setApplicationName("StripSolve")
     # Export artwork on the first run only. Read-only packaged apps still
     # work through the SVG-to-QIcon in-memory fallback.
-    try:
-        export_assets()
-    except (OSError, ValueError, RuntimeError):
-        pass
+    if not getattr(sys, "frozen", False):
+        try:
+            export_assets()
+        except (OSError, ValueError, RuntimeError):
+            pass
     app.setWindowIcon(load_app_icon())
     window = StripSolveWindow()
     splash = StripSolveSplash()

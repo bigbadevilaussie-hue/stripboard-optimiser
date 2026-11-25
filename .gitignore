@@ -27,3 +27,8 @@ tools/
 /gui/icons/*.png
 /gui/assets/app_icon.svg
 /gui/assets/.stripsolve_artwork_revision
+
+# macOS application packaging outputs
+/build/
+/dist/
+/StripSolve.spec

@@ -16,7 +16,9 @@ import math
 from gui.quality import QUALITY_VERSION
 from pathlib import Path
 
-WORK_ROOT = Path(__file__).resolve().parents[1] / "Work"
+from gui.runtime_paths import work_root
+
+WORK_ROOT = work_root()
 PASS_ONE = "pass 1"
 PASS_TWO = "pass 2"
 SUBDIRS = (PASS_ONE, PASS_TWO, "jsons", "logs")

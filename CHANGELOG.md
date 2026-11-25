@@ -1,5 +1,12 @@
 # Changelog
 
+### GUI 2.24 — Standalone macOS packaging (25 November 2026)
+- Adapt the previously Mac-tested Route-Mate build script. Generate ICNS from approved StripSolve PNG and bundle Qt, Node, librsvg, renderers, native V5 CLI/addon/standard and Edge decoders, router, WASM and auditor.
+- Resolve bundled tools explicitly for Finder launch; store frozen-app Work in Application Support and preserve source-mode paths. Capture the GUI build revision; do not regenerate artwork inside the bundle.
+- Build gate runs source tests, packaged CLI smoke tests and signature verification before copying the app to Desktop; no overwrite of an existing app. Add runtime-path tests and standalone handover documentation.
+- New StripSolve package not yet built on target Mac; Edge decoder selection remains a separate integration issue.
+
+
 ### GUI 2.23 — File picker navigation and completion status (25 November 2026)
 - Scope compact navigation-button styling to Qt Open/Save dialogs; use 22 px icons and adequate padding without altering the main toolbar or window controls.
 - Publish the Pass One completion/incomplete status before the modal champion popup; do not overwrite a later winner-preview status.
