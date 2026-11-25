@@ -100,115 +100,214 @@ def load_button_icon(key: str) -> QIcon:
 
 
 class StripSolveSplash(QWidget):
-    """Short, skippable application splash; does NOT simulate a solver run."""
+    """Polished Arctic Ice splash using the *installed* StripSolve app icon.
+
+    The progress animation describes GUI startup only; it never launches or
+    claims to run the native decoder, a seed campaign, or a routing audit.
+    """
 
     finished = Signal()
 
-    def __init__(self, parent: QWidget | None = None):
+    def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(
             parent, Qt.WindowType.FramelessWindowHint | Qt.WindowType.SplashScreen
         )
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
-        self.setFixedSize(540, 340)
+        self.setFixedSize(690, 462)
         self._complete = False
         self._drag_offset = None
-        outer = QVBoxLayout(self)
-        outer.setContentsMargins(8, 8, 8, 8)
-        card = QFrame()
+
+        shell = QVBoxLayout(self)
+        shell.setContentsMargins(10, 10, 10, 10)
+        card = QFrame(self)
         card.setObjectName("StripSolveSplashCard")
         card.setStyleSheet("""
             QFrame#StripSolveSplashCard {
-                background: #f4f9fc;
-                border: 2px solid #4e9bc3;
+                background-color: #f6fbff;
+                border: 2px solid #74bbd4;
                 border-radius: 18px;
             }
-            QLabel#StripSolveSplashTitle {
-                color: #0f2537;
-                font-size: 28px;
-                font-weight: 800;
+            QLabel#SplashBrandName {
+                color: #123b57;
+                font-size: 29px;
+                font-weight: 850;
             }
-            QLabel#StripSolveSplashSubtitle {
-                color: #284b67;
-                font-size: 13px;
+            QLabel#SplashBrandTagline {
+                color: #315a72;
+                font-size: 11px;
                 font-weight: 650;
             }
-            QLabel#StripSolveSplashStatus {
-                color: #234561;
+            QLabel#SplashKicker {
+                color: #138c97;
                 font-size: 12px;
-                font-weight: 600;
+                font-weight: 800;
+            }
+            QLabel#SplashHeroTitle {
+                color: #17435c;
+                font-size: 22px;
+                font-weight: 800;
+            }
+            QLabel#SplashHeroDescription {
+                color: #3a5c72;
+                font-size: 12px;
+                font-weight: 550;
+            }
+            QLabel#SplashStage {
+                color: #234b65;
+                font-size: 12px;
+                font-weight: 750;
             }
             QProgressBar {
-                color: #0f2537;
-                background: #dbeefa;
-                border: 1px solid #7faeca;
-                border-radius: 7px;
-                min-height: 17px;
+                background: #d9ecf8;
+                color: #133c54;
+                border: 1px solid #9cc7d9;
+                border-radius: 8px;
+                min-height: 18px;
+                font-size: 11px;
+                font-weight: 750;
                 text-align: center;
             }
             QProgressBar::chunk {
-                background: #19a8c6;
-                border-radius: 6px;
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                    stop:0 #2b7de9, stop:.5 #19b3d5, stop:1 #11a88b);
+                border-radius: 7px;
+            }
+            QPushButton#SplashSkip {
+                color: #176493;
+                background-color: #ffffff;
+                border: 1px solid #aad0e4;
+                border-radius: 9px;
+                padding: 6px 14px;
+                font-weight: 700;
+            }
+            QPushButton#SplashSkip:hover {
+                background-color: #def6ff;
+                border-color: #33aacf;
             }
         """)
-        outer.addWidget(card)
-        layout = QVBoxLayout(card)
-        layout.setContentsMargins(28, 24, 28, 24)
-        layout.setSpacing(11)
-        top_row = QHBoxLayout()
-        icon = QLabel()
-        icon.setPixmap(load_app_icon().pixmap(QSize(88, 88)))
-        top_row.addWidget(icon)
-        headings = QVBoxLayout()
-        title = QLabel("STRIPSOLVE")
-        title.setObjectName("StripSolveSplashTitle")
-        subtitle = QLabel("Stripboard Layout & Routing Optimizer")
-        subtitle.setObjectName("StripSolveSplashSubtitle")
-        subtitle.setWordWrap(True)
-        headings.addWidget(title)
-        headings.addWidget(subtitle)
-        top_row.addLayout(headings, 1)
-        layout.addLayout(top_row)
-        layout.addStretch(1)
-        self.status_label = QLabel("Starting the desktop interface · no solver running")
-        self.status_label.setObjectName("StripSolveSplashStatus")
-        self.status_label.setWordWrap(True)
-        layout.addWidget(self.status_label)
+        shell.addWidget(card)
+
+        body = QVBoxLayout(card)
+        body.setContentsMargins(24, 20, 24, 20)
+        body.setSpacing(12)
+
+        header = QHBoxLayout()
+        header.setSpacing(12)
+        emblem = QLabel()
+        emblem.setObjectName("SplashSmallAppIcon")
+        emblem.setPixmap(load_app_icon().pixmap(QSize(64, 64)))
+        header.addWidget(emblem)
+
+        heading = QVBoxLayout()
+        heading.setSpacing(0)
+        brand = QLabel("STRIPSOLVE")
+        brand.setObjectName("SplashBrandName")
+        tagline = QLabel("STRIPBOARD LAYOUT & ROUTING OPTIMIZER")
+        tagline.setObjectName("SplashBrandTagline")
+        heading.addWidget(brand)
+        heading.addWidget(tagline)
+        header.addLayout(heading, 1)
+
+        skip = QPushButton("Skip")
+        skip.setObjectName("SplashSkip")
+        skip.setCursor(Qt.CursorShape.PointingHandCursor)
+        skip.clicked.connect(self._finish)
+        header.addWidget(skip, alignment=Qt.AlignmentFlag.AlignTop)
+        body.addLayout(header)
+
+        # Hero: the approved high-detail copper/blue S artwork, not a substitute
+        # icon or a second painted approximation of the approved image.
+        hero = QFrame()
+        hero.setObjectName("SplashHeroPanel")
+        hero.setStyleSheet("""
+            QFrame#SplashHeroPanel {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                    stop:0 #e1f2fb, stop:.55 #f2fbff, stop:1 #ffffff);
+                border: 1px solid #c8e2ef;
+                border-radius: 15px;
+            }
+        """)
+        hero_layout = QHBoxLayout(hero)
+        hero_layout.setContentsMargins(14, 10, 20, 10)
+        hero_layout.setSpacing(20)
+        art = QLabel()
+        art.setObjectName("SplashBoardArtwork")
+        art.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        art.setFixedSize(223, 223)
+        art.setPixmap(load_app_icon().pixmap(QSize(221, 221)))
+        hero_layout.addWidget(art)
+
+        copy = QVBoxLayout()
+        copy.setSpacing(9)
+        kicker = QLabel("COPPER  /  CIRCUITS  /  PRECISION")
+        kicker.setObjectName("SplashKicker")
+        copy.addWidget(kicker)
+        motto = QLabel("ROUTE SMARTER.")
+        motto.setObjectName("SplashHeroTitle")
+        copy.addWidget(motto)
+        description = QLabel(
+            "An engineer's workspace for stripboard layout, "
+            "electrical verification and native routing."
+        )
+        description.setWordWrap(True)
+        description.setObjectName("SplashHeroDescription")
+        copy.addWidget(description)
+
+        for label_text, dot_color in (
+            ("PASS ONE   /   NATIVE SEARCH", "#2b7de9"),
+            ("STRICT AUDIT   /   VERIFIED", "#16a34a"),
+            ("PASS TWO   /   CANDIDATE IMPORT", "#c87d4b"),
+        ):
+            label = QLabel("●   " + label_text)
+            label.setStyleSheet(
+                f"color: {dot_color}; font-weight: 800; font-size: 11px;"
+            )
+            label.setWordWrap(True)
+            copy.addWidget(label)
+        copy.addStretch(1)
+        hero_layout.addLayout(copy, 1)
+        body.addWidget(hero)
+
+        status_row = QHBoxLayout()
+        self.status_label = QLabel("Starting desktop interface · no solver running")
+        self.status_label.setObjectName("SplashStage")
+        status_row.addWidget(self.status_label, 1)
+        self.version_label = QLabel("ARCTIC ICE  +  COLOURBURST")
+        self.version_label.setStyleSheet(
+            "color: #52758d; font-size: 10px; font-weight: 750;"
+        )
+        status_row.addWidget(self.version_label)
+        body.addLayout(status_row)
+
         self.progress = QProgressBar()
         self.progress.setRange(0, 100)
         self.progress.setValue(0)
         self.progress.setFormat("%p%")
-        layout.addWidget(self.progress)
-        bottom = QHBoxLayout()
-        note = QLabel("Arctic Ice + Colourburst")
-        note.setStyleSheet("color: #536f88; font-size: 11px;")
-        bottom.addWidget(note)
-        bottom.addStretch()
-        skip = QPushButton("Skip")
-        skip.setObjectName("splashSkipButton")
-        skip.clicked.connect(self._finish)
-        bottom.addWidget(skip)
-        layout.addLayout(bottom)
+        body.addWidget(self.progress)
+
+        # These are display-only loading captions; no fake 100-decode claims.
         self._steps = (
-            (35, "Loading StripSolve interface..."),
-            (70, "Preparing board preview controls..."),
-            (100, "Ready · project not yet loaded"),
+            (25, "Loading StripSolve appearance..."),
+            (55, "Preparing component and copper views..."),
+            (80, "Connecting desktop controls..."),
+            (100, "Ready · choose a project JSON"),
         )
         self._step = 0
         self._timer = QTimer(self)
         self._timer.timeout.connect(self._advance)
 
-    def start_demo(self, interval_ms: int = 300):
+    def start_demo(self, interval_ms: int = 240) -> None:
         self.show()
         self._timer.start(interval_ms)
 
-    def set_progress(self, value: int, message: str | None = None):
-        self.progress.setValue(max(0, min(100, value)))
-        if message:
+    def set_progress(self, value: int, message: str | None = None) -> None:
+        self.progress.setValue(max(0, min(100, int(value))))
+        if message is not None:
             self.status_label.setText(message)
         if value >= 100:
-            QTimer.singleShot(150, self._finish)
+            QTimer.singleShot(180, self._finish)
 
-    def _advance(self):
+    def _advance(self) -> None:
         if self._complete:
             return
         if self._step >= len(self._steps):
@@ -218,7 +317,7 @@ class StripSolveSplash(QWidget):
         self._step += 1
         self.set_progress(value, message)
 
-    def _finish(self):
+    def _finish(self) -> None:
         if self._complete:
             return
         self._complete = True
@@ -226,19 +325,19 @@ class StripSolveSplash(QWidget):
         self.finished.emit()
         self.close()
 
-    def mousePressEvent(self, event):
+    def mousePressEvent(self, event) -> None:
         if event.button() == Qt.MouseButton.LeftButton:
             self._drag_offset = (
                 event.globalPosition().toPoint() - self.frameGeometry().topLeft()
             )
         super().mousePressEvent(event)
 
-    def mouseMoveEvent(self, event):
+    def mouseMoveEvent(self, event) -> None:
         if (self._drag_offset is not None and
                 event.buttons() & Qt.MouseButton.LeftButton):
             self.move(event.globalPosition().toPoint() - self._drag_offset)
         super().mouseMoveEvent(event)
 
-    def mouseReleaseEvent(self, event):
+    def mouseReleaseEvent(self, event) -> None:
         self._drag_offset = None
         super().mouseReleaseEvent(event)
