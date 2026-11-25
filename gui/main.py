@@ -2551,6 +2551,8 @@ class RouteMateWindow(QMainWindow):
             # Sidebar: a single compact line; the full throughput detail
             # belongs in the roomy dashboard's run-control panel.
             compact_eta = remaining.split(" (", 1)[0]
+            if compact_eta.startswith("measuring first"):
+                compact_eta = "measuring…"
             self.solve_eta.setText(
                 f"Elapsed: {self._clock_text(elapsed)} · ETA: {compact_eta}"
             )
