@@ -3,8 +3,9 @@
 SVG masters come from gui.icon_art and can be exported with:
     python3 tools/build_icons.py
 
-Existing artwork is never overwritten by normal GUI launch. The renderer has
-an in-memory fallback if its installation directory is read-only.
+The 1024px approved app PNG is never overwritten automatically. Toolbar SVG
+masters refresh once per visual-design revision, while subsequent local custom
+SVG edits are preserved. Read-only installs fall back to in-memory vector art.
 """
 from __future__ import annotations
 
@@ -22,6 +23,8 @@ from gui.icon_art import ICON_KEYS, app_icon_svg, icon_svg
 ASSETS_DIR = Path(__file__).resolve().parent / "assets"
 ICONS_DIR = Path(__file__).resolve().parent / "icons"
 BUTTON_ICON_FILES = {key: f"{key}.svg" for key in ICON_KEYS}
+ARTWORK_REVISION = "copper-traces-v3"
+ARTWORK_MARKER = ".stripsolve_artwork_revision"
 
 
 def _rasterize(svg: str, size: int) -> QImage:
@@ -41,36 +44,55 @@ def _rasterize(svg: str, size: int) -> QImage:
 
 
 def export_assets(*, force: bool = False, toolbar_png: bool = False) -> list[Path]:
-    """Write all icon masters and the 1024px app PNG; never overwrite by default."""
+    """Refresh shipped SVG artwork once; keep the approved app PNG untouched.
+
+    Existing toolbar SVGs are refreshed when the shipped artwork revision
+    changes, but not on every launch. Full regeneration can be requested
+    explicitly with --force in tools/build_icons.py. The source-controlled
+    hi-res app PNG is preserved even in force mode.
+    """
     ICONS_DIR.mkdir(parents=True, exist_ok=True)
     ASSETS_DIR.mkdir(parents=True, exist_ok=True)
     created = []
+    marker = ASSETS_DIR / ARTWORK_MARKER
+    current_revision = (
+        marker.read_text(encoding="utf-8").strip()
+        if marker.is_file() else ""
+    )
+    refresh = force or current_revision != ARTWORK_REVISION
+
     app_svg = ASSETS_DIR / "app_icon.svg"
-    if force or not app_svg.is_file():
+    if refresh or not app_svg.is_file():
         app_svg.write_text(app_icon_svg(), encoding="utf-8")
         created.append(app_svg)
+
+    # The committed 1024px Gemini-reference artwork wins over generated SVG.
+    # Do not replace it on launch OR when --force refreshes toolbar SVGs.
     app_png = ASSETS_DIR / "app_icon.png"
-    if force or not app_png.is_file():
+    if not app_png.is_file():
         if not _rasterize(app_svg.read_text(encoding="utf-8"), 1024).save(
             str(app_png), "PNG"
         ):
             raise OSError(f"Unable to save application icon: {app_png}")
         created.append(app_png)
+
     for key in ICON_KEYS:
         target = ICONS_DIR / BUTTON_ICON_FILES[key]
-        if force or not target.is_file():
+        if refresh or not target.is_file():
             target.write_text(icon_svg(key), encoding="utf-8")
             created.append(target)
         if toolbar_png:
             png = target.with_suffix(".png")
-            if force or not png.is_file():
+            if refresh or not png.is_file():
                 if not _rasterize(target.read_text(encoding="utf-8"), 48).save(
                     str(png), "PNG"
                 ):
                     raise OSError(f"Unable to save toolbar icon: {png}")
                 created.append(png)
-    return created
 
+    if current_revision != ARTWORK_REVISION:
+        marker.write_text(ARTWORK_REVISION + "\n", encoding="utf-8")
+    return created
 
 def load_app_icon() -> QIcon:
     icon_path = ASSETS_DIR / "app_icon.png"
