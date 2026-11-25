@@ -118,6 +118,10 @@ class LiveScoreboard(QWidget):
         self.recent.setObjectName("scoreRecent")
         self.recent.setWordWrap(True)
         outer.addWidget(self.recent)
+        self.eta = QLabel("Elapsed: — · ETA: measuring first seed")
+        self.eta.setObjectName("scoreRecent")
+        self.eta.setWordWrap(True)
+        outer.addWidget(self.eta)
         note = QLabel("Q: higher is better · ties: fewer W, then C, then seed")
         note.setObjectName("scoreNote")
         note.setWordWrap(True)
@@ -153,6 +157,7 @@ class LiveScoreboard(QWidget):
             quality.setText("Q —")
             counts.setText("—")
         self.recent.setText("Last seed: —")
+        self.eta.setText("Elapsed: — · ETA: measuring first seed")
         self.view_winner_button.setEnabled(False)
 
     def reset_for_project(self, project: str):
@@ -162,6 +167,7 @@ class LiveScoreboard(QWidget):
         self.progress.setRange(0, 1)
         self.progress.setValue(0)
         self.progress.setFormat("No campaign")
+        self.eta.setText("Elapsed: — · ETA: —")
         self.state.setText("Run Pass One to see strictly audited leaders")
 
     def update_progress(self, snapshot: dict):
@@ -196,8 +202,10 @@ class LiveScoreboard(QWidget):
                 status = "FAIL"
             else:
                 status = "ERROR"
+            seconds = last.get("time_taken", last.get("seconds"))
+            duration = f" · {float(seconds):.3f}s" if seconds is not None else ""
             self.recent.setText(
-                f"Last seed: {int(last['seed']):04d} · {status}"
+                f"Last seed: {int(last['seed']):04d} · {status}{duration}"
             )
 
     def finish(self, *, completed: bool, qualified: int):
