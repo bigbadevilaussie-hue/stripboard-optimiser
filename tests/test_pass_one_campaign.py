@@ -125,6 +125,56 @@ class CampaignStorageTests(unittest.TestCase):
                 )
                 self.assertTrue((folder / "results.csv").is_file())
 
+    def test_debug_200_rows_isolated_from_full_campaign(self):
+        from gui.pass_one import DEBUG_SEEDS, DEFAULT_SEEDS
+        from gui.work_directory import pass_one_campaign_sources
+        self.assertEqual((DEBUG_SEEDS, DEFAULT_SEEDS), (200, 2000))
+        project = {"board": {"rows": 24, "cols": 56}, "components": []}
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = ensure_work(Path(tmp) / "Work" / "moto")
+            full = pass_one_budget_dir(workspace, 10000, create=True)
+            debug = pass_one_budget_dir(workspace, 10000, create=True, debug=True)
+            (full / "results.csv").write_text("PRESERVE FULL 2000")
+            full_winner = winner_budget_dir(workspace, 10000, create=True)
+            (full_winner / "champion.svg").write_text("PRESERVE FULL WINNER")
+            def reject_seed(project, moves, seed, drilled, stacking, cancelled):
+                return {"seed": seed, "valid": False,
+                        "seconds": 0.002, "reason": "strict invalid"}
+            completed = []
+            with patch("gui.pass_one.prerequisites"), \
+                 patch("gui.pass_one.AUDITOR", Path(__file__)), \
+                 patch("gui.pass_one._run_seed", side_effect=reject_seed):
+                result = run_pass_one(
+                    project, 10000, 3, False, True, debug,
+                    completed.append, lambda _: None, lambda: False,
+                    seeds=200, debug=True
+                )
+            self.assertTrue(result["completed"])
+            self.assertEqual(result["checked"], 200)
+            self.assertEqual(result["qualified"], 0)
+            self.assertEqual(completed[-1]["total"], 200)
+            with (debug / "results.csv").open(newline="") as stream:
+                rows = list(csv.DictReader(stream))
+            self.assertEqual(len(rows), 200)
+            self.assertEqual(rows[0]["seed"], "0001")
+            self.assertEqual({r["seed"] for r in rows},
+                             {f"{n:04d}" for n in range(1, 201)})
+            state = json.loads((debug / "campaign.json").read_text())
+            self.assertEqual(state["state"], "COMPLETED")
+            self.assertTrue(state["debug"])
+            self.assertEqual(state["seeds"], 200)
+            self.assertEqual((full / "results.csv").read_text(), "PRESERVE FULL 2000")
+            self.assertEqual((full_winner / "champion.svg").read_text(),
+                             "PRESERVE FULL WINNER")
+            labels = [label for label, _ in pass_one_campaign_sources(workspace)]
+            self.assertIn("10k moves", labels)
+            self.assertIn("10k moves (DEBUG 200)", labels)
+            clear_pass_one_budget(workspace, 10000)
+            self.assertFalse((full / "results.csv").exists())
+            self.assertTrue((debug / "results.csv").exists())
+            self.assertEqual(json.loads((debug / "campaign.json").read_text())["seeds"],
+                             200)
+
     def test_resume_rejects_changed_input_or_rules(self):
         project = {"board": {"rows": 24, "cols": 56}, "components": []}
         with tempfile.TemporaryDirectory() as tmp:
