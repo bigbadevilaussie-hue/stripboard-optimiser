@@ -22,8 +22,7 @@ PATH="/opt/local/bin:$PATH" python3 run_gui.py
 ```
 
 Assets are generated into `gui/icons/` and `gui/assets/`, with an in-memory
-SVG fallback when those directories are read-only. Existing customised assets
-are preserved unless the generator is explicitly run with `--force`.
+SVG fallback when those directories are read-only. The approved 1024px app PNG is source-controlled and never regenerated\non normal launch (or `--force`). Toolbar SVGs refresh once on the first\nlaunch of this artwork revision, then preserve local edits; use `--force`\nto refresh the 10 toolbar SVGs again.
 The short splash only indicates desktop UI startup; it does not claim to run
 native solver checks.
 
