@@ -1,6 +1,8 @@
-# StripSolve GUI 2.26 — Arctic Ice + Colourburst
+# StripSolve GUI 2.39 — Arctic Ice + Colourburst
 
 ## Current release: StripSolve GUI 2.39 / Q3 (25 November 2026)
+
+**26 November 2026 Mac verification:** The owner reports the full Python GUI regression suite passed after correcting the Slide checkbox/search-notice **EXPERIMENTAL** casing and restoring dashboard-to-board navigation even when no source SVG is cached. All **7 Node headless solver suites** were also reported passing. The optional experimental diagonal/crossings candidate qualification is a CLI/research-runner feature, not the GUI Pass One or Pass Two engine: [native V5 candidate policies](../docs/CANDIDATE_POLICIES.md).
 
 Budget recommendation: [100-point JSON complexity sniff](../docs/JSON_SNIFF.md). CPU allocation is separate; no native decodes or qualification trials run before GO.
 
@@ -134,7 +136,7 @@ The actual future engine is the existing native C/TypeScript CLI.
 
 ## Current budget selection
 
-GUI 2.26: speed calibration remains a 100-decode timing-only measurement. The separate actual-JSON budget probe uses strict native solves and independent saved-board audits, targets 100 survivors per 2,000 seeds (5%), and compares 10k/20k only as needed. Compatible completed FULL history takes priority. See [budget probe](../docs/BUDGET_PROBE.md). Locked Edge mounts automatically select the Edge decoder in speed calibration, probe, Pass One and replay. No Slide search or strict-rule change.
+**Current GUI 2.39:** Budget choice before GO uses the static [100-point JSON complexity sniff](../docs/JSON_SNIFF.md), not the older 100-decode or qualification-search budget-probe approach. The old [budget probe](../docs/BUDGET_PROBE.md) is historical. Edge decoder selection is independent; there is still no Slide search or GUI Pass Two optimisation.
 
 ## Standalone macOS build
 
