@@ -155,6 +155,15 @@ class LiveScoreboard(QWidget):
         self.recent.setText("Last seed: —")
         self.view_winner_button.setEnabled(False)
 
+    def reset_for_project(self, project: str):
+        """A newly loaded project must not inherit another project's scores."""
+        self.start(project, 0, 0, debug=False)
+        self.mode.setText(f"{project} · No Pass One campaign started")
+        self.progress.setRange(0, 1)
+        self.progress.setValue(0)
+        self.progress.setFormat("No campaign")
+        self.state.setText("Run Pass One to see strictly audited leaders")
+
     def update_progress(self, snapshot: dict):
         """Called on GUI thread for each confirmed worker result."""
         done = max(0, int(snapshot.get("done", 0)))
