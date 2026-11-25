@@ -31,6 +31,14 @@ class ArcticTitleBar(QWidget):
         row = QHBoxLayout(self)
         row.setContentsMargins(9, 2, 5, 2)
         row.setSpacing(6)
+        if isinstance(target, QDialog):
+            from gui.assets_ui import load_app_icon
+            icon = QLabel()
+            icon.setObjectName("arcticPopupIcon")
+            icon.setPixmap(load_app_icon().pixmap(24, 24))
+            icon.setFixedSize(24, 24)
+            icon.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+            row.addWidget(icon)
         self.heading = QLabel(target.windowTitle())
         self.heading.setObjectName("arcticWindowCaption")
         self.heading.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
@@ -111,6 +119,8 @@ class CurvedWindowManager(QObject):
         kind = event.type()
         if kind in (QEvent.Type.Polish, QEvent.Type.Show):
             self.attach(obj)
+            if kind == QEvent.Type.Show and isinstance(obj, QDialog):
+                QTimer.singleShot(0, lambda window=obj: self.center_dialog(window))
         elif kind == QEvent.Type.Resize or kind == QEvent.Type.WindowStateChange:
             self.update_shape(obj)
         elif kind == QEvent.Type.WindowTitleChange:
@@ -150,6 +160,26 @@ class CurvedWindowManager(QObject):
             self.position_dialog_bar(window)
 
         self.update_shape(window)
+
+    def center_dialog(self, dialog):
+        try:
+            if not dialog.isVisible():
+                return
+            parent = dialog.parentWidget()
+            anchor = parent.window() if parent is not None else None
+            if not isinstance(anchor, QMainWindow):
+                anchor = next((w for w in QApplication.topLevelWidgets()
+                               if isinstance(w, QMainWindow) and w.isVisible()), anchor)
+            screen = anchor.screen() if anchor is not None else dialog.screen()
+            available = screen.availableGeometry()
+            center = anchor.frameGeometry().center() if anchor is not None else available.center()
+            x = max(available.left(), min(center.x() - dialog.width() // 2,
+                                          available.right() - dialog.width() + 1))
+            y = max(available.top(), min(center.y() - dialog.height() // 2,
+                                         available.bottom() - dialog.height() + 1))
+            dialog.move(x, y)
+        except RuntimeError:
+            pass  # Dialog closed before deferred placement.
 
     def position_dialog_bar(self, dialog):
         bar = getattr(dialog, "_arctic_titlebar", None)

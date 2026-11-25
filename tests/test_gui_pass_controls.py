@@ -23,6 +23,34 @@ class PassControlTests(unittest.TestCase):
     def setUpClass(cls):
         cls.app = QApplication.instance() or QApplication([])
 
+    def test_no_survivors_marks_pass_failed(self):
+        window = RouteMateWindow()
+        try:
+            window.dashboard.start("MOTO", 20000, 200, debug=True)
+            result = {"completed": True, "checked": 200, "qualified": 0,
+                      "csv": "results.csv", "log": "activity.log"}
+            with patch.object(window, "_show_no_survivors") as popup:
+                window._pass_one_completed(result)
+                popup.assert_called_once_with(result)
+            self.assertEqual(window._calibration_stages["PASS1"], "failed")
+            self.assertIn("FAILED", window.dashboard.state.text())
+            self.assertIn("NO QUALIFYING BOARDS", window.statusBar().currentMessage())
+        finally:
+            window.close()
+
+    def test_board_is_cleared_before_probe(self):
+        window = RouteMateWindow()
+        try:
+            window.top_view.scene().addRect(0, 0, 10, 10)
+            window._top_svg = "cached board"
+            window.top_action.setChecked(True)
+            window._clear_board_for_probe()
+            self.assertFalse(window.top_view.scene().items())
+            self.assertFalse(window.top_action.isChecked())
+            self.assertEqual(window._top_svg, "cached board")
+        finally:
+            window.close()
+
     def test_successful_calibration_prompts_once_after_worker_finishes(self):
         window = RouteMateWindow()
         try:

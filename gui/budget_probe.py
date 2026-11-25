@@ -124,3 +124,21 @@ def probe_budget(project, workers, drilled, stacking, progress, diagnostic, canc
         diagnostic(f"[BUDGET][SAVED] {path}")
     diagnostic(f"[BUDGET][CHOICE] {budget//1000}k: {reason}")
     return result
+
+def history_budget(project, workers, drilled, stacking, *, workspace=None):
+    """Read matching past campaigns only. Never start a seed or write files."""
+    try:
+        prepared, _ = _prepared_input(project)
+        ten = _history(prepared, workspace, 10000, workers, drilled, stacking)
+        twenty = _history(prepared, workspace, 20000, workers, drilled, stacking)
+    except (OSError, ValueError, RuntimeError, TypeError, KeyError):
+        ten = twenty = None
+    if ten and (twenty or ten["rate"] >= TARGET_RATE):
+        budget, reason = choose(ten, twenty)
+    elif ten or twenty:
+        known = ten or twenty
+        budget = known["moves"] if known["qualified"] else 10000
+        reason = "Only one matching campaign is available; comparison is inconclusive."
+    else:
+        budget, reason = 10000, "No matching campaign history. Default 10k; choose either budget."
+    return {"recommended_moves": budget, "reason": reason, "ten": ten, "twenty": twenty}

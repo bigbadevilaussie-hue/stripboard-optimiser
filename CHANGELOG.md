@@ -1,5 +1,11 @@
 # Changelog
 
+### GUI 2.35 — Compact dialogs, original preparation and explicit pass failure
+- Add app icon and main-window centring for Qt dialogs; compact three-digit 1–999 dimension fields and simplify locks.
+- Restore separate Speed probe and 100-point JSON audit checklist rows. Keep existing CPU allocation policy and native decoder-only check; remove automatic qualification searches, use matching campaign history only.
+- Clear board canvas for preparation. Zero qualifying boards marks Pass One failed, with actual lock settings and CSV rejection reasons in a dialog. Completed seed progress remains accurate.
+
+
 ### GUI 2.34 — Simplify title and toolbar
 - Window title is StripSolve only; permanent bottom-right status bar label is Rev 2.xx. Git revision remains available in Activity diagnostics.
 - Give Load JSON a persistent teal/green accent. View buttons remain neutral until an actual view is selected; no component-side highlight on the empty startup screen or dashboard.

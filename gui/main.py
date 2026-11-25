@@ -101,19 +101,21 @@ class DimensionBox(QWidget):
         self.entry = QLineEdit(self)
         self.entry.setObjectName("dimensionEntry")
         self.entry.setAlignment(Qt.AlignmentFlag.AlignLeft)
-        self.entry.setValidator(QIntValidator(1, 500, self.entry))
-        self.entry.setPlaceholderText("1–500")
-        self.entry.setMinimumWidth(78)
+        self.entry.setValidator(QIntValidator(1, 999, self.entry))
+        self.entry.setPlaceholderText("1–999")
+        self.entry.setFixedWidth(64)
+        self.entry.setMaxLength(3)
         try:
             self.entry.setText(str(int(value)))
         except (TypeError, ValueError):
             self.entry.setText("")
-        row.addWidget(self.entry, 1)
+        row.addWidget(self.entry)
         self.check = QLabel("✓", self)
         self.check.setObjectName("dimensionCheck")
         self.check.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.check.setFixedWidth(21)
         row.addWidget(self.check)
+        self.setFixedWidth(91)
 
     def number(self):
         if not self.entry.hasAcceptableInput():
@@ -123,7 +125,7 @@ class DimensionBox(QWidget):
     def value(self):
         number = self.number()
         if number is None:
-            raise ValueError("Board dimensions must be whole numbers from 1 to 500")
+            raise ValueError("Board dimensions must be whole numbers from 1 to 999")
         return number
 
     def setValue(self, number):
@@ -162,18 +164,18 @@ class BoardSizeDialog(QDialog):
         rows_layout = QHBoxLayout(rows_box)
         rows_layout.setContentsMargins(0, 0, 0, 0)
         rows_layout.setSpacing(8)
-        rows_layout.addWidget(self.preferred_rows, 1)
+        rows_layout.addWidget(self.preferred_rows)
         rows_layout.addWidget(self.rows_mode)
         cols_box = QWidget()
         cols_layout = QHBoxLayout(cols_box)
         cols_layout.setContentsMargins(0, 0, 0, 0)
         cols_layout.setSpacing(8)
-        cols_layout.addWidget(self.preferred_cols, 1)
+        cols_layout.addWidget(self.preferred_cols)
         cols_layout.addWidget(self.cols_mode)
         form.addRow("Preferred rows:", rows_box)
         form.addRow("Preferred columns:", cols_box)
         layout.addLayout(form)
-        layout.addWidget(QLabel("Enter whole numbers from 1 to 500. ✓ means valid."))
+        layout.addWidget(QLabel("Enter whole numbers from 1 to 999. ✓ means valid."))
         self.feedback = QLabel("")
         self.feedback.setWordWrap(True)
         self.feedback.setStyleSheet("color: #ac3553; font-size: 11px;")
@@ -209,7 +211,7 @@ class BoardSizeDialog(QDialog):
         valid = [number is not None for number in numbers]
         errors = []
         if not all(valid):
-            errors.append("Every dimension must be a whole number from 1 to 500.")
+            errors.append("Every dimension must be a whole number from 1 to 999.")
         if (valid[0] and valid[2] and self.rows_mode.currentData() == "fixed"
                 and numbers[2] > numbers[0]):
             valid[2] = False
@@ -347,7 +349,7 @@ class PassOneDialog(QDialog):
         evidence.setStyleSheet("QFrame { background: #f1f8fd; border: 1px solid #cbddec; border-radius: 10px; } QLabel { border: none; background: transparent; }")
         details = QVBoxLayout(evidence)
         details.setContentsMargins(13, 10, 13, 10)
-        title = QLabel("Observed qualification · target 100 survivors")
+        title = QLabel("Previous campaign results")
         title.setStyleSheet("font-size: 13px; font-weight: 800; color: #153e5b;")
         details.addWidget(title)
         for key, moves in (("ten", 10000), ("twenty", 20000)):
@@ -364,7 +366,7 @@ class PassOneDialog(QDialog):
                     f"Sampling interval: {low:.1%}–{high:.1%}"
                 )
             else:
-                label = QLabel(f"{moves//1000}k · Not measured")
+                label = QLabel(f"{moves//1000}k · No matching campaign")
             label.setWordWrap(True)
             details.addWidget(label)
         reason = QLabel(data.get("reason", "No qualification evidence; 10k is the default."))
@@ -372,12 +374,15 @@ class PassOneDialog(QDialog):
         reason.setStyleSheet("font-weight: 700; color: #166c77;")
         details.addWidget(reason)
         layout.addWidget(evidence)
-        timing = QLabel("Runtime estimates include observed routing and finishing. "
-                        "Small samples are approximate, not a guarantee.")
+        ms = (probe_result or {}).get("ms_per_decode")
+        timing = QLabel(
+            (f"100-point decoder check: {ms:.5f} ms/decode. " if ms else "")
+            + "Decoder timing is not a full solve estimate. Only GO starts a campaign."
+        )
         timing.setWordWrap(True)
         layout.addWidget(timing)
         if self._recommended == 10000:
-            self.ten_k.setText("10,000 moves — selected from qualification evidence" if data
+            self.ten_k.setText("10,000 moves — recommended" if data.get("ten") or data.get("twenty")
                                else "10,000 moves — default")
             self.ten_k.setChecked(True)
         else:
@@ -528,16 +533,12 @@ class LockDialog(QDialog):
         label = str(component.get("label") or component.get("name") or component.get("id"))
         self.setWindowTitle(f"PRE-SOLVE constraints ({index}/{total})")
         self.setMinimumWidth(340)
-        if parent is not None:
-            # Keep the prompt over the left log pane so the highlighted board
-            # remains visible while the user makes the decision.
-            self.move(parent.mapToGlobal(QPoint(24, 90)))
         layout = QVBoxLayout(self)
         layout.addWidget(QLabel(f"Component: {label}"))
-        self.locked = QRadioButton("Fixed — keep exact position")
-        self.unlocked = QRadioButton("Movable — release for future placement")
-        self.edge = QCheckBox("Board-edge constraint")
-        self.slide = QCheckBox("May slide along this edge — EXPERIMENTAL")
+        self.locked = QRadioButton("Fixed")
+        self.unlocked = QRadioButton("Movable")
+        self.edge = QCheckBox("Edge lock")
+        self.slide = QCheckBox("Slide along edge (experimental)")
         self.slide.setStyleSheet(
             "QCheckBox { color: #ff1744; font-weight: 800; font-size: 13px; }"
         )
@@ -556,17 +557,12 @@ class LockDialog(QDialog):
         layout.addWidget(self.edge)
         layout.addWidget(self.slide)
         hint = QLabel(
-            "Fixed = keep current position (unless experimental Slide is selected). "
-            "Movable = return the part to placement. "
-            "Edge anchors must already touch or overhang a physical board edge."
+            "Edge locks must touch or overhang the board edge."
         )
         hint.setWordWrap(True)
         layout.addWidget(hint)
         self.search_notice = QLabel(
-            "EXPERIMENTAL — Edge+Slide is not a guaranteed routing mode. "
-            "The part must already touch or overhang the board edge; "
-            "the native decoder rejects invalid edge anchors. "
-            "The 100-point check does not search slide positions."
+            "Slide search is experimental; the audit does not test slide positions."
         )
         self.search_notice.setWordWrap(True)
         self.search_notice.setStyleSheet(
@@ -734,7 +730,8 @@ class WorkflowChecklist(QWidget):
         ("CONSTRAINTS", "Placement locks"),
         ("CUTS", "Cuts"),
         ("STACK", "Wire stacking"),
-        ("CALIBRATION", "Speed & budget probe"),
+        ("SPEED", "Speed probe"),
+        ("CALIBRATION", "JSON audit (100 points)"),
         ("PASS1", "1st Pass"),
         ("PASS2", "2nd Pass"),
         ("FINAL", "Final Pass"),
@@ -742,7 +739,7 @@ class WorkflowChecklist(QWidget):
     )
 
     PREPARATION_STAGES = ("COLLECT", "SANITY", "PRE-SOLVE", "BOARD", "CONSTRAINTS",
-                          "CUTS", "STACK", "CALIBRATION")
+                          "CUTS", "STACK", "SPEED", "CALIBRATION")
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -926,15 +923,14 @@ class NativeCalibrationWorker(QThread):
 
     def run(self):
         from gui.native_calibration import calibrate, Cancelled
-        from gui.budget_probe import probe_budget
+        from gui.budget_probe import history_budget
         try:
             result = calibrate(
                 self.project, self.workers,
                 self.drilled_only, self.stacking_allowed,
                 self.tick.emit, self.diagnostic.emit, self.isInterruptionRequested)
-            result["budget_probe"] = probe_budget(
+            result["budget_probe"] = history_budget(
                 self.project, self.workers, self.drilled_only, self.stacking_allowed,
-                self.tick.emit, self.diagnostic.emit, self.isInterruptionRequested,
                 workspace=self.workspace)
             self.completed.emit(result)
         except Cancelled:
@@ -1957,7 +1953,19 @@ class RouteMateWindow(QMainWindow):
             f"knife allowed={not self._probe_cut_drilled_only}; "
             f"stacked wires allowed={self._probe_stacking_allowed}."
         )
+        self._clear_board_for_probe()
         self._start_speed_probe()
+
+    def _clear_board_for_probe(self):
+        self.top_view.scene().clear()
+        self.top_view.scene().setSceneRect(0, 0, 0, 0)
+        self.top_view._svg_key = None
+        self.top_view._renderer = None
+        self.top_action.setChecked(False)
+        self.copper_action.setChecked(False)
+        self.schematic_action.setChecked(False)
+        self.board_fit_button.hide()
+        self.board_result_label.setText("Board review complete · preparing solver")
 
     def review_locks(self):
         """Review the *input* placement, not the last solved output."""
@@ -2065,7 +2073,7 @@ class RouteMateWindow(QMainWindow):
             self.close()
 
     def _start_calibration(self):
-        """Measure decoder speed, then probe actual qualification before campaign GO."""
+        """Run the original 100-point native decoder check; no campaign solves."""
         if self.project is None or self._calibration_worker is not None:
             return
         workers = self._recommended_workers
@@ -2084,7 +2092,7 @@ class RouteMateWindow(QMainWindow):
         self._calibration_stages["CALIBRATION"] = "running"
         self._refresh_checklist()
         self._solve_clock.start()
-        self.log_line("[MOVE100][START] Speed only; followed by a separate qualification probe.")
+        self.log_line("[MOVE100][START] JSON decoder check only; no qualification searches.")
         worker = NativeCalibrationWorker(
             self.project, workers,
             self._probe_cut_drilled_only, self._probe_stacking_allowed, self,
@@ -2099,18 +2107,7 @@ class RouteMateWindow(QMainWindow):
         worker.start()
 
     def _calibration_tick(self, event):
-        if event["phase"] == "budget_probe":
-            self._solve_done = int(event["completed"])
-            self._solve_budget = int(event["total"])
-            self.solve_progress.setRange(0, self._solve_budget)
-            self.solve_progress.setValue(self._solve_done)
-            message = (f"Budget probe · {event['moves']//1000}k · "
-                       f"{self._solve_done}/{self._solve_budget} seeds · "
-                       f"{event['qualified']} verified")
-            self.solve_activity.setText(message)
-            self.statusBar().showMessage(message)
-            self._set_board_summary(message, level="working")
-        elif event["phase"] == "running":
+        if event["phase"] == "running":
             self.solve_activity.setText("100-point move check · native measurement running")
             self.solve_worker_status.setText(
                 "Native decoder measurement · no per-sample progress available")
@@ -2128,13 +2125,13 @@ class RouteMateWindow(QMainWindow):
         self._solve_done = 100
         self.solve_progress.setRange(0, 100)
         self.solve_progress.setValue(100)
-        self.solve_activity.setText("BUDGET PROBE COMPLETE · Pass One awaits GO")
+        self.solve_activity.setText("JSON AUDIT COMPLETE · Pass One awaits GO")
         self.solve_worker_status.setText(
             f"100 decodes · {result['ms_per_decode']:.5f}ms/decode · "
             f"{result['decodes_per_second']:,.0f} decodes/s")
-        self.log_line("[BUDGET][READY] Qualification evidence available; campaign starts only after GO.")
-        self.statusBar().showMessage("BUDGET PROBE COMPLETE — Choose Pass One budget.")
-        self._set_board_summary("Search budget probe complete", level="neutral")
+        self.log_line("[MOVE100][READY] 100 decoder checks complete; campaign starts only after GO.")
+        self.statusBar().showMessage("JSON AUDIT COMPLETE — Choose Pass One budget.")
+        self._set_board_summary("100-point JSON audit complete", level="neutral")
 
     def _calibration_failed(self, error):
         self._pass_one_prompt_pending = False
@@ -2142,7 +2139,7 @@ class RouteMateWindow(QMainWindow):
         self._refresh_checklist()
         self.solve_progress.setRange(0, 100)
         self.solve_progress.setValue(0)
-        self.solve_activity.setText("Speed / budget probe failed · see Activity")
+        self.solve_activity.setText("JSON audit failed · see Activity")
         self.solve_worker_status.setText(str(error))
         self.log_line("[MOVE100][ERROR] " + str(error))
         self.log_line("[MOVE100][STOP] No optimisation pass started.")
@@ -2151,7 +2148,7 @@ class RouteMateWindow(QMainWindow):
         self._pass_one_prompt_pending = False
         self.solve_progress.setRange(0, 100)
         self.solve_progress.setValue(0)
-        self.solve_activity.setText("Speed / budget probe cancelled")
+        self.solve_activity.setText("JSON audit cancelled")
         self.log_line("[MOVE100][CANCELLED] No optimiser pass started.")
 
     def _calibration_finished(self):
@@ -2192,7 +2189,7 @@ class RouteMateWindow(QMainWindow):
             or not isinstance(self._recommended_workers, int) or self._recommended_workers < 1):
             QMessageBox.information(
                 self, "Pass One", "Finish board/lock review, routing rules, "
-                "the search budget probe before Pass One."
+                "the 100-point JSON audit before Pass One."
             )
             return
         dialog = PassOneDialog(
@@ -2469,13 +2466,16 @@ class RouteMateWindow(QMainWindow):
     def _pass_one_completed(self, result):
         done = result.get("completed", True)
         self._freeze_pass_one_clock(completed=done)
-        self._calibration_stages["PASS1"] = "done" if done else "failed"
+        qualified = int(result["qualified"])
+        self._calibration_stages["PASS1"] = "done" if done and qualified else "failed"
         self._refresh_checklist()
         self.solve_progress.setValue(result["checked"])
         self.dashboard.finish(
             completed=done, qualified=int(result["qualified"])
         )
-        label = "PASS ONE COMPLETE" if done else "PASS ONE INCOMPLETE — RESUME AVAILABLE"
+        label = ("PASS ONE FAILED — NO QUALIFYING BOARDS" if done and not qualified
+                 else "PASS ONE COMPLETE" if done
+                 else "PASS ONE INCOMPLETE — RESUME AVAILABLE")
         self.statusBar().showMessage(label)
         self.solve_activity.setText(
             f"{label} · {result['qualified']:,} verified CSV rows"
@@ -2483,6 +2483,11 @@ class RouteMateWindow(QMainWindow):
         self.log_line(f"[PASS1][DELIVERED] {result['csv']}")
         self.log_line(f"[PASS1][LOG] {result['log']}")
         self.log_line("[PASS1][STOP] Pass Two not started.")
+        if done and not qualified:
+            self._set_board_summary("Pass One failed · no qualifying boards", level="failed")
+            if not self._close_when_idle:
+                self._show_no_survivors(result)
+            return
         if done:
             if result.get("winner_error"):
                 self.log_line("[PASS1][WINNER][ERROR] " + result["winner_error"])
@@ -2525,6 +2530,58 @@ class RouteMateWindow(QMainWindow):
                 "Pass One incomplete · resume to retry missing/error seeds",
                 level="working",
             )
+
+    def _show_no_survivors(self, result):
+        """Report actual applied locks and recorded rejection reasons, not guesses."""
+        import csv
+        from collections import Counter
+        from placement_policy import is_off_board_component
+        board = (self.project or {}).get("board", {})
+        locks = []
+        for part in (self.project or {}).get("components", []):
+            if is_off_board_component(part) or not part.get("locked"):
+                continue
+            mode = ("Edge + Slide" if part.get("edge") and part.get("slide")
+                    else "Edge" if part.get("edge") else "Fixed")
+            locks.append(f"{part.get('label') or part.get('id')}: {mode}")
+        reasons = Counter()
+        try:
+            with Path(result["csv"]).open(encoding="utf-8", newline="") as stream:
+                for row in csv.DictReader(stream):
+                    if row.get("status") == "FAIL":
+                        reasons[row.get("reason") or "Unspecified strict rejection"] += 1
+        except (OSError, KeyError, ValueError):
+            pass
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Pass One failed")
+        dialog.setMinimumWidth(420)
+        layout = QVBoxLayout(dialog)
+        heading = QLabel("✕  No qualifying boards")
+        heading.setStyleSheet("color: #ce5265; font-size: 20px; font-weight: 800;")
+        layout.addWidget(heading)
+        details = QLabel(
+            f"{result['checked']:,} seeds tested · 0 verified\n"
+            f"Board: {board.get('rows', '?')} × {board.get('cols', '?')} holes\n\n"
+            "Applied locks:\n" + ("\n".join(locks) if locks else "None")
+            + "\n\nRecorded rejection reasons:\n"
+            + ("\n".join(f"{count:,} × {reason}" for reason, count in reasons.most_common(4))
+               if reasons else "See Activity and the saved CSV.")
+        )
+        details.setWordWrap(True)
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        scroll.setWidget(details)
+        scroll.setMinimumHeight(160)
+        scroll.setMaximumHeight(300)
+        layout.addWidget(scroll)
+        hint = QLabel("Reload the JSON and try different board dimensions or component locks.")
+        hint.setWordWrap(True)
+        layout.addWidget(hint)
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok)
+        buttons.accepted.connect(dialog.accept)
+        layout.addWidget(buttons)
+        dialog.exec()
 
     def _pass_one_failed(self, error):
         self.statusBar().showMessage("PASS ONE FAILED · results preserved · see Activity")
@@ -2739,7 +2796,7 @@ class RouteMateWindow(QMainWindow):
                                              else "Estimated from previous seed timings")
             return
         if self._calibration_worker is not None:
-            self.solve_eta.setText(f"Elapsed: {self._clock_text(elapsed)} · Budget probe")
+            self.solve_eta.setText(f"Elapsed: {self._clock_text(elapsed)} · JSON audit")
             return
         if self._worker_time_stats:
             # Parallel jobs do not finish in total-attempt order. The

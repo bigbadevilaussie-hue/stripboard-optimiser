@@ -34,6 +34,18 @@ class CurvedDimensionTests(unittest.TestCase):
         finally:
             dialog.close()
 
+    def test_dimensions_are_compact_and_accept_999(self):
+        dialog = BoardSizeDialog({"rows": 24, "cols": 56})
+        try:
+            field = dialog.actual_rows.entry
+            self.assertEqual(field.validator().top(), 999)
+            self.assertEqual(field.maximumWidth(), 64)
+            field.setText("999")
+            self.assertTrue(field.hasAcceptableInput())
+            self.assertEqual(dialog.values()["actualRows"], 999)
+        finally:
+            dialog.close()
+
     def test_bad_values_have_red_checker_and_cannot_be_submitted(self):
         dialog = BoardSizeDialog({"rows": 24, "cols": 56})
         try:
@@ -98,6 +110,10 @@ class CurvedDimensionTests(unittest.TestCase):
             self.app.processEvents()
             self.assertIsNotNone(getattr(dialog, "_arctic_titlebar", None))
             self.assertEqual(dialog._arctic_titlebar.heading.text(), "Board dimensions")
+            from PySide6.QtWidgets import QLabel
+            icon = dialog._arctic_titlebar.findChild(QLabel, "arcticPopupIcon")
+            self.assertIsNotNone(icon)
+            self.assertFalse(icon.pixmap().isNull())
         finally:
             dialog.close()
 

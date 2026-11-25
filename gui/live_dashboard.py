@@ -612,9 +612,14 @@ class LiveDashboard(QWidget):
 
     def finish(self,*,completed,qualified):
         self._qualified=int(qualified)
-        self.state.setText('✓ COMPLETE' if completed else '● INCOMPLETE')
-        self._set_state_style(GREEN if completed else AMBER,
-                              '#d7f3e7' if completed else '#fff2dc')
+        if completed and not self._qualified:
+            self.state.setText('✕ FAILED — NO QUALIFIERS')
+            self._set_state_style(CORAL, '#ffe3e9')
+            self.run_note.setText('All seeds tested · no qualifying boards')
+        else:
+            self.state.setText('✓ COMPLETE' if completed else '● INCOMPLETE')
+            self._set_state_style(GREEN if completed else AMBER,
+                                  '#d7f3e7' if completed else '#fff2dc')
         self._update_view()
 
     def interrupted(self,message):
