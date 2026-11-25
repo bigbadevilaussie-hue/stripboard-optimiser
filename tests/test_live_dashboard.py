@@ -191,6 +191,7 @@ class LiveDashboardGuiTests(unittest.TestCase):
         result = {
             'winner_json':str(path),'winner_seed':seed,'moves':10000,
             'checked':200,'qualified':17,'errors':0,'completed':True,
+            'winner_metrics': {'w':40,'cut':55,'s':2,'q':40.60,'wire_length_mm':620.0},
             'csv':str(Path(temp)/'results.csv'),
             'log':str(Path(temp)/'activity.log'),
         }
@@ -225,6 +226,8 @@ class LiveDashboardGuiTests(unittest.TestCase):
                 window.dashboard.winner_button.click()
                 self.assertIs(window.preview_stack.currentWidget(),window.top_view)
                 self.assertEqual(window._top_svg,svg)
+                self.assertEqual(window.board_result_label.text(),
+                                 "🏆 Pass One champion · 40W · 55C · S2 · Q40.60")
             finally:
                 window.close()
 
@@ -245,6 +248,8 @@ class LiveDashboardGuiTests(unittest.TestCase):
                 self.assertIs(window.preview_stack.currentWidget(),window.top_view)
                 self.assertEqual(window._top_svg,svg)
                 self.assertEqual(window._copper_svg,svg)
+                self.assertEqual(window.board_result_label.text(),
+                                 "🏆 Pass One champion · 40W · 55C · S2 · Q40.60")
             finally:
                 window.close()
 

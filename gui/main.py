@@ -2352,11 +2352,20 @@ class RouteMateWindow(QMainWindow):
                 self._copper_svg = copper_svg
                 self._board_side = "top"
                 self._switch_board_side("top")
-            self._set_board_summary(
-                f"🏆 Pass One champion · {result['moves'] // 1000}k · "
-                f"seed {result['winner_seed']:04d} · strictly verified",
-                project=champion, level="pass",
-            )
+            metrics = result.get("winner_metrics") or {}
+            if all(key in metrics for key in ("w", "cut", "s", "q")):
+                summary = (
+                    f"🏆 Pass One champion · {int(metrics['w'])}W · "
+                    f"{int(metrics['cut'])}C · S{int(metrics['s'])} · "
+                    f"Q{float(metrics['q']):.2f}"
+                )
+            else:
+                board = champion.get("board", {})
+                summary = (
+                    f"🏆 Pass One champion · {len(board.get('wires', []))}W · "
+                    f"{len(board.get('cuts', []))}C · S— · Q—"
+                )
+            self._set_board_summary(summary, project=champion, level="pass")
             if not show_preview:
                 self.board_result_label.setText(
                     "Winning SVG saved · live dashboard remains visible"

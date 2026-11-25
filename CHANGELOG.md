@@ -1,5 +1,9 @@
 # Changelog
 
+### GUI 2.36 — Champion board subtitle
+- Replace seed/budget/verification subtitle with actual replayed winner W, C, S and Q2 metrics, including when opening the saved winner later. Seed metadata remains in Activity. No solver or renderer changes.
+
+
 ### GUI 2.35 — Compact dialogs, original preparation and explicit pass failure
 - Add app icon and main-window centring for Qt dialogs; compact three-digit 1–999 dimension fields and simplify locks.
 - Restore separate Speed probe and 100-point JSON audit checklist rows. Keep existing CPU allocation policy and native decoder-only check; remove automatic qualification searches, use matching campaign history only.
