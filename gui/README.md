@@ -1,4 +1,4 @@
-# StripSolve GUI 2.15 — Arctic Ice + Colourburst
+# StripSolve GUI 2.16 — Arctic Ice + Colourburst
 
 **Current app name: StripSolve.** The original Route-Mate donor lineage
 described below is historical and still relevant for provenance. The GitHub
