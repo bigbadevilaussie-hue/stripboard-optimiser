@@ -999,6 +999,7 @@ class RouteMateWindow(QMainWindow):
         self.setWindowIcon(app_icon)
         toolbar = QToolBar("Main")
         toolbar.setIconSize(QSize(24, 24))
+        toolbar.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
         toolbar.setObjectName("stripSolveToolbar")
         toolbar.setStyleSheet("""
             QToolBar#stripSolveToolbar { background: #f7fbff; border: none; border-bottom: 1px solid #cbddec; padding: 9px; spacing: 8px; min-height: 54px; }
