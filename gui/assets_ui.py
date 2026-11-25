@@ -111,6 +111,7 @@ class StripSolveSplash(QWidget):
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.setFixedSize(540, 340)
         self._complete = False
+        self._drag_offset = None
         outer = QVBoxLayout(self)
         outer.setContentsMargins(8, 8, 8, 8)
         card = QFrame()
@@ -224,3 +225,20 @@ class StripSolveSplash(QWidget):
         self._timer.stop()
         self.finished.emit()
         self.close()
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.MouseButton.LeftButton:
+            self._drag_offset = (
+                event.globalPosition().toPoint() - self.frameGeometry().topLeft()
+            )
+        super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event):
+        if (self._drag_offset is not None and
+                event.buttons() & Qt.MouseButton.LeftButton):
+            self.move(event.globalPosition().toPoint() - self._drag_offset)
+        super().mouseMoveEvent(event)
+
+    def mouseReleaseEvent(self, event):
+        self._drag_offset = None
+        super().mouseReleaseEvent(event)
