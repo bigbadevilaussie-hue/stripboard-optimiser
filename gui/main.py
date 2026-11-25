@@ -66,6 +66,7 @@ from PySide6.QtWidgets import (
 
 
 from gui.arctic_theme import apply_arctic_theme
+from gui.live_scoreboard import LiveScoreboard
 from gui.assets_ui import (
     StripSolveSplash, export_assets, load_app_icon, load_button_icon,
 )
@@ -966,6 +967,7 @@ class RouteMateWindow(QMainWindow):
         self._speed_probe_worker = None
         self._calibration_worker = None
         self._pass_one_worker = None
+        self._winner_svg_files = None  # Saved winner only; preview requires user approval.
         self._pass_one_resume_done = 0
         self._pass_one_previous_average = None
         self._move_probe_result = None
@@ -1157,6 +1159,9 @@ class RouteMateWindow(QMainWindow):
         self.sidebar_tabs.setObjectName("sidebarTabs")
         self.sidebar_tabs.addTab(overview_page, "Overview")
         self.sidebar_tabs.addTab(self.log, "Activity")
+        self.scoreboard = LiveScoreboard(self)
+        self.scoreboard.view_winner_requested.connect(self._show_pass_one_winner)
+        self.sidebar_tabs.addTab(self.scoreboard, "🏆 Scoreboard")
         left_panel = QWidget()
         left_layout = QVBoxLayout(left_panel)
         left_layout.setContentsMargins(6, 8, 2, 8)
@@ -2082,6 +2087,12 @@ class RouteMateWindow(QMainWindow):
 
         self._calibration_stages["PASS1"] = "running"
         self._refresh_checklist()
+        self._winner_svg_files = None
+        self.scoreboard.start(
+            self.project_path.stem.upper(), moves, seeds,
+            debug=debug, resumed=resume,
+        )
+        self.sidebar_tabs.setCurrentWidget(self.scoreboard)
         self._solve_done = snapshot["done"] if resume else 0
         self._pass_one_resume_done = self._solve_done
         self._pass_one_previous_average = (
@@ -2132,6 +2143,7 @@ class RouteMateWindow(QMainWindow):
         worker.start()
 
     def _pass_one_tick(self, progress):
+        self.scoreboard.update_progress(progress)
         self._solve_done = progress["done"]
         self.solve_progress.setValue(self._solve_done)
         passed = progress["qualified"]
@@ -2146,42 +2158,83 @@ class RouteMateWindow(QMainWindow):
         )
         self._update_solve_clock()
 
-    def _display_pass_one_champion(self, result):
-        """Render only independently audited, repeatably replayed winner JSON."""
+    def _display_pass_one_champion(self, result, *, show_preview=True):
+        """Save both strictly audited winner SVGs. Preview only on request.
+
+        The default preserves compatibility with explicit preview calls; the
+        Pass One completion handler passes show_preview=False and asks first.
+        """
         if not result.get("winner_json"):
             return
         path = Path(result["winner_json"])
         champion = json.loads(path.read_text(encoding="utf-8"))
-        top_svg, details = self._render_component_side(champion)
-        copper_svg = self._copper_svg
-        if not copper_svg:
-            raise ValueError("Production renderer returned no copper-side SVG")
-        for kind, svg in (("component", top_svg), ("copper", copper_svg)):
-            if not QSvgRenderer(QByteArray(svg.encode("utf-8"))).isValid():
-                raise ValueError(f"Winner {kind}-side SVG failed SVG validation")
-        top_file = path.with_name(path.stem + "-components.svg")
-        copper_file = path.with_name(path.stem + "-copper.svg")
-        top_file.write_text(top_svg, encoding="utf-8")
-        copper_file.write_text(copper_svg, encoding="utf-8")
-        self._top_svg = top_svg
-        self._board_side = "top"
-        self._switch_board_side("top")
-        self._set_board_summary(
-            f"🏆 Pass One champion · {result['moves'] // 1000}k · "
-            f"seed {result['winner_seed']:04d} · strictly verified",
-            project=champion, level="pass",
-        )
-        self.log_line(f"[PASS1][WINNER][JSON] {path}")
-        self.log_line(f"[PASS1][WINNER][COMPONENTS] {top_file}")
-        self.log_line(f"[PASS1][WINNER][COPPER] {copper_file}")
-        if details:
-            self.log_line("[PASS1][WINNER][RENDER] " + details)
+        old_copper = self._copper_svg
+        try:
+            top_svg, details = self._render_component_side(champion)
+            copper_svg = self._copper_svg
+            if not copper_svg:
+                raise ValueError("Production renderer returned no copper-side SVG")
+            for kind, svg in (("component", top_svg), ("copper", copper_svg)):
+                if not QSvgRenderer(QByteArray(svg.encode("utf-8"))).isValid():
+                    raise ValueError(f"Winner {kind}-side SVG failed SVG validation")
+            top_file = path.with_name(path.stem + "-components.svg")
+            copper_file = path.with_name(path.stem + "-copper.svg")
+            top_file.write_text(top_svg, encoding="utf-8")
+            copper_file.write_text(copper_svg, encoding="utf-8")
+            self._winner_svg_files = (top_file, copper_file)
+            self.scoreboard.set_winner_available(True)
+            if show_preview:
+                self._top_svg = top_svg
+                self._copper_svg = copper_svg
+                self._board_side = "top"
+                self._switch_board_side("top")
+            self._set_board_summary(
+                f"🏆 Pass One champion · {result['moves'] // 1000}k · "
+                f"seed {result['winner_seed']:04d} · strictly verified",
+                project=champion, level="pass",
+            )
+            self.log_line(f"[PASS1][WINNER][JSON] {path}")
+            self.log_line(f"[PASS1][WINNER][COMPONENTS] {top_file}")
+            self.log_line(f"[PASS1][WINNER][COPPER] {copper_file}")
+            if details:
+                self.log_line("[PASS1][WINNER][RENDER] " + details)
+        finally:
+            # _render_component_side updates cached copper. A declined preview
+            # must leave the current component/copper viewer coherent.
+            if not show_preview:
+                self._copper_svg = old_copper
+
+    def _show_pass_one_winner(self):
+        """Show previously saved winner SVGs without rerunning the optimiser."""
+        if not self._winner_svg_files:
+            return
+        try:
+            top_file, copper_file = self._winner_svg_files
+            top_svg = top_file.read_text(encoding="utf-8")
+            copper_svg = copper_file.read_text(encoding="utf-8")
+            for side, svg in (("component", top_svg), ("copper", copper_svg)):
+                if not QSvgRenderer(QByteArray(svg.encode("utf-8"))).isValid():
+                    raise ValueError(f"Saved winner {side} SVG is invalid")
+            self._top_svg = top_svg
+            self._copper_svg = copper_svg
+            self._board_side = "top"
+            self._switch_board_side("top")
+            self.statusBar().showMessage(
+                "🏆 Pass One winner SVG displayed · switch sides using the toolbar."
+            )
+            self.log_line(f"[PASS1][WINNER][VIEW] {top_file}")
+        except (OSError, ValueError, TypeError) as exc:
+            self.log_line(f"[PASS1][WINNER][VIEW ERROR] {exc}")
+            QMessageBox.warning(self, "Saved Pass One winner unavailable", str(exc))
 
     def _pass_one_completed(self, result):
         done = result.get("completed", True)
         self._calibration_stages["PASS1"] = "done" if done else "failed"
         self._refresh_checklist()
         self.solve_progress.setValue(result["checked"])
+        self.scoreboard.finish(
+            completed=done, qualified=int(result["qualified"])
+        )
         label = "PASS ONE COMPLETE" if done else "PASS ONE INCOMPLETE — RESUME AVAILABLE"
         self.solve_activity.setText(
             f"{label} · {result['qualified']:,} verified CSV rows"
@@ -2198,7 +2251,24 @@ class RouteMateWindow(QMainWindow):
                 )
             elif result.get("winner_json"):
                 try:
-                    self._display_pass_one_champion(result)
+                    self._display_pass_one_champion(result, show_preview=False)
+                    if not self._close_when_idle:
+                        answer = QMessageBox.question(
+                            self,
+                            "🏆 Pass One winning SVG",
+                            f"Seed {int(result['winner_seed']):04d} is strictly verified.\n"
+                            "Both component-side and copper-side SVGs have been saved.\n\n"
+                            "Do you want to see the winning board now?",
+                            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                            QMessageBox.StandardButton.Yes,
+                        )
+                        if answer == QMessageBox.StandardButton.Yes:
+                            self._show_pass_one_winner()
+                        else:
+                            self.log_line(
+                                "[PASS1][WINNER][VIEW] Declined; current board unchanged. "
+                                "Use Scoreboard > View saved winner later."
+                            )
                 except Exception as exc:
                     self.log_line(f"[PASS1][WINNER][RENDER ERROR] {exc}")
                     self._set_board_summary(
@@ -2227,6 +2297,7 @@ class RouteMateWindow(QMainWindow):
         )
 
     def _pass_one_failed(self, error):
+        self.scoreboard.interrupted("FAILED · partial audited results retained")
         self._calibration_stages["PASS1"] = "failed"
         self._refresh_checklist()
         self.solve_activity.setText("PASS ONE INCOMPLETE · see Activity; resume available")
@@ -2234,6 +2305,7 @@ class RouteMateWindow(QMainWindow):
         self.log_line("[PASS1][ERROR] " + str(error))
 
     def _pass_one_cancelled(self):
+        self.scoreboard.interrupted("STOPPED · audited results preserved for resume")
         self.solve_activity.setText("PASS ONE STOPPED · resume preserves PASS/FAIL rows")
         self._set_board_summary("Pass One stopped · resume available", level="working")
         self.log_line("[PASS1][CANCELLED] No Pass Two automatically started.")
