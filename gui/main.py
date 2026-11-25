@@ -67,6 +67,7 @@ from PySide6.QtWidgets import (
 
 from gui.arctic_theme import apply_arctic_theme
 from gui.live_dashboard import LiveDashboard
+from gui.quality import QUALITY_VERSION, cpu_allocation
 from gui.assets_ui import (
     StripSolveSplash, export_assets, load_app_icon, load_button_icon,
 )
@@ -319,7 +320,7 @@ class PassOneDialog(QDialog):
         layout.addWidget(heading)
         explanation = QLabel(
             "Run 200 seeds in DEBUG mode, or 2,000 in normal mode. "
-            "Save PASS, FAIL and ERROR attempts with seed, cuts, wires, Q/100 "
+            "Save PASS, FAIL and ERROR attempts with seed, W, C, S, Q2 and wire length "
             "and seconds to this project's "
             "selected 10k/20k directory. The verified winner is replayed "
             "and saved separately when the campaign completes."
@@ -705,8 +706,7 @@ class WorkflowChecklist(QWidget):
         ("CONSTRAINTS", "Placement locks"),
         ("CUTS", "Cuts"),
         ("STACK", "Wire stacking"),
-        ("SPEED", "Speed probe (3 or 4 workers)"),
-        ("CALIBRATION", "100-point move calibration"),
+        ("CALIBRATION", "Speed calibration"),
         ("PASS1", "1st Pass"),
         ("PASS2", "2nd Pass"),
         ("FINAL", "Final Pass"),
@@ -714,7 +714,7 @@ class WorkflowChecklist(QWidget):
     )
 
     PREPARATION_STAGES = ("COLLECT", "SANITY", "PRE-SOLVE", "BOARD", "CONSTRAINTS",
-                          "CUTS", "STACK", "SPEED", "CALIBRATION")
+                          "CUTS", "STACK", "CALIBRATION")
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -976,7 +976,7 @@ class RouteMateWindow(QMainWindow):
         self.active_workspace: Path | None = None
         self._stop_requested = False
         self._close_when_idle = False
-        self._recommended_workers = None  # Original CPU probe chooses 3 or 4
+        self._recommended_workers = None  # CPU count minus one
         self._body_spacing_holes = 1
         self._solve_attempt_seconds = []
         self._solve_started = None
@@ -1109,7 +1109,7 @@ class RouteMateWindow(QMainWindow):
         overview_layout = QVBoxLayout(overview)
         overview_layout.setContentsMargins(5, 5, 5, 5)
         overview_layout.setSpacing(6)
-        overview_layout.addWidget(self.project_summary)
+        self.project_summary.hide()
         overview_layout.addWidget(self.checklist)
         overview_layout.addStretch()
 
@@ -1136,7 +1136,7 @@ class RouteMateWindow(QMainWindow):
         self.solve_progress.setRange(0, 100)
         self.solve_progress.setValue(0)
         self.solve_progress.setFormat("100-point move check: %v/%m")
-        self.solve_worker_status = QLabel("Original CPU speed probe pending")
+        self.solve_worker_status = QLabel("")
         self.solve_worker_status.setWordWrap(True)
         self.solve_eta = QLabel("Elapsed: —   Estimated remaining: —")
         self.solve_eta.setWordWrap(True)
@@ -1158,7 +1158,8 @@ class RouteMateWindow(QMainWindow):
         page_layout.setContentsMargins(0, 0, 0, 0)
         page_layout.setSpacing(4)
         page_layout.addWidget(overview_scroll, 1)
-        page_layout.addWidget(result_footer, 0)
+        result_footer.setParent(overview_page)
+        result_footer.hide()
 
         self.sidebar_tabs = QTabWidget()
         self.sidebar_tabs.setObjectName("sidebarTabs")
@@ -1251,10 +1252,10 @@ class RouteMateWindow(QMainWindow):
         """)
         self.statusBar().setMinimumHeight(26)
         self.statusBar().showMessage("Ready. Load a project JSON to begin.")
-        self.log_line(f"StripSolve {GUI_VERSION} — 100-point native move calibration only")
+        self.log_line(f"StripSolve {GUI_VERSION} — Q2 native Pass One")
         self.log_line(f"[GUI][REVISION] git={GUI_GIT_REVISION}")
-        self.log_line("Workflow: import → input sanity → footprints → dimensions → locks → cuts → stacking → CPU probe → 100-point move check → STOP.")
-        self.log_line("[SOLVER] CPU and 100-point probes remain separate from Pass One/Two.")
+        self.log_line("Workflow: import → input sanity → footprints → dimensions → locks → cuts → stacking → speed calibration → Pass One GO.")
+        self.log_line("[SOLVER] Speed calibration measures decoder performance only.")
         try:
             ensure_workspace_root(self.work_root)  # Work root only; legacy remains untouched
             self.log_line(f"[WORK] Project workspaces root: {self.work_root}")
@@ -1287,6 +1288,10 @@ class RouteMateWindow(QMainWindow):
         )
 
     def log_line(self, message: str):
+        # CPU allocation is written to disk, not displayed in Activity.
+        if message.startswith("[PASS1][START]") or message.startswith("[PASS1][RESUME]"):
+            import re
+            message = re.sub(r"\b(?:logical_cpus|workers)=\d+\s*", "", message)
         self.log.appendPlainText(message)
 
     def _show_tool_revision(self, diagnostic: str, tool: str):
@@ -1889,48 +1894,25 @@ class RouteMateWindow(QMainWindow):
 
 
     def _start_speed_probe(self):
-        """Run original donor CPU probe before the 100-point move check."""
-        if self.project is None or self._speed_probe_worker is not None:
+        """Allocate logical CPUs; the native 100-decode probe measures speed."""
+        if self.project is None or self._calibration_worker is not None:
             return
         if (type(self._probe_cut_drilled_only) is not bool
                 or type(self._probe_stacking_allowed) is not bool):
-            self.log_line("[RULES][ERROR] No confirmed cut/stack policy. No probe started.")
+            self.log_line("[RULES][ERROR] No confirmed cut/stack policy.")
             return
-        self._calibration_stages = {"CUTS": "done", "STACK": "done", "SPEED": "running"}
+        cpus, self._recommended_workers = cpu_allocation()
+        self._calibration_stages = {"CUTS": "done", "STACK": "done", "SPEED": "done"}
         self._refresh_checklist()
-        self.log_line(f"[RULES] Cuts={'DRILLED ONLY' if self._probe_cut_drilled_only else 'KNIFE ALLOWED'}; "
-                      f"wire stacking={'ALLOWED' if self._probe_stacking_allowed else 'OFF'}.")
-        self.solve_activity.setText("CPU speed probe · comparing 3 or 4 workers")
-        self.log_line("[SPEED] StripSolve CPU worker-scaling probe; "
-                      "separate from the native 100-decoder measurement.")
+        if self.active_workspace is not None:
+            try:
+                with (self.active_workspace / "logs" / "cpu.log").open("a", encoding="utf-8") as log:
+                    log.write(f"logical_cpus={cpus} workers={self._recommended_workers}\n")
+            except OSError as exc:
+                self.log_line(f"[SPEED][LOG ERROR] {exc}")
+        self.log_line("[SPEED] CPU allocation ready; measuring native decoder speed.")
         if QApplication.platformName() == "offscreen":
-            self.log_line("[SPEED] Offscreen GUI test: automatic probe skipped.")
             return
-        self.load_action.setEnabled(False)
-        worker = StartupSpeedProbe(self)
-        self._speed_probe_worker = worker
-        worker.completed.connect(self._speed_probe_completed)
-        worker.crashed.connect(self._speed_probe_failed)
-        worker.finished.connect(self._speed_probe_finished)
-        worker.start()
-
-    def _speed_probe_completed(self, result):
-        timings = {int(n): float(t) for n,t in result["timings"].items()}
-        cpus = int(result.get("logical_cpus") or os.cpu_count() or 1)
-        if cpus < 3 or 3 not in timings or timings[3] <= 0:
-            self._speed_probe_failed("Three CPU workers unavailable.")
-            return
-        three, four = timings[3], timings.get(4)
-        # Exact donor policy: choose 4 if its time is within 15% of 3.
-        self._recommended_workers = (4 if cpus >= 4 and four is not None
-                                     and four <= three * 1.15 else 3)
-        self._calibration_stages["SPEED"] = "done"
-        self._refresh_checklist()
-        self.solve_worker_status.setText(f"{self._recommended_workers} CPU workers selected")
-        self.log_line("[SPEED][TIMINGS] " + ", ".join(
-            f"{n} workers={t:.3f}s" for n,t in sorted(timings.items())))
-        self.log_line(f"[SPEED][POLICY] selected={self._recommended_workers}; "
-                      "4 preferred if within 15% of 3.")
         self._start_calibration()
 
     def _speed_probe_failed(self, error):
@@ -1952,8 +1934,8 @@ class RouteMateWindow(QMainWindow):
         if self.project is None or self._calibration_worker is not None:
             return
         workers = self._recommended_workers
-        if workers not in (3, 4):
-            self._speed_probe_failed("CPU probe did not select 3 or 4 workers.")
+        if not isinstance(workers, int) or workers < 1:
+            self._speed_probe_failed("CPU allocation unavailable.")
             return
         self.load_action.setEnabled(False)
         self.stop_action.setEnabled(True)
@@ -2008,7 +1990,7 @@ class RouteMateWindow(QMainWindow):
                       "0 placement, routing, solve attempts or final electrical check.")
         self.log_line("[MOVE100][READY] Pass One confirmation opens after the native probe exits; no solver campaign starts without GO.")
         self.statusBar().showMessage("MOVE CALIBRATION COMPLETE — Pass One confirmation will open.")
-        self._set_board_summary("Move calibration complete · no final routed board", level="neutral")
+        self._set_board_summary("Speed calibration complete", level="neutral")
 
     def _calibration_failed(self, error):
         self._pass_one_prompt_pending = False
@@ -2063,10 +2045,10 @@ class RouteMateWindow(QMainWindow):
         if (self._calibration_stages.get("CALIBRATION") != "done"
             or not isinstance(self._probe_cut_drilled_only, bool)
             or not isinstance(self._probe_stacking_allowed, bool)
-            or self._recommended_workers not in (3, 4)):
+            or not isinstance(self._recommended_workers, int) or self._recommended_workers < 1):
             QMessageBox.information(
                 self, "Pass One", "Finish board/lock review, routing rules, "
-                "worker probe and the 100-point move check before Pass One."
+                "the 100-point speed calibration before Pass One."
             )
             return
         dialog = PassOneDialog(
@@ -2152,14 +2134,10 @@ class RouteMateWindow(QMainWindow):
         self.solve_activity.setText(
             f"Pass One · {self._solve_done:,}/{seeds:,} confirmed"
         )
-        self.solve_worker_status.setText(
-            f"{self._recommended_workers} workers · "
-            f"{snapshot['qualified'] if resume else 0} verified seeds"
-        )
+        self.solve_worker_status.clear()
         self._set_board_summary(
             f"Pass One {'resuming' if resume else 'running'} · "
-            f"{moves // 1000}k moves · {'DEBUG' if debug else 'FULL'} · "
-            "not a final routed board",
+            f"{moves // 1000}k moves · {'DEBUG' if debug else 'FULL'}",
             level="working",
         )
         self.dashboard_toggle_button.show()
@@ -2173,12 +2151,11 @@ class RouteMateWindow(QMainWindow):
         self.statusBar().showMessage(
             f"PASS ONE RUNNING · {moves // 1000}k · "
             f"{'DEBUG' if debug else 'FULL'} · "
-            f"{self._solve_done:,}/{seeds:,} confirmed"
+            "Q2"
         )
         self.log_line(
             f"[PASS1][{'RESUME' if resume else 'GO'}] "
-            f"{seeds:,} native seeds × {moves:,} moves; {self._recommended_workers} "
-            f"workers; folder={folder}; "
+            f"{seeds:,} native seeds × {moves:,} moves; Q2; folder={folder}; "
             f"{'existing PASS/FAIL rows preserved' if resume else 'selected budget only cleared'}."
         )
         worker = PassOneWorker(
@@ -2199,19 +2176,6 @@ class RouteMateWindow(QMainWindow):
         self.dashboard.update_progress(progress)
         self._solve_done = progress["done"]
         self.solve_progress.setValue(self._solve_done)
-        passed = progress["qualified"]
-        errors = progress.get("errors", 0)
-        self.solve_activity.setText(
-            f"Pass One · {self._solve_done:,}/{progress['total']:,} confirmed"
-        )
-        self.solve_worker_status.setText(
-            f"{self._recommended_workers} workers · {passed} strict PASS · "
-            f"{errors} errors"
-        )
-        self.statusBar().showMessage(
-            f"PASS ONE RUNNING · {self._solve_done:,}/{progress['total']:,} seeds · "
-            f"{passed} verified · {errors} errors"
-        )
         self._update_solve_clock()
 
     def _display_pass_one_champion(self, result, *, show_preview=True):
@@ -2289,17 +2253,36 @@ class RouteMateWindow(QMainWindow):
             QMessageBox.warning(self, "Saved Pass One winner unavailable", str(exc))
 
     def _ask_to_view_pass_one_winner(self, seed: int) -> bool:
-        """One explicit Yes/No choice; saved SVGs already exist."""
-        answer = QMessageBox.question(
-            self,
-            "🏆 Pass One winning SVG",
-            f"Seed {int(seed):04d} is strictly verified.\n"
-            "Both component-side and copper-side SVGs have been saved.\n\n"
-            "Do you want to see the winning board now?",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            QMessageBox.StandardButton.No,
-        )
-        return answer == QMessageBox.StandardButton.Yes
+        """Rounded winner dialog; both SVGs have already been saved."""
+        dialog = QDialog(self)
+        dialog.setWindowFlag(Qt.WindowType.FramelessWindowHint, True)
+        dialog.setWindowTitle("Pass One champion")
+        dialog.setMinimumWidth(440)
+        dialog.setStyleSheet("QDialog { background: #edf6fd; } "
+                             "QFrame#winnerCard { background: white; border: 1px solid #cbddec; border-radius: 16px; }")
+        layout = QVBoxLayout(dialog)
+        card = QFrame(); card.setObjectName("winnerCard")
+        content = QVBoxLayout(card); content.setContentsMargins(24, 20, 24, 20)
+        title = QLabel("🏆  PASS ONE CHAMPION")
+        title.setStyleSheet("font-size: 20px; font-weight: 800; color: #19334d;")
+        content.addWidget(title)
+        best = self.dashboard._best or {}
+        content.addWidget(QLabel(f"Verified seed {int(seed):04d}"))
+        if best and all(k in best for k in ("w", "cut", "s", "q", "wire_length_mm")):
+            score = QLabel(f"Q2  {float(best['q']):.2f}")
+            score.setStyleSheet("font-size: 30px; font-weight: 800; color: #168d95;")
+            content.addWidget(score)
+            content.addWidget(QLabel(f"W {best['w']}    C {best['cut']}    S {best['s']}"))
+            length = float(best["wire_length_mm"])
+            content.addWidget(QLabel(f"Wire length: {length:.2f} mm · {length/25.4:.2f} in"))
+        content.addWidget(QLabel("Both board SVGs saved."))
+        buttons = QHBoxLayout()
+        stay = QPushButton("Stay on dashboard"); stay.setAutoDefault(True); stay.setDefault(True)
+        view = QPushButton("View winning board"); view.setObjectName("nextActionButton")
+        stay.clicked.connect(dialog.reject); view.clicked.connect(dialog.accept)
+        buttons.addWidget(stay); buttons.addWidget(view)
+        content.addLayout(buttons); layout.addWidget(card)
+        return dialog.exec() == QDialog.DialogCode.Accepted
 
     def _pass_one_completed(self, result):
         done = result.get("completed", True)
@@ -2325,6 +2308,9 @@ class RouteMateWindow(QMainWindow):
                 )
             elif result.get("winner_json"):
                 try:
+                    if result.get("winner_metrics"):
+                        self.dashboard._best = {**result["winner_metrics"], "seed": result["winner_seed"]}
+                        self.dashboard._update_view()
                     self._display_pass_one_champion(result, show_preview=False)
                     if not self._close_when_idle:
                         if self._ask_to_view_pass_one_winner(result["winner_seed"]):
@@ -2356,9 +2342,7 @@ class RouteMateWindow(QMainWindow):
                 level="working",
             )
         self.statusBar().showMessage(
-            f"Pass One {'complete' if done else 'incomplete'} · "
-            f"{result['qualified']} verified · "
-            f"{result.get('errors', 0)} errors"
+            f"Pass One {'complete' if done else 'incomplete'}"
         )
 
     def _pass_one_failed(self, error):
@@ -2457,6 +2441,8 @@ class RouteMateWindow(QMainWindow):
                     return
                 source = dict(sources)[label]
             rows = read_pass_one(workspace, csv_path=source)
+            if any(row.get("quality_version") != QUALITY_VERSION for row in rows):
+                raise ValueError("Q1 results are obsolete; rerun Pass One using Q2.")
         except (OSError, ValueError, KeyError) as exc:
             self.log_line("[PASS2][INPUT ERROR] " + str(exc))
             QMessageBox.warning(self, "Pass Two needs project Pass One CSV", str(exc))
@@ -2557,7 +2543,6 @@ class RouteMateWindow(QMainWindow):
                 f"Elapsed: {self._clock_text(elapsed)} · ETA: {compact_eta}"
             )
             self.solve_eta.setToolTip(
-                f"{self._solve_done:,}/{self._solve_budget:,} seeds · "
                 f"ETA: {remaining}"
             )
             self.dashboard.eta.setText(

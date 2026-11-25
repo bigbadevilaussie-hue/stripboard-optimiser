@@ -48,11 +48,10 @@ class WorkContract(unittest.TestCase):
             rows = read_pass_one(root)
             self.assertEqual(len(rows), 2)
             self.assertEqual(rows[0]["seed"], 2)
-            output, count = prepare_pass_two(root)
-            self.assertEqual(count, 2)
+            with self.assertRaisesRegex(ValueError, 'Q1'):
+                prepare_pass_two(root)
             self.assertEqual(len(read_pass_one(root)), 2)
-            self.assertFalse((root / PASS_TWO / "old.txt").exists())
-            self.assertEqual(len(output.read_text().splitlines()), 3)
+            self.assertTrue((root / PASS_TWO / "old.txt").exists())
             self.assertEqual(source.read_text().count("\n"), 3)
 
     def test_no_pass_one_does_not_clear_pass_two(self):

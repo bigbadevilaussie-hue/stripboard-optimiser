@@ -55,7 +55,7 @@ class CampaignStorageTests(unittest.TestCase):
             if seed in (1, 4):
                 return {"seed": seed, "valid": True, "cut": 35 if seed == 4 else 44,
                         "w": 24 if seed == 4 else 29, "q": 83.5 if seed == 4 else 72.2,
-                        "time_taken": 1.25}
+                        "s": 2, "wire_length_mm": 254.0, "time_taken": 1.25}
             if seed == 3 and not recovered:
                 raise RuntimeError("transient native failure")
             return {"seed": seed, "valid": False, "seconds": 1.4,

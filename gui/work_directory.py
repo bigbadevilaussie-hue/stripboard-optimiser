@@ -12,6 +12,8 @@ import json
 import re
 import shutil
 import unicodedata
+import math
+from gui.quality import QUALITY_VERSION
 from pathlib import Path
 
 WORK_ROOT = Path(__file__).resolve().parents[1] / "Work"
@@ -20,7 +22,7 @@ PASS_TWO = "pass 2"
 SUBDIRS = (PASS_ONE, PASS_TWO, "jsons", "logs")
 CSV_FIELDS = ("seed", "cut", "w", "q", "time_taken")
 
-CAMPAIGN_FIELDS = CSV_FIELDS + ("status", "reason")
+CAMPAIGN_FIELDS = CSV_FIELDS + ("s", "wire_length_mm", "quality_version", "status", "reason")
 CAMPAIGN_MANIFEST = "campaign.json"
 MOVE_BUDGETS = (10000, 20000)
 
@@ -129,11 +131,17 @@ def load_campaign_records(csv_file: Path) -> dict[int, dict]:
                 raise ValueError(f"Invalid campaign CSV row {index}: {exc}") from exc
             if seed <= 0 or seed in records or status not in ("PASS", "FAIL", "ERROR"):
                 raise ValueError(f"Duplicate seed or invalid status at row {index}")
+            if row.get("quality_version") != QUALITY_VERSION:
+                raise ValueError(f"Wrong quality version at row {index}")
             if status == "PASS":
                 try:
                     cut = int(row["cut"])
                     wire = int(row["w"])
                     quality = float(row["q"])
+                    stack = int(row["s"])
+                    length = float(row["wire_length_mm"])
+                    if stack < 0 or stack > wire or (wire > 0 and stack == 0) or not math.isfinite(length) or length < 0:
+                        raise ValueError("Invalid stack or wire length")
                     if cut < 0 or wire < 0 or not 0 <= quality <= 100:
                         raise ValueError("W/C/Q outside valid range")
                 except (ValueError, TypeError, KeyError) as exc:
@@ -193,6 +201,8 @@ def read_pass_one(root: Path = WORK_ROOT, *, csv_path: Path | None = None) -> li
     with path.open("r", newline="", encoding="utf-8") as stream:
         reader = csv.DictReader(stream)
         fields = tuple(reader.fieldnames or ())
+        if fields == CSV_FIELDS + ("status", "reason"):
+            raise ValueError("Q1 campaign obsolete; rerun Pass One using Q2")
         if fields not in (CSV_FIELDS, CAMPAIGN_FIELDS):
             raise ValueError(f"Unexpected Pass One CSV columns: {reader.fieldnames!r}")
         if fields == CAMPAIGN_FIELDS:
@@ -200,9 +210,13 @@ def read_pass_one(root: Path = WORK_ROOT, *, csv_path: Path | None = None) -> li
             if not manifest.is_file() or manifest.is_symlink():
                 raise ValueError(f"Missing campaign completion metadata: {manifest}")
             state = json.loads(manifest.read_text(encoding="utf-8"))
+            if state.get("quality_version") != QUALITY_VERSION:
+                raise ValueError("Q1 campaign obsolete; rerun Pass One using Q2")
             if state.get("state") != "COMPLETED":
                 raise ValueError(f"Pass One {path.parent.name} is {state.get('state', 'INCOMPLETE')}; resume it before Pass Two.")
         for number, row in enumerate(reader, 2):
+            if fields == CAMPAIGN_FIELDS and row.get("quality_version") != QUALITY_VERSION:
+                raise ValueError(f"Wrong quality version on row {number}")
             try:
                 seed = int(row["seed"])
             except (TypeError, ValueError, KeyError) as exc:
@@ -227,8 +241,14 @@ def read_pass_one(root: Path = WORK_ROOT, *, csv_path: Path | None = None) -> li
                 or not 0 <= quality <= 100 or not math.isfinite(seconds)
                 or seconds < 0):
                 raise ValueError(f"Invalid Pass One metrics on row {number}")
-            rows.append({"seed": seed, "cut": cuts, "w": wires,
-                         "q": quality, "time_taken": seconds})
+            record = {"seed": seed, "cut": cuts, "w": wires,
+                      "q": quality, "time_taken": seconds}
+            if fields == CAMPAIGN_FIELDS:
+                stack, length = int(row["s"]), float(row["wire_length_mm"])
+                if not 0 <= stack <= wires or not math.isfinite(length) or length < 0:
+                    raise ValueError(f"Invalid Q2 metrics at row {number}")
+                record.update(s=stack, wire_length_mm=length, quality_version=QUALITY_VERSION)
+            rows.append(record)
     return rows
 
 
@@ -238,10 +258,12 @@ def prepare_pass_two(root: Path = WORK_ROOT, *,
     rows = read_pass_one(root, csv_path=source_csv)
     if not rows:
         raise ValueError("Pass One has no independently verified qualifying rows")
+    if any(row.get("quality_version") != QUALITY_VERSION for row in rows):
+        raise ValueError("Q1 results cannot enter Pass Two; rerun Pass One using Q2")
     folder = clear_started_pass(PASS_TWO, root)
     target = folder / "candidates.csv"
     with target.open("w", newline="", encoding="utf-8") as output:
-        writer = csv.DictWriter(output, fieldnames=CSV_FIELDS)
+        writer = csv.DictWriter(output, fieldnames=CSV_FIELDS + ("s", "wire_length_mm", "quality_version"))
         writer.writeheader()
         for row in rows:
             writer.writerow({**row, "seed": f"{row['seed']:04d}",
@@ -249,6 +271,7 @@ def prepare_pass_two(root: Path = WORK_ROOT, *,
                              "time_taken": f"{row['time_taken']:.3f}"})
     with (folder / "activity.log").open("w", encoding="utf-8") as log:
         log.write(f"PASS TWO IMPORT: {len(rows)} verified Pass One CSV rows\n")
+        log.write(f"Quality version: {QUALITY_VERSION}\n")
         log.write(f"Source: {source_csv or (stage_path(PASS_ONE, root) / 'results.csv')}\n")
         log.write("Native Pass Two optimiser not started: search policy still unassigned.\n")
     return target, len(rows)

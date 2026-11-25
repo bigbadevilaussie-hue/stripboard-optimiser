@@ -67,8 +67,8 @@ def calibrate(project, workers, drilled_only, stacking_allowed, progress, diagno
     Cut policy changes decoder constraints. Stacking is a future router/finish
     constraint, not measurable with this decoder-only instrument.
     """
-    if workers not in (3, 4):
-        raise ValueError("CPU probe must select 3 or 4 workers first.")
+    if type(workers) is not int or workers < 1:
+        raise ValueError("Worker allocation must be positive.")
     if type(drilled_only) is not bool or type(stacking_allowed) is not bool:
         raise ValueError("Cuts and stacking selections must be Boolean.")
     prerequisites()
@@ -95,8 +95,7 @@ def calibrate(project, workers, drilled_only, stacking_allowed, progress, diagno
                    f"boardPos={p['boardPos']} edge={p.get('edge')} slide={p.get('slide')} "
                    f"rotation={p.get('rotation', 0)}")
     diagnostic(f"[MOVE100][POLICY] drilled_only={drilled_only} "
-               f"knife_allowed={not drilled_only} stacking_allowed={stacking_allowed} "
-               f"future_workers={workers}")
+               f"knife_allowed={not drilled_only} stacking_allowed={stacking_allowed}")
     diagnostic("[MOVE100][NOTE] Drill-domain changes decoder constraints; stacking affects "
                "the router, which this 100-decoder speed probe does NOT exercise.")
     with tempfile.TemporaryDirectory(prefix="stripboard_move100_") as scratch:

@@ -154,7 +154,9 @@ class StripSolveGuiTests(unittest.TestCase):
                 self.assertIs(widget.parentWidget(), footer)
             overview = window.sidebar_tabs.widget(0)
             self.assertEqual(overview.layout().indexOf(scroll), 0)
-            self.assertEqual(overview.layout().indexOf(footer), 1)
+            self.assertEqual(overview.layout().indexOf(footer), -1)
+            self.assertTrue(footer.isHidden())
+            self.assertTrue(window.project_summary.isHidden())
             self.assertGreater(overview.layout().stretch(0), 0)
             # The checklist remains accessible on smaller window heights,
             # while the live result never becomes a scroll-only item.

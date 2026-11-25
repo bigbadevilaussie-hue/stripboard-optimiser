@@ -1,4 +1,6 @@
-# Route-O-Matic: one Work directory per source JSON
+# StripSolve: one Work directory per source JSON
+
+GUI 2.19 uses Q2 in the same paths shown below. Old Q1 campaigns must be replaced through explicit overwrite; they cannot resume or feed Pass Two. CPU allocation is recorded in `logs/cpu.log` and campaign activity.log.
 
 Each loaded source JSON gets an isolated workspace under the existing repo
 `Work/` directory. Source JSON files are not moved or rewritten.
@@ -56,17 +58,16 @@ accidentally binding a folder to a different file.
   explicitly offers Resume (for a compatible unfinished run), Overwrite & Start
   (requires a separate checkbox), or Cancel. Only the selected budget's
   `pass 1/<budget>/` and `jsons/<budget>/` folders can be cleared.
-- **Pass One CSV:** one row **per seed**, `seed,cut,w,q,time_taken,status,reason`,
+- **Pass One CSV:** one row **per seed**, `seed,cut,w,q,time_taken,s,wire_length_mm,quality_version,status,reason`,
   with `PASS`, `FAIL` and `ERROR`. A separate `campaign.json` is
   `INCOMPLETE`, `STOPPED`, or `COMPLETED`. Resume keeps all completed PASS
   and FAIL seeds; only missing and ERROR seeds run again. Source fingerprint,
-  solver rules, worker count, move budget and seed count must all match.
+  solver rules, Q2 schema/version, move budget and seed count must all match. Worker allocation may change on resume.
 - **Pass One winner:** after every seed has a definitive PASS/FAIL status,
   replay the highest-Q PASS at its original move budget, independently audit it,
   and save winner JSON plus component/copper SVGs under `jsons/<budget>/`.
   Replay/render failure is reported; an unverified winner is never published.
-- **Pass Two GO:** selects exactly one available budget CSV (or a preserved
-  legacy CSV), imports only independently verified PASS seeds, and clears
+- **Pass Two GO:** selects exactly one completed Q2 budget CSV, imports only independently verified PASS seeds, and clears
   only that same JSON's `pass 2/`. New-format campaigns must be marked
   COMPLETED. Pass Two native optimisation is still unimplemented.
 - **Cold-start Pass Two:** when no JSON is loaded, choose an existing named
@@ -86,8 +87,7 @@ input prepared from the reviewed JSON. The destination must have an empty
 Pass One folder. Nonmatching or already-present data is left alone.
 The originals remain untouched.
 
-Any previous `Work/<project>/pass 1/results.csv` remains in place and readable
-for Pass Two as a legacy source. It is not silently migrated into 10k or 20k,
+Any previous `Work/<project>/pass 1/results.csv` remains readable for historical inspection, but cannot enter Pass Two. It is not silently migrated into 10k or 20k,
 and it does not contain the failed-seed records required for safe resume.
 
 No JSON layout is reconstructed from a CSV; only the native solver replay can

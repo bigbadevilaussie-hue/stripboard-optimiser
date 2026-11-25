@@ -59,7 +59,7 @@ class NativeMoveProbeTests(unittest.TestCase):
 
     def test_invalid_workers_fail(self):
         with self.assertRaises(ValueError):
-            probe.calibrate({}, 2, False, True, lambda _: None,
+            probe.calibrate({}, 0, False, True, lambda _: None,
                             lambda _: None, lambda: False)
 
 

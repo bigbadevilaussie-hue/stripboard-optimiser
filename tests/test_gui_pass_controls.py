@@ -327,16 +327,18 @@ class PassControlTests(unittest.TestCase):
     def test_pass_two_from_cold_gui_without_project(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td) / "Work"
-            from gui.work_directory import project_workspace, CSV_FIELDS
+            from gui.work_directory import project_workspace, CAMPAIGN_FIELDS
             source_file = Path(td) / "audio.json"
             source_file.write_text("{}")
             workspace = project_workspace(source_file, root, create=True)
             with (workspace / "pass 1" / "results.csv").open(
                     "w", newline="", encoding="utf-8") as f:
-                writer = csv.DictWriter(f, fieldnames=CSV_FIELDS)
+                writer = csv.DictWriter(f, fieldnames=CAMPAIGN_FIELDS)
                 writer.writeheader()
                 writer.writerow({"seed":"0002","cut":44,"w":29,
-                                 "q":"78.24","time_taken":"3.200"})
+                                 "q":"78.24","time_taken":"3.200","s":1,"wire_length_mm":254,
+                                 "quality_version":"Q2","status":"PASS","reason":""})
+            (workspace / "pass 1" / "campaign.json").write_text('{"state":"COMPLETED","quality_version":"Q2"}')
             (workspace / "pass 2" / "old.txt").write_text("old")
             window = RouteMateWindow()
             try:
@@ -357,7 +359,7 @@ class PassControlTests(unittest.TestCase):
 
     def test_cold_pass_two_selects_exact_project_when_multiple_exist(self):
         with tempfile.TemporaryDirectory() as td:
-            from gui.work_directory import project_workspace, CSV_FIELDS
+            from gui.work_directory import project_workspace, CAMPAIGN_FIELDS
             root = Path(td) / "Work"
             for name, seed in (("audio.json", "1171"), ("moto.json", "0009")):
                 source = Path(td) / name
@@ -366,10 +368,12 @@ class PassControlTests(unittest.TestCase):
                 with (ws / "pass 1" / "results.csv").open(
                     "w", newline="", encoding="utf-8"
                 ) as file:
-                    writer = csv.DictWriter(file, fieldnames=CSV_FIELDS)
+                    writer = csv.DictWriter(file, fieldnames=CAMPAIGN_FIELDS)
                     writer.writeheader()
                     writer.writerow({"seed": seed, "cut": 39, "w": 11,
-                                     "q": "74.14", "time_taken": "1.030"})
+                                     "q": "74.14", "time_taken": "1.030","s":1,"wire_length_mm":182.88,
+                                     "quality_version":"Q2","status":"PASS","reason":""})
+                (ws / "pass 1" / "campaign.json").write_text('{"state":"COMPLETED","quality_version":"Q2"}')
             audio_ws = project_workspace(Path(td) / "audio.json", root)
             moto_ws = project_workspace(Path(td) / "moto.json", root)
             window = RouteMateWindow()
@@ -407,9 +411,10 @@ class PassControlTests(unittest.TestCase):
                     writer.writeheader()
                     writer.writerow({
                         "seed": seed, "cut": 44, "w": 29, "q": "78.24",
-                        "time_taken": "1.200", "status": "PASS", "reason": ""
+                        "time_taken": "1.200", "status": "PASS", "reason": "",
+                        "s": 2, "wire_length_mm": 284.48, "quality_version": "Q2"
                     })
-                (folder / "campaign.json").write_text('{"state": "COMPLETED"}')
+                (folder / "campaign.json").write_text('{"state": "COMPLETED", "quality_version": "Q2"}')
             window = RouteMateWindow()
             try:
                 window.work_root = root
@@ -441,7 +446,7 @@ class PassControlTests(unittest.TestCase):
             self.assertIn("ETA: ~5m 04s", display)
             self.assertNotIn("1,259/2,000", display)  # Already above the bar.
             self.assertNotIn("observed throughput", display)
-            self.assertIn("1,259/2,000 seeds", w.dashboard.eta.text())
+            self.assertNotIn("1,259/2,000 seeds", w.dashboard.eta.text())
             self.assertIn("observed throughput", w.dashboard.eta.text())
             self.assertIn("1,259/2,000 seeds", w.solve_eta.toolTip())
 
@@ -472,14 +477,11 @@ class PassControlTests(unittest.TestCase):
                 "failed": 482, "errors": 0, "best": None,
                 "last": {"seed": 482, "valid": False, "seconds": 1.19},
             })
-            self.assertEqual(window.solve_activity.text(),
-                             "Pass One · 482/2,000 confirmed")
+            self.assertEqual(window.dashboard.processed.text(), "482 / 2,000 seeds")
             self.assertFalse(window.solve_progress.isTextVisible())
             self.assertEqual(window.solve_progress.value(), 482)
-            self.assertIn("4 workers · 0 strict PASS · 0 errors",
-                          window.solve_worker_status.text())
-            self.assertIn("PASS ONE RUNNING", window.statusBar().currentMessage())
-            self.assertIn("482/2,000 seeds", window.dashboard.eta.text())
+            self.assertFalse(hasattr(window.dashboard, "workers"))
+            self.assertNotIn("482/2,000 seeds", window.dashboard.eta.text())
             self.assertNotIn("482/2,000 seeds", window.solve_eta.text())
             self.assertIn("ETA:", window.solve_eta.text())
         finally:
@@ -514,17 +516,19 @@ class PassControlTests(unittest.TestCase):
 
     def test_cancel_pass_two_keeps_old_results(self):
         with tempfile.TemporaryDirectory() as td:
-            from gui.work_directory import project_workspace, CSV_FIELDS
+            from gui.work_directory import project_workspace, CAMPAIGN_FIELDS
             root = Path(td) / "Work"
             source = Path(td) / "moto.json"
             source.write_text("{}")
             workspace = project_workspace(source, root, create=True)
             with (workspace / "pass 1" / "results.csv").open(
                     "w", newline="", encoding="utf-8") as f:
-                writer = csv.DictWriter(f, fieldnames=CSV_FIELDS)
+                writer = csv.DictWriter(f, fieldnames=CAMPAIGN_FIELDS)
                 writer.writeheader()
                 writer.writerow({"seed": "0010", "cut": 4, "w": 3,
-                                 "q": "91.20", "time_taken": "1.100"})
+                                 "q": "91.20", "time_taken": "1.100","s":1,"wire_length_mm":25.4,
+                                 "quality_version":"Q2","status":"PASS","reason":""})
+            (workspace / "pass 1" / "campaign.json").write_text('{"state":"COMPLETED","quality_version":"Q2"}')
             previous = workspace / "pass 2" / "keep.txt"
             previous.write_text("PRESERVE")
             w = RouteMateWindow()

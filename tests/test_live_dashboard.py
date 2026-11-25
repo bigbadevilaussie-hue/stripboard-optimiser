@@ -19,11 +19,11 @@ class AuditedChampionTests(unittest.TestCase):
         data = [
             dict(seed='0001',status='FAIL',q='',w='',cut='',time_taken='0.2'),
             dict(seed='0002',status='ERROR',q='',w='',cut='',time_taken='0.2'),
-            dict(seed='0003',status='PASS',q='79.40',w='31',cut='45',time_taken='1.0'),
-            dict(seed='0004',status='PASS',q='82.10',w='32',cut='44',time_taken='1.0'),
-            dict(seed='0005',status='PASS',q='82.10',w='29',cut='50',time_taken='1.0'),
-            dict(seed='0006',status='PASS',q='82.10',w='29',cut='40',time_taken='1.0'),
-            dict(seed='0007',status='PASS',q='82.10',w='29',cut='40',time_taken='1.0'),
+            dict(seed='0003',status='PASS',s=2,wire_length_mm=284.48,q='79.40',w='31',cut='45',time_taken='1.0'),
+            dict(seed='0004',status='PASS',s=2,wire_length_mm=284.48,q='82.10',w='32',cut='44',time_taken='1.0'),
+            dict(seed='0005',status='PASS',s=2,wire_length_mm=284.48,q='82.10',w='29',cut='50',time_taken='1.0'),
+            dict(seed='0006',status='PASS',s=2,wire_length_mm=284.48,q='82.10',w='29',cut='40',time_taken='1.0'),
+            dict(seed='0007',status='PASS',s=2,wire_length_mm=284.48,q='82.10',w='29',cut='40',time_taken='1.0'),
         ]
         best = best_audited(data)
         self.assertEqual(best['seed'],6)
@@ -32,9 +32,9 @@ class AuditedChampionTests(unittest.TestCase):
         self.assertIsNone(best_audited(data[:2]))
 
     def test_single_new_pass_competes_against_retained_champion(self):
-        old = dict(seed=50,status='PASS',q=78.24,w=29,cut=44,time_taken=2.2)
-        worse = dict(seed='0120',status='PASS',q='77.00',w='25',cut='37',time_taken='1.4')
-        better = dict(seed='0122',status='PASS',q='78.24',w='27',cut='40',time_taken='1.4')
+        old = dict(seed=50,status='PASS',s=2,wire_length_mm=284.48,q=78.24,w=29,cut=44,time_taken=2.2)
+        worse = dict(seed='0120',status='PASS',s=2,wire_length_mm=284.48,q='77.00',w='25',cut='37',time_taken='1.4')
+        better = dict(seed='0122',status='PASS',s=2,wire_length_mm=284.48,q='78.24',w='27',cut='40',time_taken='1.4')
         self.assertEqual(best_audited([old,worse])['seed'],50)
         self.assertEqual(best_audited([old,better])['seed'],122)
 
@@ -58,10 +58,10 @@ class LiveDashboardGuiTests(unittest.TestCase):
     def _sample():
         return {
             'done':125,'total':200,'qualified':2,'failed':123,'errors':0,
-            'best':dict(seed=50,status='PASS',q=78.24,w=29,cut=44,time_taken=2.2),
+            'best':dict(seed=50,status='PASS',s=2,wire_length_mm=284.48,q=78.24,w=29,cut=44,time_taken=2.2),
             'history':[
-                dict(seed='0050',status='PASS',q='78.24',w='29',cut='44',time_taken='2.2'),
-                dict(seed='0084',status='PASS',q='76.21',w='31',cut='46',time_taken='1.9'),
+                dict(seed='0050',status='PASS',s=2,wire_length_mm=284.48,q='78.24',w='29',cut='44',time_taken='2.2'),
+                dict(seed='0084',status='PASS',s=2,wire_length_mm=284.48,q='76.21',w='31',cut='46',time_taken='1.9'),
                 dict(seed='0011',status='FAIL',q='',w='',cut='',time_taken='2.3'),
             ],
             'last':{'seed':125,'valid':False,'seconds':1.4},
@@ -74,19 +74,23 @@ class LiveDashboardGuiTests(unittest.TestCase):
             board.update_progress(self._sample())
             self.assertIn('AUDIO',board.subtitle.text())
             self.assertIn('10k moves',board.subtitle.text())
-            self.assertEqual(board.checked.value.text(),'125')
-            self.assertEqual(board.verified.value.text(),'2')
-            self.assertEqual(board.bestq.value.text(),'78.24')
-            self.assertIn('29W',board.build.value.text())
+            self.assertEqual(board.processed.text(),'125 / 200 seeds')
+            self.assertEqual(board.ring.counts[0],2)
+            self.assertEqual(board.bestq.value.text(),'78.24 / 100')
+            self.assertEqual(board.w_card.value.text(),'29')
+            self.assertEqual(board.c_card.value.text(),'44')
+            self.assertEqual(board.s_card.value.text(),'2')
+            self.assertEqual(board.length_mm.text(),'284.48 mm')
             self.assertEqual(board.progress.value(),125)
             self.assertEqual(board.ring.counts,(2,123,0,75))
-            self.assertEqual(list(board.quality_plot.points),[78.24,76.21])
-            self.assertEqual(list(board.wc_plot.points),[(29.0,44.0),(31.0,46.0)])
+            self.assertFalse(hasattr(board,'quality_plot'))
+            self.assertFalse(hasattr(board,'wc_plot'))
             self.assertEqual(len(board.runtime_plot.points),4)
-            self.assertIn('0125',board.last.text())
+            self.assertFalse(hasattr(board,'last'))
+            self.assertFalse(hasattr(board,'workers'))
             self.assertFalse(board.winner_button.isEnabled())
             self.assertFalse(hasattr(board,'leader_rows'))
-            self.assertIsInstance(board.quality_plot,SmoothPlot)
+            self.assertIsInstance(board.runtime_plot,SmoothPlot)
             self.assertIsInstance(board.ring,OutcomeRing)
         finally:
             board.close()
@@ -115,8 +119,8 @@ class LiveDashboardGuiTests(unittest.TestCase):
             dashboard.update_progress(self._sample())
             dashboard.set_winner_available(True)
             dashboard.reset_for_project('MOTO')
-            self.assertEqual(dashboard.verified.value.text(),'0')
-            self.assertEqual(len(dashboard.quality_plot.points),0)
+            self.assertEqual(dashboard.ring.counts[0],0)
+            self.assertEqual(dashboard.length_mm.text(),'—')
             self.assertFalse(dashboard.winner_button.isEnabled())
             self.assertIn('MOTO',dashboard.subtitle.text())
         finally:

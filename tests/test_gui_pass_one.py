@@ -32,7 +32,7 @@ class PassOneContract(unittest.TestCase):
                 self.assertEqual(moves, 10000)
                 if seed == 1:
                     return {"seed": 1, "valid": True,
-                            "cut": 44, "w": 29, "q": 78.24, "time_taken": 3.2}
+                            "cut": 44, "w": 29, "q": 78.24, "s": 2, "wire_length_mm": 284.48, "time_taken": 3.2}
                 return {"seed": seed, "valid": False, "seconds": 2.1,
                         "reason": "short circuit"}
             project = {"board": {"rows":24,"cols":56,"lockedRows":False,
@@ -52,7 +52,8 @@ class PassOneContract(unittest.TestCase):
             by_seed = {row["seed"]: row for row in rows}
             self.assertEqual(by_seed["0001"], {
                 "seed": "0001", "cut": "44", "w": "29", "q": "78.24",
-                "time_taken": "3.200", "status": "PASS", "reason": "",
+                "time_taken": "3.200", "s": "2", "wire_length_mm": "284.48",
+                "quality_version": "Q2", "status": "PASS", "reason": "",
             })
             self.assertEqual(by_seed["0002"]["status"], "FAIL")
             self.assertIn("short circuit", by_seed["0002"]["reason"])

@@ -1,6 +1,36 @@
 # Stripboard Optimiser — Version 2.00 project contract
 
-**Milestone:** Consolidation of Two Repositories (24 November 2026). GUI version **2.04** is independently tracked in `gui/VERSION` (24 Nov 2026).
+## Current release: StripSolve GUI 2.19 / Q2 (25 November 2026)
+
+The live construction score is Q2, with W = jumper count, C = cut count,
+L = total jumper span in mm (2.54 mm pitch), D = nonvertical jumper count,
+U = unplaced on-board component count, S = maximum simultaneous vertical
+hole-to-hole overlap. S = 0 for no jumpers and 1 for unstacked jumpers.
+Touching endpoints do not stack.
+
+`Q2 = round(max(0, 100 - 0.6*W - 0.4*C - 0.02*L - 10*D - 15*U - max(0,S-1)**2), 2)`
+
+Strict audit qualification and the native engine are unchanged. The GUI ranks
+only audited passes. Q2 uses the existing campaign paths, with schema 2,
+quality_version=Q2, and S and wire_length_mm in the CSV. Q1 campaigns cannot
+resume or feed Pass Two; explicitly overwrite the selected old campaign to
+start fresh. Do not relabel old scores. Historical WR research JSONs and
+reports remain historical evidence. No score is a percent of theoretical
+optimum.
+
+The dashboard displays W/C/S/Q2, champion wire length in mm/inches, audited
+outcomes, runtime and one progress/ETA control. No duplicated sidebar progress,
+project/workspace box, worker count or noisy quality/complexity chart. CPU
+allocation is max(1, available logical CPUs - 1); the 100-decode calibration
+only estimates speed. CPU allocation is recorded in disk logs. On completion,
+save winner JSON and both SVGs before the themed trophy consent dialog.
+Pass Two is still an import-only stage.
+
+See [Q2 research](docs/QUALITY_Q2_2026-11-25.md) for the 1,053-board comparison.
+
+**Earlier GUI integration milestones below are historical where they conflict with the current release.**
+
+**Milestone:** Consolidation of Two Repositories (24 November 2026). GUI version **2.19** is independently tracked in `gui/VERSION` (24 Nov 2026).
 
 **Current live-work handoff:** [Audio/Moto 12k WR sweep, results, multipass plan and GUI boundaries](docs/ACTIVE_HANDOFF_2026-11-24.md). **Historic static audit:** [Repository integrity and integration audit](docs/REPOSITORY_AUDIT_2026-11-24.md). Historical handovers remain useful but their future-phase language may now be outdated.
 
@@ -35,7 +65,7 @@ verified before they enter the qualified ranking.
 4. Save all candidate JSONs and their exact settings, failures and timing.
 5. Audit output connectivity, shorts/opens, placement, legal copper,
    jumper direction, body collisions, component locks and board dimensions.
-6. Rank **qualified** layouts by wires, cuts, wire length and price.
+6. Rank **qualified** GUI candidates by Q2, then fewer wires, cuts and seed. Research harnesses may retain their historical Q1 formula.
 7. Preserve best, top-five and rejected candidates with restartable checkpoints.
 
 **Important harness distinction:** Steps 4 and 7 above describe the full forensic/ladder research harness, **not** every script. The current `scripts/run_wr_audio_moto.py` 12k sweep intentionally **keeps only strict-passing saved JSONs**, prints only passes, has **no failure database and no resume**, and **deletes each existing WR output folder before starting that rung**. It must not be restarted casually. It calls the same native V5 engine and saved-board auditor through `scripts/run_audioex_native_ladder.py`; Python is only orchestration and post-pass scoring. See [active handoff](docs/ACTIVE_HANDOFF_2026-11-24.md) for exact datasets and latest reported status.

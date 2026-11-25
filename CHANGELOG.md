@@ -1,5 +1,13 @@
 # Changelog
 
+### GUI 2.19 — Q2 construction quality and dashboard cleanup (25 November 2026)
+- Adopt the approved quadratic maximum-stack penalty, exact positive-length hole-to-hole stack depth, and versioned campaign CSV/manifest. Retain strict auditing and native solver behaviour.
+- Existing Q1 campaign folders are reused only after explicit overwrite; Q1 cannot resume or feed Pass Two. No historical research boards are removed.
+- Replace quality and complexity charts with readable champion Q2/W/C/S and wire length (mm/inches); remove duplicate progress, workspace box and live worker counts. Keep one run-control panel and audited outcomes/runtime.
+- Allocate logical CPUs minus one (minimum one), using the native 100-decode measurement for timing only; record CPU allocation on disk.
+- Show a themed trophy winner dialog after both SVGs and JSON are saved. Update regressions and documentation; Mac execution remains to be verified.
+
+
 ### GUI 2.18 — Fix false strict-audit failures for unlocked components (25 November 2026)
 - Preserve the exact source JSON `locked` property presence and value when the native CLI saves a candidate. The search deliberately clears `locked:false` from movable components internally; that sanitisation was unintentionally leaking into saved JSONs and falsely triggering `COMPONENT_DEFINITION_CHANGED_*_locked` in the independent strict auditor.
 - Keep strict audit, vertical-wire, electrical, geometry, copper and locked-part-movement checks unchanged. Only the saved output metadata is corrected.

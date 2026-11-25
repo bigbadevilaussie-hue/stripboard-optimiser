@@ -1,4 +1,34 @@
-# ACTIVE HANDOFF — Stripboard Optimiser (24 Nov 2026)
+# ACTIVE HANDOFF — StripSolve (updated 25 Nov 2026)
+
+## Current release: StripSolve GUI 2.19 / Q2 (25 November 2026)
+
+The live construction score is Q2, with W = jumper count, C = cut count,
+L = total jumper span in mm (2.54 mm pitch), D = nonvertical jumper count,
+U = unplaced on-board component count, S = maximum simultaneous vertical
+hole-to-hole overlap. S = 0 for no jumpers and 1 for unstacked jumpers.
+Touching endpoints do not stack.
+
+`Q2 = round(max(0, 100 - 0.6*W - 0.4*C - 0.02*L - 10*D - 15*U - max(0,S-1)**2), 2)`
+
+Strict audit qualification and the native engine are unchanged. The GUI ranks
+only audited passes. Q2 uses the existing campaign paths, with schema 2,
+quality_version=Q2, and S and wire_length_mm in the CSV. Q1 campaigns cannot
+resume or feed Pass Two; explicitly overwrite the selected old campaign to
+start fresh. Do not relabel old scores. Historical WR research JSONs and
+reports remain historical evidence. No score is a percent of theoretical
+optimum.
+
+The dashboard displays W/C/S/Q2, champion wire length in mm/inches, audited
+outcomes, runtime and one progress/ETA control. No duplicated sidebar progress,
+project/workspace box, worker count or noisy quality/complexity chart. CPU
+allocation is max(1, available logical CPUs - 1); the 100-decode calibration
+only estimates speed. CPU allocation is recorded in disk logs. On completion,
+save winner JSON and both SVGs before the themed trophy consent dialog.
+Pass Two is still an import-only stage.
+
+See [Q2 research](QUALITY_Q2_2026-11-25.md) for the 1,053-board comparison.
+
+**Historical 24 November snapshot follows; any older GUI status or Q formula below is superseded.**
 
 > **START HERE IN A NEW CHAT.** This is a working-state handoff, not a proposal to rewrite the solver. Then read [README](../README.md), [documentation index](INDEX.md), and the checked-in source. The log figures below are **user-provided Mac observations**, not GitHub-hosted result files. Do not assume a running Mac job has completed since the last message.
 

@@ -1,6 +1,6 @@
 """Pass One: native V5 strict seeds, complete CSV tracking and winner replay.
 
-2000 seeds, 10k or 20k moves, with 3/4 workers from the CPU probe.
+2000 seeds, 10k or 20k moves, with logical CPUs minus one workers.
 Every seed writes PASS, FAIL or ERROR with its seed ID; only PASS is promoted.
 Regular seed JSONs are temporary. Once the campaign completes, the highest-Q
 PASS is independently replayed and its verified JSON is saved for SVG output.
@@ -12,7 +12,6 @@ import copy
 import csv
 import hashlib
 import json
-import math
 import os
 import uuid
 from pathlib import Path
@@ -27,6 +26,8 @@ from gui.work_directory import (
     CAMPAIGN_FIELDS, CAMPAIGN_MANIFEST, load_campaign_records,
     winner_budget_dir,
 )
+
+from gui.quality import QUALITY_VERSION, construction_metrics, cpu_allocation
 
 AUDITOR = FRONTEND / "tests/solver/auditSavedStrict.js"
 DEFAULT_SEEDS = 2000
@@ -47,30 +48,8 @@ def _last_json(value: str):
 
 
 def quality100(saved: dict) -> float:
-    """Existing repo quality100 formula from run_audioex_10k_2000_quality.py.
-
-    Q differs from native CLI 'quality' (0 on strict PASS).
-    Compute it on the independently audited solved board, never the log.
-    """
-    board = saved["board"]
-    wires = board["wires"]
-    cuts = board["cuts"]
-    length_mm = sum(
-        math.hypot(
-            w["from"]["row"] - w["to"]["row"],
-            w["from"]["col"] - w["to"]["col"],
-        ) for w in wires
-    ) * 2.54
-    unplaced = sum(
-        not isinstance(c.get("boardPos"), dict)
-        for c in saved.get("components", [])
-        if not (c.get("offBoard") or c.get("boardExcluded"))
-    )
-    diagonals = sum(w["from"]["col"] != w["to"]["col"] for w in wires)
-    return round(max(0.0, 100.0 -
-                     0.6 * len(wires) - 0.4 * len(cuts) -
-                     0.02 * length_mm - 10 * diagonals -
-                     15 * unplaced), 2)
+    """Q2 construction score; distinct from the native strict quality."""
+    return construction_metrics(saved)["q"]
 
 
 def _run_seed(project, moves, seed, drilled_only, stacking_allowed, cancelled,
@@ -140,7 +119,7 @@ def _run_seed(project, moves, seed, drilled_only, stacking_allowed, cancelled,
             os.replace(temporary, target)
         return {
             "seed": seed, "valid": True, "cut": int(audit["cuts"]),
-            "w": int(audit["wires"]), "q": quality100(saved),
+            **construction_metrics(saved),
             "time_taken": seconds,
         }
 
@@ -162,10 +141,10 @@ def _prepared_input(project):
 def _campaign_identity(fingerprint, moves, workers, drilled_only,
                        stacking_allowed, seeds, debug=False):
     return {
-        "schema": 1,
+        "schema": 2,
+        "quality_version": QUALITY_VERSION,
         "input_sha256": fingerprint,
         "moves": moves,
-        "workers": workers,
         "drilled_only": bool(drilled_only),
         "stacking_allowed": bool(stacking_allowed),
         "seeds": seeds,
@@ -199,6 +178,8 @@ def inspect_pass_one_campaign(project, moves, workers, drilled_only,
     if not csv_path.is_file() or csv_path.is_symlink():
         raise ValueError("Cannot resume: campaign CSV is missing or unsafe")
     info = json.loads(metadata.read_text(encoding="utf-8"))
+    if info.get("quality_version") != QUALITY_VERSION:
+        raise ValueError("Cannot resume: Q1 campaign obsolete; overwrite and start Q2")
     for key, value in expected.items():
         if info.get(key) != value:
             raise ValueError(f"Cannot resume: {key} differs from the saved campaign")
@@ -236,6 +217,9 @@ def best_audited(rows):
             "q": float(row["q"]),
             "w": int(row["w"]),
             "cut": int(row["cut"]),
+            "s": int(row["s"]),
+            "wire_length_mm": float(row["wire_length_mm"]),
+            "quality_version": QUALITY_VERSION,
             "time_taken": float(row["time_taken"]),
         }
         for row in rows if row.get("status") == "PASS"
@@ -253,8 +237,8 @@ def run_pass_one(project, moves, workers, drilled_only, stacking_allowed,
     The caller chooses an empty budget folder (Restart) or a matching existing
     campaign (Resume). Legacy success-only CSVs are never silently overwritten.
     """
-    if moves not in MOVE_CHOICES or workers not in (3, 4):
-        raise ValueError("Pass One requires 10k/20k moves and 3/4 workers")
+    if moves not in MOVE_CHOICES or type(workers) is not int or workers < 1:
+        raise ValueError("Pass One requires 10k/20k moves and positive worker count")
     if not isinstance(seeds, int) or seeds < 1:
         raise ValueError("Seed count must be positive")
     if debug and seeds != DEBUG_SEEDS:
@@ -329,6 +313,7 @@ def run_pass_one(project, moves, workers, drilled_only, stacking_allowed,
 
         log(
             f"[PASS1][{'RESUME' if resume else 'START'}] seeds=1..{seeds} "
+            f"quality={QUALITY_VERSION} logical_cpus={cpu_allocation()[0]} "
             f"moves={moves} workers={workers} drilled_only={drilled_only} "
             f"stacking_allowed={stacking_allowed} input_sha256={fingerprint} "
             f"retained={checked} pending={len(attempts)}"
@@ -375,6 +360,9 @@ def run_pass_one(project, moves, workers, drilled_only, stacking_allowed,
                             "cut": row.get("cut", ""),
                             "w": row.get("w", ""),
                             "q": f"{row['q']:.2f}" if status == "PASS" else "",
+                            "s": row.get("s", ""),
+                            "wire_length_mm": row.get("wire_length_mm", ""),
+                            "quality_version": QUALITY_VERSION,
                             "time_taken": f"{seconds:.3f}",
                             "status": status,
                             "reason": str(row.get("reason") or "").replace("\n", " ")[:1000],
@@ -385,7 +373,7 @@ def run_pass_one(project, moves, workers, drilled_only, stacking_allowed,
                         if status == "PASS":
                             best = best_audited([*([best] if best else []), data])
                             log(f"[PASS1][PASS] seed={seed:04d} "
-                                f"{row['w']}W/{row['cut']}C Q={row['q']:.2f} "
+                                f"{row['w']}W/{row['cut']}C/{row['s']}S Q2={row['q']:.2f} "
                                 f"{seconds:.3f}s")
                         else:
                             log(f"[PASS1][{status}] seed={seed:04d} "
@@ -440,10 +428,13 @@ def run_pass_one(project, moves, workers, drilled_only, stacking_allowed,
             if (replay["valid"] is not True
                 or replay["w"] != int(winner["w"])
                 or replay["cut"] != int(winner["cut"])
-                or replay["q"] != float(winner["q"])):
+                or replay["q"] != float(winner["q"])
+                or replay["s"] != int(winner["s"])
+                or replay["wire_length_mm"] != float(winner["wire_length_mm"])):
                 raise ValueError("Replay differs from the audited Pass One CSV winner")
             result["winner_json"] = str(target)
             result["winner_seed"] = seed
+            result["winner_metrics"] = {key: replay[key] for key in ("w", "cut", "s", "q", "wire_length_mm")}
             on_log(f"[PASS1][WINNER] seed={seed:04d} {replay['w']}W/"
                    f"{replay['cut']}C Q={replay['q']:.2f} strict replay saved: {target}")
         except Exception as exc:

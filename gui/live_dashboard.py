@@ -308,14 +308,13 @@ class OutcomeRing(QWidget):
         font = QFont('Helvetica Neue',24)
         font.setBold(True)
         painter.setFont(font)
-        checked = passed+failed+errors
         painter.drawText(ring.adjusted(8,4,-8,-12),Qt.AlignmentFlag.AlignCenter,
-                         f'{round(checked/total*100)}%')
+                         f'{round(passed/max(1,passed+failed)*100)}%')
         font = QFont('Helvetica Neue',9)
         painter.setFont(font)
         painter.setPen(QColor(MUTED))
         painter.drawText(ring.adjusted(3,diameter*0.40,-3,0),
-                         Qt.AlignmentFlag.AlignCenter,'processed')
+                         Qt.AlignmentFlag.AlignCenter,'strict pass rate')
         leg_x = max(ring.right()+20,self.width()*0.56)
         y = max(14,(self.height()-92)/2)
         for title,value,color in (('Strict PASS',passed,TEAL),('Not qualified',failed,BLUE),
@@ -368,11 +367,7 @@ class LiveDashboard(QWidget):
         self._failed = 0
         self._errors = 0
         self._best = None
-        self._quality = deque(maxlen=2000)
-        self._wires_cuts = deque(maxlen=2000)
         self._runtime = deque(maxlen=60)
-        self._quality_spark = deque(maxlen=60)
-        self._progress_ticks = deque(maxlen=60)
 
         base = QVBoxLayout(self)
         base.setContentsMargins(0,0,0,0)
@@ -404,28 +399,21 @@ class LiveDashboard(QWidget):
         header.addWidget(self.state)
         content.addLayout(header)
 
-        metrics = QGridLayout()
-        metrics.setHorizontalSpacing(13); metrics.setVerticalSpacing(10)
-        self.checked = MetricCard('Seeds checked',BLUE,'◉')
-        self.verified = MetricCard('Strict PASS',TEAL,'✓')
-        self.bestq = MetricCard('Best verified Q',CYAN,'✦')
-        self.build = MetricCard('Best board',COPPER,'⌁')
-        for idx, widget in enumerate((self.checked,self.verified,self.bestq,self.build)):
-            metrics.addWidget(widget,0,idx)
-            metrics.setColumnStretch(idx,1)
-        content.addLayout(metrics)
-
         middle = QHBoxLayout(); middle.setSpacing(13)
         quality_card = _card(minheight=247)
         qlayout = QVBoxLayout(quality_card)
-        qlayout.setContentsMargins(16,14,16,12); qlayout.setSpacing(7)
-        qlayout.addLayout(_title_row('QUALITY PERFORMANCE',
-                                    legend=[(CYAN,'Audited Q')]))
-        self.quality_plot = SmoothPlot('quality')
-        qlayout.addWidget(self.quality_plot,1)
-        self.quality_caption = _label('Quality of independently verified PASS seeds',
-                                      'qualityCaption',10,MUTED)
-        qlayout.addWidget(self.quality_caption)
+        qlayout.setContentsMargins(16,14,16,12); qlayout.setSpacing(10)
+        qlayout.addLayout(_title_row('QUALITY PERFORMANCE · Q2'))
+        self.bestq = MetricCard('Best verified quality',CYAN,'✦')
+        qlayout.addWidget(self.bestq)
+        score_grid = QGridLayout()
+        self.w_card = MetricCard('W · Wires',BLUE,'⌁')
+        self.c_card = MetricCard('C · Cuts',COPPER,'✂')
+        self.s_card = MetricCard('S · Max stack',CORAL,'≡')
+        for i, widget in enumerate((self.w_card, self.c_card, self.s_card)):
+            score_grid.addWidget(widget,0,i)
+            score_grid.setColumnStretch(i,1)
+        qlayout.addLayout(score_grid)
         middle.addWidget(quality_card,7)
 
         outcome_card = _card(minheight=247)
@@ -440,9 +428,12 @@ class LiveDashboard(QWidget):
         bottom = QHBoxLayout(); bottom.setSpacing(13)
         wc_card = _card(minheight=212)
         wl = QVBoxLayout(wc_card); wl.setContentsMargins(14,13,14,12); wl.setSpacing(5)
-        wl.addLayout(_title_row('BOARD COMPLEXITY',legend=[(BLUE,'Wires'),(COPPER,'Cuts')]))
-        self.wc_plot = SmoothPlot('wc')
-        wl.addWidget(self.wc_plot,1)
+        wl.addLayout(_title_row('TOTAL JUMPER WIRE LENGTH'))
+        self.length_mm = _label('—', 'wireLengthMm', 30, CYAN, 850)
+        self.length_inches = _label('—', 'wireLengthInches', 18, MUTED, 700)
+        self.average_length = _label('—', 'wireLengthAverage', 12, MUTED, 600)
+        wl.addWidget(self.length_mm); wl.addWidget(self.length_inches)
+        wl.addWidget(self.average_length); wl.addStretch()
         bottom.addWidget(wc_card,6)
 
         runtime_card = _card(minheight=212)
@@ -461,18 +452,18 @@ class LiveDashboard(QWidget):
         self.progress.setRange(0,1); self.progress.setValue(0)
         self.progress.setTextVisible(False)
         pace.addWidget(self.progress)
-        self.workers = _label('Workers: —', 'liveWorkers', 11, MUTED, 650)
         self.eta = _label('Elapsed: —   ETA: —','liveEta',11,MUTED,650)
         self.eta.setWordWrap(True)
-        self.last = _label('Last seed: —','liveLast',11,MUTED,650)
-        self.last.setWordWrap(True)
-        pace.addWidget(self.workers); pace.addWidget(self.eta);pace.addWidget(self.last)
+        pace.addWidget(self.eta)
+        self.run_note = _label("", "runNote", 11, MUTED, 600)
+        self.run_note.setWordWrap(True)
+        pace.addWidget(self.run_note)
         pace.addStretch()
         bottom.addWidget(pace_card,4)
         content.addLayout(bottom,2)
 
         actions = QHBoxLayout()
-        self.disclaimer = _label('Only independently audited strict PASS seeds contribute to Q and W/C charts.',
+        self.disclaimer = _label('Only strictly audited boards can become champion.',
                                  'liveFootnote',11,MUTED,550)
         self.disclaimer.setWordWrap(True)
         actions.addWidget(self.disclaimer,1)
@@ -489,22 +480,18 @@ class LiveDashboard(QWidget):
         self.reset_for_project('')
 
     def _redraw_plots(self):
-        self.quality_plot.set_points(list(self._quality))
-        self.wc_plot.set_points(list(self._wires_cuts))
         self.runtime_plot.set_points(list(self._runtime))
 
     def reset_for_project(self, project):
         self._total=0; self._done=0; self._qualified=0; self._failed=0; self._errors=0
         self._best=None
-        for d in (self._quality,self._wires_cuts,self._runtime,self._quality_spark,self._progress_ticks):
-            d.clear()
+        self._runtime.clear()
         self.subtitle.setText(f'{project.upper()} · No Pass One campaign started' if project else
                               'STRIPSOLVE · Awaiting native solver')
         self.state.setText('● READY')
         self._set_state_style(TEAL,'#d7f2f1')
         self.eta.setText('Elapsed: —   ETA: —')
-        self.workers.setText('Workers: —')
-        self.last.setText('Last seed: —')
+        self.run_note.clear()
         self.winner_button.setEnabled(False)
         self._update_view()
 
@@ -512,8 +499,7 @@ class LiveDashboard(QWidget):
         self.reset_for_project(project)
         self._total=max(0,int(seeds))
         self.subtitle.setText(f'{project.upper()}  ·  {int(moves)//1000}k moves  ·  '
-                              f'{"DEBUG" if debug else "FULL"}  ·  {self._total:,} seeds')
-        self.workers.setText(f'Workers: {workers}' if workers is not None else 'Workers: measuring…')
+                              f'{"DEBUG" if debug else "FULL"}  ·  Q2')
         self.state.setText('● RESUMING' if resumed else '● LIVE RUNNING')
         self._set_state_style(TEAL,'#d7f2f1')
         self._update_view()
@@ -537,26 +523,12 @@ class LiveDashboard(QWidget):
         latest=snapshot.get('last')
         if latest:
             self._append_item(latest)
-            status='PASS' if latest.get('valid') is True else 'FAIL' if latest.get('valid') is False else 'ERROR'
-            sec=latest.get('time_taken',latest.get('seconds'))
-            time=f' · {float(sec):.2f}s' if sec is not None else ''
-            self.last.setText(f'Seed {int(latest["seed"]):04d}  ·  {status}{time}')
-        self._progress_ticks.append(self._done)
         self._update_view()
 
     def _append_item(self,item):
         status=item.get('status')
         if status is None:
             status='PASS' if item.get('valid') is True else 'FAIL' if item.get('valid') is False else 'ERROR'
-        if status=='PASS':
-            try:
-                q=float(item['q']); w=float(item['w']); c=float(item['cut'])
-            except (KeyError,TypeError,ValueError):
-                return
-            if all(isfinite(v) for v in (q,w,c)):
-                self._quality.append(q)
-                self._wires_cuts.append((w,c))
-                self._quality_spark.append(max(q,max(self._quality_spark,default=q)))
         duration=item.get('time_taken',item.get('seconds'))
         try:
             seconds=float(duration)
@@ -566,19 +538,25 @@ class LiveDashboard(QWidget):
             self._runtime.append((seconds,status))
 
     def _update_view(self):
-        self.checked.set_metric(f'{self._done:,}',
-                                f'of {self._total:,} scheduled',list(self._progress_ticks))
-        self.verified.set_metric(f'{self._qualified:,}',
-                                 'Independent strict audit PASS',list(self._quality_spark))
         best=self._best
         if best:
-            self.bestq.set_metric(f'{float(best["q"]):.2f}',
-                                  f'Seed {int(best["seed"]):04d} · verified',list(self._quality))
-            self.build.set_metric(f'{int(best["w"])}W  /  {int(best["cut"])}C',
-                                  'Wires / cuts · highest Q champion')
+            self.bestq.set_metric(f'{float(best["q"]):.2f} / 100',
+                                  f'Seed {int(best["seed"]):04d} · verified')
+            self.w_card.set_metric(str(best["w"]), 'Jumpers')
+            self.c_card.set_metric(str(best["cut"]), 'Track cuts')
+            self.s_card.set_metric(str(best["s"]), 'Maximum overlap')
+            length = float(best["wire_length_mm"])
+            self.length_mm.setText(f'{length:,.2f} mm')
+            self.length_inches.setText(f'{length/25.4:,.2f} in')
+            avg = length / int(best["w"]) if int(best["w"]) else 0
+            self.average_length.setText(f'Average jumper: {avg:.2f} mm')
         else:
             self.bestq.set_metric('—','Awaiting verified seed')
-            self.build.set_metric('—','No strict PASS yet')
+            for card in (self.w_card, self.c_card, self.s_card):
+                card.set_metric('—', 'Awaiting champion')
+            self.length_mm.setText('—')
+            self.length_inches.setText('—')
+            self.average_length.setText('Awaiting champion')
         self.progress.setRange(0,max(1,self._total))
         self.progress.setValue(min(self._done,self.progress.maximum()))
         self.processed.setText(f'{self._done:,} / {self._total:,} seeds')
@@ -596,7 +574,7 @@ class LiveDashboard(QWidget):
     def interrupted(self,message):
         self.state.setText('● STOPPED')
         self._set_state_style(AMBER,'#fff2dc')
-        self.last.setText(message)
+        self.run_note.setText(message)
 
     def set_winner_available(self,available):
         self.winner_button.setEnabled(bool(available))
