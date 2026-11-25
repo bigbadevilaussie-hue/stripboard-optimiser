@@ -1,4 +1,4 @@
-"""Route-Mate desktop GUI: collect, sanity-check, render, then gather PRE-SOLVE locks."""
+"""StripSolve desktop GUI: collect, sanity-check, render, optimise and verify."""
 from __future__ import annotations
 
 import copy
@@ -53,7 +53,7 @@ def _git_revision() -> str:
 
 GUI_GIT_REVISION = _git_revision()
 
-from PySide6.QtCore import Qt, QByteArray, QPoint, QThread, Signal, QTimer
+from PySide6.QtCore import Qt, QByteArray, QPoint, QThread, Signal, QTimer, QSize
 from PySide6.QtGui import QAction, QBrush, QColor, QFontDatabase, QPainter, QPixmap, QIcon, QIntValidator
 from PySide6.QtSvg import QSvgRenderer
 from PySide6.QtSvgWidgets import QGraphicsSvgItem
@@ -66,14 +66,18 @@ from PySide6.QtWidgets import (
 
 
 from gui.arctic_theme import apply_arctic_theme
+from gui.assets_ui import (
+    StripSolveSplash, export_assets, load_app_icon, load_button_icon,
+)
 
 
 def default_project_directory() -> Path:
     """Start native file pickers in user files, never PyInstaller internals."""
     desktop = Path.home() / "Desktop"
-    project_folder = desktop / "Route-Mate"
-    if project_folder.is_dir():
-        return project_folder
+    for legacy_or_current in ("StripSolve", "Route-Mate"):
+        project_folder = desktop / legacy_or_current
+        if project_folder.is_dir():
+            return project_folder
     if desktop.is_dir():
         return desktop
     return Path.home()
@@ -941,7 +945,7 @@ class RouteMateWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowFlag(Qt.WindowType.FramelessWindowHint, True)
-        self.setWindowTitle(f"Route-Mate {GUI_VERSION} · rev {GUI_GIT_REVISION} — Pass Control")
+        self.setWindowTitle(f"StripSolve {GUI_VERSION} · rev {GUI_GIT_REVISION} — Pass Control")
         self.resize(1560, 900)
         self.setMinimumSize(950, 600)
         self.project: dict[str, Any] | None = None
@@ -986,10 +990,10 @@ class RouteMateWindow(QMainWindow):
         self._probe_stacking_allowed = None
         self._assumed_geometry = None  # Collector's advisory package profile; not 2.5D PASS.
 
-        logo_path = REPO_ROOT / "icon" / "icon_128x128.png"
-        if logo_path.is_file():
-            self.setWindowIcon(QIcon(str(logo_path)))
+        app_icon = load_app_icon()
+        self.setWindowIcon(app_icon)
         toolbar = QToolBar("Main")
+        toolbar.setIconSize(QSize(24, 24))
         toolbar.setObjectName("routeMateToolbar")
         toolbar.setStyleSheet("""
             QToolBar#routeMateToolbar { background: #f7fbff; border: none; border-bottom: 1px solid #cbddec; padding: 9px; spacing: 8px; min-height: 54px; }
@@ -1003,36 +1007,36 @@ class RouteMateWindow(QMainWindow):
         brand_row.setContentsMargins(2, 0, 18, 0)
         brand_row.setSpacing(10)
         brand_logo = QLabel()
-        if logo_path.is_file():
-            logo = QPixmap(str(logo_path))
-            if not logo.isNull():
-                brand_logo.setPixmap(logo.scaled(44, 44, Qt.AspectRatioMode.KeepAspectRatio,
-                                                Qt.TransformationMode.SmoothTransformation))
+        brand_logo.setPixmap(app_icon.pixmap(QSize(44, 44)))
         brand_row.addWidget(brand_logo)
-        brand_title = QLabel("ROUTE-MATE")
+        brand_title = QLabel("STRIPSOLVE")
         brand_title.setStyleSheet("color: #19334d; font-size: 16px; font-weight: 800;")
         brand_row.addWidget(brand_title)
         toolbar.addWidget(brand)
         toolbar.setMovable(False)
         self.addToolBar(toolbar)
         self.load_action = QAction("Load JSON", self)
+        self.load_action.setIcon(load_button_icon("load_json"))
         self.load_action.triggered.connect(self.load_json)
         toolbar.addAction(self.load_action)
 
 
         self.stop_action = QAction("Stop Solve", self)
+        self.stop_action.setIcon(load_button_icon("stop_solve"))
         self.stop_action.setToolTip("Cancel the running solve safely; keep the original board")
         self.stop_action.setEnabled(False)
         self.stop_action.triggered.connect(self.stop_solve)
         toolbar.addAction(self.stop_action)
 
         self.pass_one_action = QAction("Pass One", self)
+        self.pass_one_action.setIcon(load_button_icon("pass_one"))
         self.pass_one_action.setToolTip(
             "Choose 10k/20k; record all seed statuses; replay and render the winner"
         )
         self.pass_one_action.triggered.connect(self.start_pass_one)
         toolbar.addAction(self.pass_one_action)
         self.pass_two_action = QAction("Pass Two", self)
+        self.pass_two_action.setIcon(load_button_icon("pass_two"))
         self.pass_two_action.setToolTip(
             "Choose a project's saved Pass One CSV without rerunning Pass One"
         )
@@ -1041,28 +1045,33 @@ class RouteMateWindow(QMainWindow):
 
         toolbar.addSeparator()
         self.top_action = QAction("Component side", self)
+        self.top_action.setIcon(load_button_icon("component_side"))
         self.top_action.setCheckable(True)
         self.top_action.setChecked(True)
         self.top_action.triggered.connect(lambda: self._switch_board_side("top"))
         toolbar.addAction(self.top_action)
         self.copper_action = QAction("Copper side (mirrored)", self)
+        self.copper_action.setIcon(load_button_icon("copper_side"))
         self.copper_action.setCheckable(True)
         self.copper_action.triggered.connect(lambda: self._switch_board_side("copper"))
         toolbar.addAction(self.copper_action)
         self.schematic_action = QAction("Schematic", self)
+        self.schematic_action.setIcon(load_button_icon("schematic"))
         self.schematic_action.setCheckable(True)
         self.schematic_action.setEnabled(False)
         self.schematic_action.setToolTip("View the original schematic, rendered when JSON loads")
         self.schematic_action.triggered.connect(lambda: self._switch_board_side("schematic"))
         toolbar.addAction(self.schematic_action)
         self.render_action = QAction("Open Solved", self)
+        self.render_action.setIcon(load_button_icon("open_solved"))
         self.render_action.setToolTip("Preview an existing routed JSON without re-solving")
         self.render_action.triggered.connect(self.render_json)
         self.render_action.setEnabled(False)
         toolbar.addAction(self.render_action)
         toolbar.addSeparator()
         self.exit_action = QAction("Exit", self)
-        self.exit_action.setToolTip("Stop any active solve, then close Route-Mate")
+        self.exit_action.setIcon(load_button_icon("exit"))
+        self.exit_action.setToolTip("Stop any active solve, then close StripSolve")
         self.exit_action.triggered.connect(self._exit_requested)
         toolbar.addAction(self.exit_action)
 
@@ -1098,7 +1107,7 @@ class RouteMateWindow(QMainWindow):
         self.solve_activity = QLabel("100-point move check pending · STOP before Pass 1")
         self.solve_activity.setWordWrap(True)
         self.solve_activity.setStyleSheet(
-            "font-size: 13px; font-weight: 700; color: #216896; padding: 4px;"
+            "font-size: 13px; font-weight: 750; color: #123f61; padding: 4px;"
         )
         overview_layout.addWidget(self.solve_activity)
         self.solve_progress = QProgressBar()
@@ -1153,6 +1162,8 @@ class RouteMateWindow(QMainWindow):
         ):
             button = QPushButton(caption)
             button.setObjectName("boardZoomButton")
+            button.setIcon(load_button_icon("fit_board"))
+            button.setIconSize(QSize(24, 24))
             button.setToolTip(tip)
             button.clicked.connect(callback)
             heading_row.addWidget(button)
@@ -1168,29 +1179,29 @@ class RouteMateWindow(QMainWindow):
             QWidget#sidebarTabs { background: #f7fbff; }
             QTabWidget::pane { border: 1px solid #cbddec; border-radius: 10px;
                                 background: #f7fbff; }
-            QTabBar::tab { color: #59758c; background: #e6f0f9; padding: 9px 22px;
+            QTabBar::tab { color: #274965; background: #e6f0f9; padding: 9px 22px;
                            margin-right: 3px; border-radius: 7px; font-weight: 650; }
-            QTabBar::tab:selected { background: white; color: #2366a1;
+            QTabBar::tab:selected { background: white; color: #164971;
                                     border-bottom: 2px solid #257ac2; }
-            QLabel#projectSummary { background: #e6f3fc; color: #1d527a;
+            QLabel#projectSummary { background: #d9eefa; color: #123e5c;
                                     border-radius: 9px; padding: 12px;
                                     font-size: 12px; font-weight: 650; }
-            QLabel#solveSummary { background: #eaf5fc; color: #285a7c;
+            QLabel#solveSummary { background: #dfedf7; color: #173e5b;
                                   border-radius: 9px; padding: 12px;
                                   font-size: 12px; }
             QFrame#boardHeader { background: white; border: 1px solid #cbddec;
                                   border-radius: 11px; }
             QLabel#boardProjectLabel { color: #193d60; font-size: 15px; font-weight: 800; }
-            QLabel#boardResultLabel { color: #55758d; font-size: 11px; }
+            QLabel#boardResultLabel { color: #294e68; font-size: 12px; font-weight: 650; }
             QPushButton#boardZoomButton { background: #ffffff; color: #215778;
                                          padding: 7px 11px; border: 1px solid #bcd4e8;
                                          border-radius: 8px; font-weight: 700; }
             QPushButton#boardZoomButton:hover { background: #e8f7ff; border-color: #50b5dc; }
-            QStatusBar { background: #e4f0fa; color: #365c7a; font-size: 11px; }
+            QStatusBar { background: #d7e9f7; color: #163f5a; font-size: 12px; font-weight: 650; }
         """)
         self.statusBar().setMinimumHeight(26)
         self.statusBar().showMessage("Ready. Load a project JSON to begin.")
-        self.log_line(f"Route-Mate {GUI_VERSION} — 100-point native move calibration only")
+        self.log_line(f"StripSolve {GUI_VERSION} — 100-point native move calibration only")
         self.log_line(f"[GUI][REVISION] git={GUI_GIT_REVISION}")
         self.log_line("Workflow: import → input sanity → footprints → dimensions → locks → cuts → stacking → CPU probe → 100-point move check → STOP.")
         self.log_line("[SOLVER] CPU and 100-point probes remain separate from Pass One/Two.")
@@ -1214,10 +1225,10 @@ class RouteMateWindow(QMainWindow):
         self.board_result_label.setText(message)
         self.solve_summary.setText(message)
         backgrounds = {
-            "neutral": ("#eaf5fc", "#285a7c"),
-            "working": ("#e0f2ff", "#216896"),
-            "pass": ("#e1f6f3", "#127c81"),
-            "failed": ("#fff0f1", "#b33e55"),
+            "neutral": ("#dfedf7", "#173e5b"),
+            "working": ("#d8eefd", "#14486c"),
+            "pass": ("#d6f2eb", "#09635c"),
+            "failed": ("#ffe3e9", "#922638"),
         }
         bg, fg = backgrounds.get(level, backgrounds["neutral"])
         self.solve_summary.setStyleSheet(
@@ -2952,7 +2963,7 @@ class RouteMateWindow(QMainWindow):
     def load_json(self):
         start_dir = self.project_path.parent if self.project_path else default_project_directory()
         filename, _ = QFileDialog.getOpenFileName(
-            self, "Load Route-Mate project", str(start_dir),
+            self, "Load StripSolve project", str(start_dir),
             "Project JSON (*.json);;All files (*)",
             options=QFileDialog.Option.DontUseNativeDialog,
         )
@@ -3141,9 +3152,19 @@ class RouteMateWindow(QMainWindow):
 def main():
     app = QApplication(sys.argv)
     apply_arctic_theme(app)
-    app.setApplicationName("Route-Mate")
+    app.setApplicationName("StripSolve")
+    # Export artwork on the first run only. Read-only packaged apps still
+    # work through the SVG-to-QIcon in-memory fallback.
+    try:
+        export_assets()
+    except (OSError, ValueError, RuntimeError):
+        pass
+    app.setWindowIcon(load_app_icon())
     window = RouteMateWindow()
-    window.show()
+    splash = StripSolveSplash()
+    window._startup_splash = splash  # Keep the Qt widget alive until finished.
+    splash.finished.connect(window.show)
+    splash.start_demo()
     return app.exec()
 
 
