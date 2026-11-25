@@ -1588,7 +1588,11 @@ class RouteMateWindow(QMainWindow):
         self.preview_stack.setCurrentWidget(self.dashboard)
         self.board_fit_button.hide()
         project = self.project_path.stem.upper() if self.project_path else "STRIPSOLVE"
-        self.board_project_label.setText(f"{project} · PASS ONE LIVE")
+        running = ("RUNNING" in self.dashboard.state.text()
+                   or "RESUMING" in self.dashboard.state.text())
+        self.board_project_label.setText(
+            f"{project} · PASS ONE {'LIVE' if running else 'PERFORMANCE'}"
+        )
         self.board_result_label.setText(
             "Live strict-audit performance · quality, wires, cuts and seed timing"
         )
@@ -1601,8 +1605,20 @@ class RouteMateWindow(QMainWindow):
         """Switch cached SVG views without rerouting or changing component locks."""
         if side == "schematic" and not self._schematic_svg:
             return
+        was_dashboard = self.preview_stack.currentWidget() is self.dashboard
         self._board_side = side
         self.preview_stack.setCurrentWidget(self.top_view)
+        if was_dashboard:
+            project = self.project_path.stem.upper() if self.project_path else "BOARD"
+            board = self.project.get("board", {}) if isinstance(self.project, dict) else {}
+            rows, cols = board.get("rows"), board.get("cols")
+            dims = f" · {rows} × {cols} holes" if rows and cols else ""
+            self.board_project_label.setText(f"{project}{dims}")
+            self.board_result_label.setText(
+                "Board preview · live Pass One continues"
+                if self._pass_one_worker is not None else
+                "Board preview · return to dashboard to inspect Pass One results"
+            )
         self.board_fit_button.show()
         self.top_action.setChecked(side == "top")
         self.copper_action.setChecked(side == "copper")
