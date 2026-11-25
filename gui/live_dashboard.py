@@ -291,11 +291,23 @@ class OutcomeRing(QWidget):
         audited = passed + failed
         return f"{100 * passed / audited:.1f}%" if audited else "—"
 
+    def completion_text(self):
+        passed, failed, errors, remaining = self.counts
+        total = passed + failed + errors + remaining
+        if not total:
+            return "—"
+        # Errors are retried on resume, so they are not completed seeds.
+        completed = passed + failed
+        if completed == total:
+            return "100%"
+        percentage = min(99.99, 100 * completed / total)
+        return f"{percentage:.2f}".rstrip("0").rstrip(".") + "%"
+
     def paintEvent(self, event):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         passed, failed, errors, remaining = self.counts
-        total = max(1, passed + failed)
+        total = max(1, sum(self.counts))
         diameter = min(self.width()*0.53,self.height()-16,180)
         diameter = max(45,diameter)
         left = max(12,(self.width()*0.55-diameter)/2)
@@ -304,8 +316,8 @@ class OutcomeRing(QWidget):
                             Qt.PenCapStyle.RoundCap))
         painter.drawArc(ring,0,5760)
         current = 90*16
-        # The ring and its central percentage share the same denominator.
-        for value,color in ((passed,TEAL),(failed,BLUE)):
+        # Every scheduled seed occupies a share of the campaign ring.
+        for value,color in ((passed,TEAL),(failed,BLUE),(errors,CORAL),(remaining,'#dbe7ef')):
             if value:
                 sweep = -int(value/total*5760)
                 painter.setPen(QPen(QColor(color),19,Qt.PenStyle.SolidLine,
@@ -317,12 +329,12 @@ class OutcomeRing(QWidget):
         font.setBold(True)
         painter.setFont(font)
         painter.drawText(ring.adjusted(8,4,-8,-12),Qt.AlignmentFlag.AlignCenter,
-                         self.pass_rate_text())
+                         self.completion_text())
         font = QFont('Helvetica Neue',9)
         painter.setFont(font)
         painter.setPen(QColor(MUTED))
         painter.drawText(ring.adjusted(3,diameter*0.40,-3,0),
-                         Qt.AlignmentFlag.AlignCenter,'Pass rate')
+                         Qt.AlignmentFlag.AlignCenter,'Seeds completed')
         leg_x = max(ring.right()+20,self.width()*0.56)
         y = max(14,(self.height()-92)/2)
         for title,value,color in (('Verified',passed,TEAL),('Not qualified',failed,BLUE),
@@ -434,6 +446,10 @@ class LiveDashboard(QWidget):
         olayout.addLayout(_title_row('RUN OUTCOMES'))
         self.ring = OutcomeRing()
         olayout.addWidget(self.ring,1)
+        self.qualification_rate = _label('Qualification rate: —', 'qualificationRate', 14, TEAL, 750)
+        self.qualification_rate.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.qualification_rate.setToolTip('Verified seeds divided by all definitively audited seeds. Errors and pending seeds are excluded.')
+        olayout.addWidget(self.qualification_rate)
         middle.addWidget(outcome_card,4)
         content.addLayout(middle,2)
 
@@ -591,6 +607,7 @@ class LiveDashboard(QWidget):
         self.processed.setText(f'{self._done:,} / {self._total:,} seeds')
         self.ring.set_counts(self._qualified,self._failed,self._errors,
                              max(0,self._total-self._qualified-self._failed-self._errors))
+        self.qualification_rate.setText(f'Qualification rate: {self.ring.pass_rate_text()}')
         self._redraw_plots()
 
     def finish(self,*,completed,qualified):

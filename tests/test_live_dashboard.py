@@ -83,6 +83,8 @@ class LiveDashboardGuiTests(unittest.TestCase):
             self.assertEqual(board.length_mm.text(),'284.48 mm')
             self.assertEqual(board.progress.value(),125)
             self.assertEqual(board.ring.counts,(2,123,0,75))
+            self.assertEqual(board.ring.completion_text(),'62.5%')
+            self.assertEqual(board.qualification_rate.text(),'Qualification rate: 1.6%')
             self.assertFalse(hasattr(board,'quality_plot'))
             self.assertFalse(hasattr(board,'wc_plot'))
             self.assertEqual(len(board.runtime_plot.points),4)
@@ -108,6 +110,24 @@ class LiveDashboardGuiTests(unittest.TestCase):
             ]:
                 ring.set_counts(*counts)
                 self.assertEqual(ring.pass_rate_text(), expected)
+        finally:
+            ring.close()
+
+    def test_completion_is_independent_of_qualification(self):
+        ring = OutcomeRing()
+        try:
+            for counts, completion, qualification in [
+                ((0, 0, 0, 0), '—', '—'),
+                ((0, 0, 0, 200), '0%', '—'),
+                ((10, 70, 0, 120), '40%', '12.5%'),
+                ((17, 183, 0, 0), '100%', '8.5%'),
+                ((0, 200, 0, 0), '100%', '0.0%'),
+                ((17, 182, 1, 0), '99.5%', '8.5%'),
+                ((1, 1998, 0, 1), '99.95%', '0.1%'),
+            ]:
+                ring.set_counts(*counts)
+                self.assertEqual(ring.completion_text(), completion)
+                self.assertEqual(ring.pass_rate_text(), qualification)
         finally:
             ring.close()
 

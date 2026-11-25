@@ -1,5 +1,11 @@
 # Changelog
 
+### GUI 2.22 — Separate campaign completion from qualification rate (25 November 2026)
+- Ring centre displays completed seeds as a percentage of all scheduled seeds; errors are retryable and not counted as complete.
+- Restore proportional outcome segments including pending and errors. Display qualification rate separately, excluding errors and pending.
+- Add regression cases for zero, partial, complete and errored campaigns, including the 17/200 example. Mac regression run outstanding.
+
+
 ### GUI 2.21 — Readable champion and live metrics (25 November 2026)
 - Replace unexplained scoring abbreviations with labelled construction metrics and quality out of 100. Keep Q2 version internally.
 - Display audited pass rate with one decimal and use the same audited denominator for the ring. No audited seeds shows a dash; pending/errors remain separate counts.
