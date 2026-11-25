@@ -64,7 +64,7 @@ class LiveScoreboardGuiTests(unittest.TestCase):
                 dict(seed=50, q=78.24, w=29, cut=44, time_taken=0.7),
                 dict(seed=18, q=77.00, w=30, cut=45, time_taken=0.5),
             ],
-            "last": {"seed": 125, "valid": False},
+            "last": {"seed": 125, "valid": False, "seconds": 1.4},
         }
 
     def test_live_updates_counters_ranking_and_latest_status(self):
