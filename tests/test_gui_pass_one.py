@@ -1,4 +1,4 @@
-"""Pass One CSV keeps verified W/C/Q/time and never writes solved JSON to Work."""
+"""Pass One tracks PASS/FAIL/ERROR and saves winner JSON outside CSV folder."""
 import csv
 import json
 from pathlib import Path
@@ -6,7 +6,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 from gui import pass_one
-from gui.work_directory import ensure_work
+from gui.work_directory import ensure_work, pass_one_budget_dir
 
 
 class PassOneContract(unittest.TestCase):
@@ -17,12 +17,18 @@ class PassOneContract(unittest.TestCase):
                  "components": [{"boardPos": {"row":1,"col":1}}]}
         self.assertAlmostEqual(pass_one.quality100(saved), 98.95)
 
-    def test_pass_one_csv_only_verified_rows(self):
+    def test_pass_one_csv_records_pass_and_fail_seeds(self):
         with tempfile.TemporaryDirectory() as td:
             root = ensure_work(Path(td) / "Work")
-            out = root / "pass 1"
+            out = pass_one_budget_dir(root, 10000, create=True)
             events, logs = [], []
-            def fake_seed(project, moves, seed, drilled, stacking, cancel):
+            def fake_seed(project, moves, seed, drilled, stacking, cancel,
+                          *, retained_candidate=None):
+                if retained_candidate is not None:
+                    Path(retained_candidate).write_text(json.dumps({
+                        "board": {"rows": 24, "cols": 56, "wires": [], "cuts": []},
+                        "components": []
+                    }), encoding="utf-8")
                 self.assertEqual(moves, 10000)
                 if seed == 1:
                     return {"seed": 1, "valid": True,
@@ -42,14 +48,22 @@ class PassOneContract(unittest.TestCase):
             self.assertEqual(project["board"]["lockedRows"], False)
             with (out / "results.csv").open(newline="", encoding="utf-8") as f:
                 rows = list(csv.DictReader(f))
-            self.assertEqual(len(rows), 1)
-            self.assertEqual(rows[0], {
-                "seed":"0001", "cut":"44", "w":"29",
-                "q":"78.24", "time_taken":"3.200"})
+            self.assertEqual(len(rows), 2)
+            by_seed = {row["seed"]: row for row in rows}
+            self.assertEqual(by_seed["0001"], {
+                "seed": "0001", "cut": "44", "w": "29", "q": "78.24",
+                "time_taken": "3.200", "status": "PASS", "reason": "",
+            })
+            self.assertEqual(by_seed["0002"]["status"], "FAIL")
+            self.assertIn("short circuit", by_seed["0002"]["reason"])
             self.assertEqual(sorted(p.name for p in out.iterdir()),
-                             ["activity.log", "results.csv"])
-            self.assertTrue(any("[PASS1][REJECT]" in line for line in logs))
-            self.assertEqual(len(events), 2)
+                             ["activity.log", "campaign.json", "results.csv"])
+            self.assertEqual(json.loads((out / "campaign.json").read_text())["state"],
+                             "COMPLETED")
+            self.assertTrue(any("[PASS1][FAIL]" in line for line in logs))
+            self.assertEqual(len(events), 3)  # Restored initial progress plus both seeds.
+            self.assertTrue(Path(result["winner_json"]).is_file())
+            self.assertEqual(Path(result["winner_json"]).name, "winner_seed_0001.json")
 
     def test_unsupported_move_budget_rejected(self):
         with self.assertRaises(ValueError):
