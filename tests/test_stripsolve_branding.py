@@ -137,6 +137,31 @@ class StripSolveGuiTests(unittest.TestCase):
         finally:
             splash.close()
 
+    def test_overview_keeps_pass_results_outside_scrolling_checklist(self):
+        from PySide6.QtWidgets import QFrame, QScrollArea
+        window = RouteMateWindow()
+        try:
+            scroll = window.findChild(QScrollArea, "overviewChecklistScroll")
+            footer = window.findChild(QFrame, "overviewResultFooter")
+            self.assertIsNotNone(scroll)
+            self.assertIsNotNone(footer)
+            self.assertIs(scroll.widget().findChild(type(window.checklist)), window.checklist)
+            self.assertIs(window.solve_summary.parentWidget(), footer)
+            for widget in (
+                window.solve_activity, window.solve_progress,
+                window.solve_worker_status, window.solve_eta,
+            ):
+                self.assertIs(widget.parentWidget(), footer)
+            overview = window.sidebar_tabs.widget(0)
+            self.assertEqual(overview.layout().indexOf(scroll), 0)
+            self.assertEqual(overview.layout().indexOf(footer), 1)
+            self.assertGreater(overview.layout().stretch(0), 0)
+            # The checklist remains accessible on smaller window heights,
+            # while the live result never becomes a scroll-only item.
+            self.assertIs(footer.parentWidget(), overview)
+        finally:
+            window.close()
+
     def test_existing_toolbar_actions_use_icons_and_stripsolve_name(self):
         window = RouteMateWindow()
         try:
