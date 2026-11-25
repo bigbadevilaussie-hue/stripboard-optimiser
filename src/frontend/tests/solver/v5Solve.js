@@ -410,12 +410,16 @@ const solvedBoard = {
 // their off-board parents, the board replaced, a name that says what it is
 if (saveFile) {
   const { collapseLeads } = require(path.join(OUT, "components/stripboard/offBoard.js"));
+  const { preserveInputLockMetadata } = require("./preserveInputLockMetadata.js");
   const positions = new Map(res.placements.map((p) => [p.componentId, p.boardPos]));
   const tag = stackCap ? `stack${stackCap}` : macroCap ? `macro${macroCap}` : "joint";
   const saved = {
     ...data,
     name: `${tag} of prod ${id} seed ${seed}`,
-    components: collapseLeads(solvedComps, positions),
+    // The native input sanitiser clears unlocked parts' "locked" property.
+    // Restore its original presence/value in the saved JSON, or the
+    // independent definition audit falsely rejects valid routed boards.
+    components: preserveInputLockMetadata(data.components, collapseLeads(solvedComps, positions)),
     board: { ...data.board, rows: solvedBoard.rows, cols: solvedBoard.cols, cuts: solvedBoard.cuts, wires: solvedBoard.wires, lockedRows: data.board.lockedRows ?? false, lockedCols: data.board.lockedCols ?? false },
     autoLayoutUsed: true,
   };
