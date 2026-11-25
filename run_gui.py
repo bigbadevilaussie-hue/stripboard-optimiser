@@ -1,4 +1,4 @@
-"""Launch the Route-Mate desktop GUI."""
+"""Launch the StripSolve desktop GUI."""
 from multiprocessing import freeze_support
 
 if __name__ == "__main__":
