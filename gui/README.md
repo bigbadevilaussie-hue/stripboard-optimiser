@@ -1,6 +1,14 @@
 # StripSolve GUI 2.18 — Arctic Ice + Colourburst
 
-**Live Pass One dashboard (2.17):** The full main preview area—not the
+**Strict audit metadata correction (2.18):** The native CLI now restores
+the original `locked` attribute on saved components after its search-only
+normalisation. This resolves false rejects for movable parts with explicit
+`locked:false` while preserving every physical/electrical audit rule. Already
+recorded FAIL rows are unchanged; **do not pull or restart while a campaign
+is running**. Finish and preserve the original CSV before considering targeted
+seed replay from the same prepared input.
+
+**Live Pass One dashboard (2.17–2.18):** The full main preview area—not the
 sidebar—is replaced by a modern native Qt6 dashboard when Pass One starts.
 Four rounded KPI cards show seeds checked, independent strict PASS, best
 audited Q and that board's wires/cuts. Antialiased QPainter charts show
