@@ -1,3 +1,34 @@
+# StripSolve GUI 2.13 — Arctic Ice + Colourburst
+
+**Current app name: StripSolve.** The original Route-Mate donor lineage
+described below is historical and still relevant for provenance. The GitHub
+repository and `Work/` project identifiers intentionally keep their existing
+paths so prior runs are not lost.
+
+The current PySide6 GUI has Pass One 10k/20k campaigns with 200-seed DEBUG
+and 2,000-seed FULL modes, per-budget CSV status tracking, resume and
+explicit overwrite confirmation. Pass One independently audits each PASS,
+replays its best surviving candidate, and saves winner JSON plus two SVGs.
+Pass Two currently **imports** vetted survivors; the Pass Two native search
+strategy remains unimplemented. No source JSON is overwritten.
+
+The 10 toolbar icons and 1024x1024 application icon use the custom
+StripSolve copper-stripboard S artwork. To regenerate artwork offline:
+
+```sh
+python3 tools/build_icons.py
+# optional: python3 tools/build_icons.py --png
+PATH="/opt/local/bin:$PATH" python3 run_gui.py
+```
+
+Assets are generated into `gui/icons/` and `gui/assets/`, with an in-memory
+SVG fallback when those directories are read-only. Existing customised assets
+are preserved unless the generator is explicitly run with `--force`.
+The short splash only indicates desktop UI startup; it does not claim to run
+native solver checks.
+
+## Historical donor notes
+
 # Route-Mate GUI 2.08 — direct PySide6 GUI import
 
 Donor: `bigbadevilaussie-hue/Route-Mate`, audited commit
