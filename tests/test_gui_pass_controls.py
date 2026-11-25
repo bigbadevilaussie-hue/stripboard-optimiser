@@ -169,6 +169,62 @@ class PassControlTests(unittest.TestCase):
             finally:
                 w.close()
 
+    def test_pass_one_debug_checkbox_controls_exact_seed_count(self):
+        dialog = PassOneDialog({"ms_per_decode": 0.2})
+        try:
+            self.assertFalse(dialog.debug())
+            self.assertEqual(dialog.seeds(), 2000)
+            dialog.debug_mode.setChecked(True)
+            self.assertTrue(dialog.debug())
+            self.assertEqual(dialog.seeds(), 200)
+            dialog.debug_mode.setChecked(False)
+            self.assertEqual(dialog.seeds(), 2000)
+        finally:
+            dialog.close()
+
+    def test_debug_launch_200_preserves_existing_full_2000_csv(self):
+        with tempfile.TemporaryDirectory() as td:
+            from gui.work_directory import project_workspace, pass_one_budget_dir
+            root = Path(td) / "Work"
+            source = Path(td) / "moto.json"
+            source.write_text("{}")
+            workspace = project_workspace(source, root, create=True)
+            full = pass_one_budget_dir(workspace, 10000, create=True)
+            (full / "results.csv").write_text("SAVED FULL 2000")
+            window = RouteMateWindow()
+            try:
+                window.work_root = root
+                window.project = {"board": {"rows": 24, "cols": 56}}
+                window.project_path = source
+                window.active_workspace = workspace
+                window._calibration_stages["CALIBRATION"] = "done"
+                window._probe_cut_drilled_only = False
+                window._probe_stacking_allowed = True
+                window._recommended_workers = 3
+                with patch.object(PassOneDialog, "exec",
+                                  return_value=QDialog.DialogCode.Accepted), \
+                     patch.object(PassOneDialog, "moves", return_value=10000), \
+                     patch.object(PassOneDialog, "debug", return_value=True), \
+                     patch.object(PassOneDialog, "seeds", return_value=200), \
+                     patch("gui.native_calibration.prerequisites"), \
+                     patch("gui.pass_one.AUDITOR", Path(__file__)), \
+                     patch("gui.main.PassOneExistingDialog") as overwrite, \
+                     patch.object(PassOneWorker, "start") as start:
+                    window.start_pass_one()
+                    start.assert_called_once()
+                    overwrite.assert_not_called()
+                self.assertEqual(window._solve_budget, 200)
+                self.assertEqual(window.solve_progress.maximum(), 200)
+                self.assertEqual((full / "results.csv").read_text(), "SAVED FULL 2000")
+                self.assertTrue(window._pass_one_worker.debug)
+                self.assertEqual(window._pass_one_worker.seeds, 200)
+                self.assertEqual(window._pass_one_worker.output,
+                                 pass_one_budget_dir(workspace, 10000, debug=True))
+            finally:
+                window._solve_clock.stop()
+                window._pass_one_worker = None
+                window.close()
+
     def test_pass_one_explicit_go_only_clears_pass_one(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td) / "Work"
