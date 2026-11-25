@@ -1,5 +1,12 @@
 # Changelog
 
+### GUI 2.25 — Actual JSON search-budget probe and Edge decoder selection (25 November 2026)
+- Separate the 100-decode timing probe from actual independently audited qualification samples; reuse matching complete FULL history, target 5% survival, compare 20k only when 10k is below target.
+- Present measured results and approximate runtime/survivor projections before explicit GO, preserving DEBUG/FULL and overwrite gates. Report zero-survivor uncertainty; save separate budget_probe.json diagnostics.
+- Select the Edge decoder for locked Edge mounts consistently in calibration, probe, Pass One and replay; new Edge manifests include binary SHA256. Keep standard campaign identity and strict rules unchanged.
+- Add decision, probe, decoder and dialog tests. GUI 2.24 standalone CLI smoke checks passed on the development Mac; 2.25 source suite and new bundle remain to be verified.
+
+
 ### GUI 2.24 — Standalone macOS packaging (25 November 2026)
 - Adapt the previously Mac-tested Route-Mate build script. Generate ICNS from approved StripSolve PNG and bundle Qt, Node, librsvg, renderers, native V5 CLI/addon/standard and Edge decoders, router, WASM and auditor.
 - Resolve bundled tools explicitly for Finder launch; store frozen-app Work in Application Support and preserve source-mode paths. Capture the GUI build revision; do not regenerate artwork inside the bundle.

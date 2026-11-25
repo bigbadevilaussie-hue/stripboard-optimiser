@@ -1,6 +1,8 @@
 # Stripboard Optimiser — Version 2.00 project contract
 
-## Current release: StripSolve GUI 2.24 / Q2 (25 November 2026)
+## Current release: StripSolve GUI 2.25 / Q2 (25 November 2026)
+
+GUI 2.25: speed calibration remains a 100-decode timing-only measurement. The separate actual-JSON budget probe uses strict native solves and independent saved-board audits, targets 100 survivors per 2,000 seeds (5%), and compares 10k/20k only as needed. Compatible completed FULL history takes priority. See [budget probe](docs/BUDGET_PROBE.md). Locked Edge mounts automatically select the Edge decoder in speed calibration, probe, Pass One and replay. No Slide search or strict-rule change.
 
 macOS standalone build: [build_mac_app.sh](build_mac_app.sh) adapts the Mac-tested Route-Mate packaging workflow to StripSolve, including the native V5 CLI, Node, SVG renderers, librsvg converter and approved artwork. See [STANDALONE_MACOS.md](docs/STANDALONE_MACOS.md). Packaged Work lives in `~/Library/Application Support/StripSolve/Work/`; source checkout Work is unchanged. The new StripSolve bundle is not yet Mac-verified.
 
@@ -32,7 +34,7 @@ See [Q2 research](docs/QUALITY_Q2_2026-11-25.md) for the 1,053-board comparison.
 
 **Earlier GUI integration milestones below are historical where they conflict with the current release.**
 
-**Milestone:** Consolidation of Two Repositories (24 November 2026). GUI version **2.24** is independently tracked in `gui/VERSION` (24 Nov 2026).
+**Milestone:** Consolidation of Two Repositories (24 November 2026). GUI version **2.25** is independently tracked in `gui/VERSION` (24 Nov 2026).
 
 **Current live-work handoff:** [Audio/Moto 12k WR sweep, results, multipass plan and GUI boundaries](docs/ACTIVE_HANDOFF_2026-11-24.md). **Historic static audit:** [Repository integrity and integration audit](docs/REPOSITORY_AUDIT_2026-11-24.md). Historical handovers remain useful but their future-phase language may now be outdated.
 

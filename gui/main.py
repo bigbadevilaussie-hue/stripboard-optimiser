@@ -316,9 +316,9 @@ class PassOneDialog(QDialog):
         self.setWindowFlag(Qt.WindowType.FramelessWindowHint, True)
         self.setWindowTitle("Pass One — Move Budget")
         self.setModal(True)
-        self.setMinimumWidth(450)
+        self.setMinimumWidth(550)
         layout = QVBoxLayout(self)
-        heading = QLabel("Pass One")
+        heading = QLabel("Pass One — Search budget")
         heading.setStyleSheet("font-size: 17px; font-weight: 800;")
         layout.addWidget(heading)
         explanation = QLabel(
@@ -341,36 +341,47 @@ class PassOneDialog(QDialog):
             layout.addWidget(policies)
         self.ten_k = QRadioButton("10,000 moves per seed")
         self.twenty_k = QRadioButton("20,000 moves per seed")
-        ms = (probe_result or {}).get("ms_per_decode")
-        if isinstance(ms, (int, float)) and ms > 0:
-            ten_est = 10000 * ms / 1000
-            twenty_est = 20000 * ms / 1000
-            # Transparent runtime heuristic, NOT a quality prediction.
-            self._recommended = 20000 if twenty_est <= 30 else 10000
-            timing = QLabel(
-                f"100-point decoder timing: {ms:.5f} ms/decode. "
-                f"Approximate decoder work per seed: 10k ≈ {ten_est:.1f}s; "
-                f"20k ≈ {twenty_est:.1f}s. "
-                "Excludes routing/finishing and does not prove quality."
-            )
-        else:
-            self._recommended = 10000
-            timing = QLabel(
-                "100-point timing unavailable. Default is 10k; "
-                "this is not a verified quality recommendation."
-            )
+        data = (probe_result or {}).get("budget_probe") or {}
+        self._recommended = data.get("recommended_moves", 10000)
+        evidence = QFrame()
+        evidence.setStyleSheet("QFrame { background: #f1f8fd; border: 1px solid #cbddec; border-radius: 10px; } QLabel { border: none; background: transparent; }")
+        details = QVBoxLayout(evidence)
+        details.setContentsMargins(13, 10, 13, 10)
+        title = QLabel("Observed qualification · target 100 survivors")
+        title.setStyleSheet("font-size: 13px; font-weight: 800; color: #153e5b;")
+        details.addWidget(title)
+        for key, moves in (("ten", 10000), ("twenty", 20000)):
+            stats = data.get(key)
+            if stats:
+                count = stats["qualified"]
+                tested = stats["tested"]
+                low, high = stats["rate_interval"]
+                minutes = max(1, round(stats["estimated_full_seconds"] / 60))
+                label = QLabel(
+                    f"{moves//1000}k · {stats['source']} · {count:,}/{tested:,} qualified "
+                    f"({stats['rate']:.1%})\n"
+                    f"Full run: ~{stats['estimated_survivors']:,} survivors · ~{minutes} min\n"
+                    f"Sampling interval: {low:.1%}–{high:.1%}"
+                )
+            else:
+                label = QLabel(f"{moves//1000}k · Not measured")
+            label.setWordWrap(True)
+            details.addWidget(label)
+        reason = QLabel(data.get("reason", "No qualification evidence; 10k is the default."))
+        reason.setWordWrap(True)
+        reason.setStyleSheet("font-weight: 700; color: #166c77;")
+        details.addWidget(reason)
+        layout.addWidget(evidence)
+        timing = QLabel("Runtime estimates include observed routing and finishing. "
+                        "Small samples are approximate, not a guarantee.")
         timing.setWordWrap(True)
-        guess_heading = QLabel("GUESS-O-MATIC · 100-point decoder timing")
-        guess_heading.setStyleSheet(
-            "font-size: 12px; font-weight: 800; color: #153e5b;"
-        )
-        layout.addWidget(guess_heading)
         layout.addWidget(timing)
         if self._recommended == 10000:
-            self.ten_k.setText("10,000 moves — suggested for first-pass screening")
+            self.ten_k.setText("10,000 moves — selected from qualification evidence" if data
+                               else "10,000 moves — default")
             self.ten_k.setChecked(True)
         else:
-            self.twenty_k.setText("20,000 moves — suggested from decoder timing")
+            self.twenty_k.setText("20,000 moves — selected for deeper search")
             self.twenty_k.setChecked(True)
         layout.addWidget(self.ten_k)
         layout.addWidget(self.twenty_k)
@@ -709,7 +720,7 @@ class WorkflowChecklist(QWidget):
         ("CONSTRAINTS", "Placement locks"),
         ("CUTS", "Cuts"),
         ("STACK", "Wire stacking"),
-        ("CALIBRATION", "Speed calibration"),
+        ("CALIBRATION", "Speed & budget probe"),
         ("PASS1", "1st Pass"),
         ("PASS2", "2nd Pass"),
         ("FINAL", "Final Pass"),
@@ -891,20 +902,26 @@ class NativeCalibrationWorker(QThread):
     failed = Signal(str)
     cancelled = Signal()
 
-    def __init__(self, project, workers, drilled_only, stacking_allowed, parent=None):
+    def __init__(self, project, workers, drilled_only, stacking_allowed, parent=None, *, workspace=None):
         super().__init__(parent)
         self.project = copy.deepcopy(project)
         self.workers = workers
         self.drilled_only = drilled_only
         self.stacking_allowed = stacking_allowed
+        self.workspace = workspace
 
     def run(self):
         from gui.native_calibration import calibrate, Cancelled
+        from gui.budget_probe import probe_budget
         try:
             result = calibrate(
                 self.project, self.workers,
                 self.drilled_only, self.stacking_allowed,
                 self.tick.emit, self.diagnostic.emit, self.isInterruptionRequested)
+            result["budget_probe"] = probe_budget(
+                self.project, self.workers, self.drilled_only, self.stacking_allowed,
+                self.tick.emit, self.diagnostic.emit, self.isInterruptionRequested,
+                workspace=self.workspace)
             self.completed.emit(result)
         except Cancelled:
             self.cancelled.emit()
@@ -1256,8 +1273,8 @@ class RouteMateWindow(QMainWindow):
         self.statusBar().showMessage("Ready. Load a project JSON to begin.")
         self.log_line(f"StripSolve {GUI_VERSION} — Q2 native Pass One")
         self.log_line(f"[GUI][REVISION] git={GUI_GIT_REVISION}")
-        self.log_line("Workflow: import → input sanity → footprints → dimensions → locks → cuts → stacking → speed calibration → Pass One GO.")
-        self.log_line("[SOLVER] Speed calibration measures decoder performance only.")
+        self.log_line("Workflow: import → input sanity → footprints → dimensions → locks → cuts → stacking → speed and qualification probe → Pass One GO.")
+        self.log_line("[SOLVER] Speed measures decoding; qualification probe runs actual audited seeds.")
         try:
             ensure_workspace_root(self.work_root)  # Work root only; legacy remains untouched
             self.log_line(f"[WORK] Project workspaces root: {self.work_root}")
@@ -1903,7 +1920,7 @@ class RouteMateWindow(QMainWindow):
             self.close()
 
     def _start_calibration(self):
-        """Exactly 100 native decoder samples, not a solver campaign."""
+        """Measure decoder speed, then probe actual qualification before campaign GO."""
         if self.project is None or self._calibration_worker is not None:
             return
         workers = self._recommended_workers
@@ -1922,11 +1939,11 @@ class RouteMateWindow(QMainWindow):
         self._calibration_stages["CALIBRATION"] = "running"
         self._refresh_checklist()
         self._solve_clock.start()
-        self.log_line("[MOVE100][START] ONE --speedprobe 100 native call; "
-                      "100 random-genome decodes, ZERO full solver runs.")
+        self.log_line("[MOVE100][START] Speed only; followed by a separate qualification probe.")
         worker = NativeCalibrationWorker(
             self.project, workers,
-            self._probe_cut_drilled_only, self._probe_stacking_allowed, self)
+            self._probe_cut_drilled_only, self._probe_stacking_allowed, self,
+            workspace=self.active_workspace)
         self._calibration_worker = worker
         worker.tick.connect(self._calibration_tick)
         worker.diagnostic.connect(self.log_line)
@@ -1937,7 +1954,18 @@ class RouteMateWindow(QMainWindow):
         worker.start()
 
     def _calibration_tick(self, event):
-        if event["phase"] == "running":
+        if event["phase"] == "budget_probe":
+            self._solve_done = int(event["completed"])
+            self._solve_budget = int(event["total"])
+            self.solve_progress.setRange(0, self._solve_budget)
+            self.solve_progress.setValue(self._solve_done)
+            message = (f"Budget probe · {event['moves']//1000}k · "
+                       f"{self._solve_done}/{self._solve_budget} seeds · "
+                       f"{event['qualified']} verified")
+            self.solve_activity.setText(message)
+            self.statusBar().showMessage(message)
+            self._set_board_summary(message, level="working")
+        elif event["phase"] == "running":
             self.solve_activity.setText("100-point move check · native measurement running")
             self.solve_worker_status.setText(
                 "Native decoder measurement · no per-sample progress available")
@@ -1955,15 +1983,13 @@ class RouteMateWindow(QMainWindow):
         self._solve_done = 100
         self.solve_progress.setRange(0, 100)
         self.solve_progress.setValue(100)
-        self.solve_activity.setText("MOVE CHECK COMPLETE · Pass One awaits GO")
+        self.solve_activity.setText("BUDGET PROBE COMPLETE · Pass One awaits GO")
         self.solve_worker_status.setText(
             f"100 decodes · {result['ms_per_decode']:.5f}ms/decode · "
             f"{result['decodes_per_second']:,.0f} decodes/s")
-        self.log_line("[MOVE100][DONE] 100/100 random decoder points; "
-                      "0 placement, routing, solve attempts or final electrical check.")
-        self.log_line("[MOVE100][READY] Pass One confirmation opens after the native probe exits; no solver campaign starts without GO.")
-        self.statusBar().showMessage("MOVE CALIBRATION COMPLETE — Pass One confirmation will open.")
-        self._set_board_summary("Speed calibration complete", level="neutral")
+        self.log_line("[BUDGET][READY] Qualification evidence available; campaign starts only after GO.")
+        self.statusBar().showMessage("BUDGET PROBE COMPLETE — Choose Pass One budget.")
+        self._set_board_summary("Search budget probe complete", level="neutral")
 
     def _calibration_failed(self, error):
         self._pass_one_prompt_pending = False
@@ -1971,7 +1997,7 @@ class RouteMateWindow(QMainWindow):
         self._refresh_checklist()
         self.solve_progress.setRange(0, 100)
         self.solve_progress.setValue(0)
-        self.solve_activity.setText("100-point move check FAILED · see Activity")
+        self.solve_activity.setText("Speed / budget probe failed · see Activity")
         self.solve_worker_status.setText(str(error))
         self.log_line("[MOVE100][ERROR] " + str(error))
         self.log_line("[MOVE100][STOP] No optimisation pass started.")
@@ -1980,7 +2006,7 @@ class RouteMateWindow(QMainWindow):
         self._pass_one_prompt_pending = False
         self.solve_progress.setRange(0, 100)
         self.solve_progress.setValue(0)
-        self.solve_activity.setText("100-point move check cancelled")
+        self.solve_activity.setText("Speed / budget probe cancelled")
         self.log_line("[MOVE100][CANCELLED] No optimiser pass started.")
 
     def _calibration_finished(self):
@@ -2021,7 +2047,7 @@ class RouteMateWindow(QMainWindow):
             or not isinstance(self._recommended_workers, int) or self._recommended_workers < 1):
             QMessageBox.information(
                 self, "Pass One", "Finish board/lock review, routing rules, "
-                "the 100-point speed calibration before Pass One."
+                "the search budget probe before Pass One."
             )
             return
         dialog = PassOneDialog(
@@ -2036,9 +2062,10 @@ class RouteMateWindow(QMainWindow):
         debug = dialog.debug()
         seeds = dialog.seeds()
         try:
-            from gui.native_calibration import prerequisites
+            from gui.native_calibration import prerequisites, decoder_directory
             from gui.pass_one import AUDITOR, inspect_pass_one_campaign
             prerequisites()
+            decoder_directory(self.project)
             if not AUDITOR.is_file():
                 raise RuntimeError(f"Independent saved-board auditor is missing: {AUDITOR}")
             workspace = project_workspace(self.project_path, self.work_root, create=False)
@@ -2564,8 +2591,7 @@ class RouteMateWindow(QMainWindow):
                                              else "Estimated from previous seed timings")
             return
         if self._calibration_worker is not None:
-            self.solve_eta.setText(
-                f"Elapsed: {self._clock_text(elapsed)} · ETA unavailable (100 decoder samples)")
+            self.solve_eta.setText(f"Elapsed: {self._clock_text(elapsed)} · Budget probe")
             return
         if self._worker_time_stats:
             # Parallel jobs do not finish in total-attempt order. The

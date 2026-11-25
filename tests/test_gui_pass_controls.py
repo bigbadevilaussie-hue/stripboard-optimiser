@@ -103,6 +103,27 @@ class PassControlTests(unittest.TestCase):
         finally:
             dialog.close()
 
+    def test_pass_one_budget_uses_qualification_not_speed(self):
+        from gui.budget_probe import summary, choose
+        def data(moves, count):
+            return summary(moves, [{"status": "PASS" if i < count else "FAIL",
+                                    "q": 65, "time_taken": 1.0}
+                                   for i in range(100)], "100-seed probe", 3)
+        for ten, twenty, selected in [(9, 0, 10000), (1, 4, 20000), (0, 0, 20000)]:
+            a, b = data(10000, ten), data(20000, twenty)
+            budget, reason = choose(a, b)
+            dialog = PassOneDialog({"ms_per_decode": 0.01,
+                "budget_probe": {"recommended_moves": budget, "reason": reason,
+                                 "ten": a, "twenty": b}})
+            try:
+                self.assertEqual(dialog.moves(), selected)
+                labels = " ".join(label.text() for label in dialog.findChildren(QLabel))
+                self.assertIn(f"{ten}/100 qualified", labels)
+                self.assertIn(f"{twenty}/100 qualified", labels)
+                self.assertNotIn("suggested from decoder timing", labels)
+            finally:
+                dialog.close()
+
     def test_pass_one_radio_checkbox_and_go(self):
         dialog = PassOneDialog({"ms_per_decode": 3.0})
         try:

@@ -20,6 +20,19 @@ NATIVE = FRONTEND / "tests/solver/native/build"
 POINTS = 100
 
 
+def decoder_directory(project):
+    """Edge-enabled decoder only for explicitly locked Edge mounts."""
+    edge = any(c.get("locked") is True and c.get("edge") is True
+               and isinstance(c.get("boardPos"), dict)
+               and not (c.get("offBoard") or c.get("boardExcluded"))
+               for c in project.get("components", []))
+    selected = NATIVE / "edge" if edge else NATIVE
+    if edge and not (selected / "libv5decode.so").is_file():
+        raise RuntimeError("Locked Edge mount requires the native Edge decoder. "
+                           "Build it with npm run build:native:edge in src/frontend.")
+    return selected
+
+
 class Cancelled(Exception):
     pass
 
@@ -112,11 +125,12 @@ def calibrate(project, workers, drilled_only, stacking_allowed, progress, diagno
             "--routing-preference", "wires",
         ]
         env = os.environ.copy()
-        env["V5_NATIVE_LIB_DIR"] = str(NATIVE)
+        decoder = decoder_directory(prepared)
+        env["V5_NATIVE_LIB_DIR"] = str(decoder)
         env.pop("V5_NATIVE_ROUTE_LIB_DIR", None)
         env["STRIPBOARD_TIMING"] = "1"
         diagnostic("[MOVE100][COMMAND] " + " ".join(command))
-        diagnostic(f"[MOVE100][ENV] V5_NATIVE_LIB_DIR={NATIVE}; STRIPBOARD_TIMING=1")
+        diagnostic(f"[MOVE100][ENV] V5_NATIVE_LIB_DIR={decoder}; STRIPBOARD_TIMING=1")
         progress({"phase": "running", "completed": 0})
         started = perf_counter()
         code, stdout, stderr = run_process(command, env, cancelled)

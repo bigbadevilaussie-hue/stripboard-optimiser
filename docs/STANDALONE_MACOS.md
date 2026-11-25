@@ -1,4 +1,4 @@
-# StripSolve — macOS standalone application (GUI 2.24)
+# StripSolve — macOS standalone application (GUI 2.25)
 
 ## Provenance and status
 
@@ -74,9 +74,7 @@ for icons or workspaces.
 - Test without source checkout/developer PATH, then on a separate clean Mac
   before claiming portable distribution. MacPorts-linked library/plugin
   portability, architecture compatibility and notarisation remain unverified.
-- MOTOEX locked Edge decoder selection is a separate outstanding integration
-  defect: the build includes the Edge library but does not change the current
-  GUI's selection policy. No native solver, scoring or audit rule is changed.
+- GUI 2.25 automatically selects the bundled Edge decoder for locked Edge mounts. See [budget probe](BUDGET_PROBE.md). This must still be verified on MOTOEX. No native solver, scoring or audit rule is changed.
 
 This package is for the target Mac architecture; it is not a universal,
 notarised distribution or an installer. Pass Two remains import-only.

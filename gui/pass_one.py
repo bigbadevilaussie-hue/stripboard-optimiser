@@ -20,7 +20,7 @@ import tempfile
 from time import perf_counter
 
 from gui.native_calibration import (
-    Cancelled, CLI, FRONTEND, NATIVE, prerequisites, run_process,
+    Cancelled, CLI, FRONTEND, NATIVE, prerequisites, run_process, decoder_directory,
 )
 from gui.work_directory import (
     CAMPAIGN_FIELDS, CAMPAIGN_MANIFEST, load_campaign_records,
@@ -64,7 +64,7 @@ def _run_seed(project, moves, seed, drilled_only, stacking_allowed, cancelled,
         inp.write_text(json.dumps(project, ensure_ascii=False), encoding="utf-8")
         candidate = job / "candidate.json"
         env = os.environ.copy()
-        env["V5_NATIVE_LIB_DIR"] = str(NATIVE)
+        env["V5_NATIVE_LIB_DIR"] = str(decoder_directory(project))
         env.pop("V5_NATIVE_ROUTE_LIB_DIR", None)
         env["STRIPBOARD_TIMING"] = "1"
         command = [
@@ -139,6 +139,14 @@ def _prepared_input(project):
     return prepared, fingerprint
 
 
+def _decoder_identity(project):
+    selected = decoder_directory(project)
+    if selected == NATIVE:
+        return {}  # Historical standard campaigns retain their existing identity.
+    return {"native_decoder": "edge", "decoder_sha256": hashlib.sha256(
+        (selected / "libv5decode.so").read_bytes()).hexdigest()}
+
+
 def _campaign_identity(fingerprint, moves, workers, drilled_only,
                        stacking_allowed, seeds, debug=False):
     return {
@@ -167,10 +175,11 @@ def inspect_pass_one_campaign(project, moves, workers, drilled_only,
                               stacking_allowed, pass_directory,
                               seeds=DEFAULT_SEEDS, *, debug=False):
     """Preflight resume BEFORE the GUI offers Resume, Restart or Cancel."""
-    _, fingerprint = _prepared_input(project)
+    prepared, fingerprint = _prepared_input(project)
     expected = _campaign_identity(
         fingerprint, moves, workers, drilled_only, stacking_allowed, seeds, debug
     )
+    expected.update(_decoder_identity(prepared))
     folder = Path(pass_directory)
     metadata = folder / CAMPAIGN_MANIFEST
     csv_path = folder / "results.csv"
@@ -251,6 +260,7 @@ def run_pass_one(project, moves, workers, drilled_only, stacking_allowed,
     identity = _campaign_identity(
         fingerprint, moves, workers, drilled_only, stacking_allowed, seeds, debug
     )
+    identity.update(_decoder_identity(prepared))
     folder = Path(pass_directory)
     if not folder.is_dir() or folder.is_symlink():
         raise FileNotFoundError(f"Pass One work directory missing/unsafe: {folder}")

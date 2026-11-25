@@ -1,6 +1,8 @@
-# Documentation index — Version 2.00 / StripSolve GUI 2.24
+# Documentation index — Version 2.00 / StripSolve GUI 2.25
 
 ## Start here (current authority)
+
+- [Actual-JSON search-budget probe](BUDGET_PROBE.md)
 
 - [Standalone macOS build and verification](STANDALONE_MACOS.md)
 
