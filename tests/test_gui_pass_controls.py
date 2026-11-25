@@ -215,6 +215,8 @@ class PassControlTests(unittest.TestCase):
                     overwrite.assert_not_called()
                 self.assertEqual(window._solve_budget, 200)
                 self.assertEqual(window.solve_progress.maximum(), 200)
+                self.assertFalse(window.solve_progress.isTextVisible())
+                self.assertIn("PASS ONE RUNNING", window.statusBar().currentMessage())
                 self.assertEqual((full / "results.csv").read_text(), "SAVED FULL 2000")
                 self.assertTrue(window._pass_one_worker.debug)
                 self.assertEqual(window._pass_one_worker.seeds, 200)
@@ -436,14 +438,17 @@ class PassControlTests(unittest.TestCase):
             w._solve_started = perf_counter() - 516.0
             w._update_solve_clock()
             display = w.solve_eta.text()
-            self.assertIn("1,259/2,000 seeds", display)
-            self.assertEqual(w.dashboard.eta.text(), display)
             self.assertIn("ETA: ~5m 04s", display)
-            self.assertNotIn("remaining unknown", display)
+            self.assertNotIn("1,259/2,000", display)  # Already above the bar.
+            self.assertNotIn("observed throughput", display)
+            self.assertIn("1,259/2,000 seeds", w.dashboard.eta.text())
+            self.assertIn("observed throughput", w.dashboard.eta.text())
+            self.assertIn("1,259/2,000 seeds", w.solve_eta.toolTip())
 
             w._solve_done = 0
             w._update_solve_clock()
-            self.assertIn("measuring first completed seed", w.solve_eta.text())
+            self.assertIn("ETA: measuring…", w.solve_eta.text())
+            self.assertIn("measuring first completed seed", w.dashboard.eta.text())
 
             w._solve_done = 2000
             w._update_solve_clock()
@@ -452,6 +457,34 @@ class PassControlTests(unittest.TestCase):
             w._pass_one_worker = None
             w.close()
 
+
+    def test_live_sidebar_progress_does_not_overlay_bar_text_or_stale_status(self):
+        from time import perf_counter
+        window = RouteMateWindow()
+        try:
+            window._pass_one_worker = object()  # No native seed runs.
+            window._recommended_workers = 4
+            window._solve_budget = 2000
+            window._solve_started = perf_counter() - 195.0
+            window.solve_progress.setRange(0, 2000)
+            window._pass_one_tick({
+                "done": 482, "total": 2000, "qualified": 0,
+                "failed": 482, "errors": 0, "best": None,
+                "last": {"seed": 482, "valid": False, "seconds": 1.19},
+            })
+            self.assertEqual(window.solve_activity.text(),
+                             "Pass One · 482/2,000 confirmed")
+            self.assertFalse(window.solve_progress.isTextVisible())
+            self.assertEqual(window.solve_progress.value(), 482)
+            self.assertIn("4 workers · 0 strict PASS · 0 errors",
+                          window.solve_worker_status.text())
+            self.assertIn("PASS ONE RUNNING", window.statusBar().currentMessage())
+            self.assertIn("482/2,000 seeds", window.dashboard.eta.text())
+            self.assertNotIn("482/2,000 seeds", window.solve_eta.text())
+            self.assertIn("ETA:", window.solve_eta.text())
+        finally:
+            window._pass_one_worker = None
+            window.close()
 
     def test_cancel_pass_one_keeps_old_results(self):
         with tempfile.TemporaryDirectory() as td:
