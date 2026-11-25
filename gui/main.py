@@ -726,8 +726,9 @@ class WorkflowChecklist(QWidget):
             QProgressBar::chunk { background: #17a6c8; border-radius: 6px; }
         """)
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(15, 15, 15, 12)
-        layout.setSpacing(8)
+        # Compact the stages; completed runs must not hide the result.
+        layout.setContentsMargins(10, 9, 10, 8)
+        layout.setSpacing(3)
         heading = QHBoxLayout()
         title = QLabel("PROJECT PREPARATION")
         title.setObjectName("workflowTitle")
@@ -747,21 +748,21 @@ class WorkflowChecklist(QWidget):
                 separator = QLabel("OPTIMISATION PASSES")
                 separator.setStyleSheet(
                     "font-size: 11px; font-weight: 800; color: #244d70; "
-                    "padding-top: 9px; border-top: 1px solid #cbddec;"
+                    "padding-top: 5px; border-top: 1px solid #cbddec;"
                 )
                 layout.addWidget(separator)
             elif key == "VERIFY":
                 separator = QLabel("FINAL VERIFICATION")
                 separator.setStyleSheet(
                     "font-size: 11px; font-weight: 800; color: #244d70; "
-                    "padding-top: 9px; border-top: 1px solid #cbddec;"
+                    "padding-top: 5px; border-top: 1px solid #cbddec;"
                 )
                 layout.addWidget(separator)
             row = QHBoxLayout()
             mark = QLabel("○")
-            mark.setFixedWidth(22)
+            mark.setFixedWidth(20)
             mark.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            mark.setStyleSheet("font-size: 23px; color: #b8bec7;")
+            mark.setStyleSheet("font-size: 20px; color: #b8bec7;")
             label = QLabel(caption)
             label.setStyleSheet("font-size: 12px; color: #475569;")
             row.addWidget(mark)
@@ -771,20 +772,20 @@ class WorkflowChecklist(QWidget):
                 self.cuts_value.setStyleSheet(
                     "color: #526581; font-size: 11px; font-weight: 600;"
                 )
-                self.cuts_value.setWordWrap(True)
+                self.cuts_value.setWordWrap(False)
             elif key == "STACK":
                 self.stacking_value = QLabel("Not selected")
                 self.stacking_value.setStyleSheet(
                     "color: #526581; font-size: 11px; font-weight: 600;"
                 )
-                self.stacking_value.setWordWrap(True)
-            layout.addLayout(row)
+                self.stacking_value.setWordWrap(False)
             if key == "CUTS":
-                layout.addWidget(self.cuts_value)
+                row.addWidget(self.cuts_value)
             elif key == "STACK":
-                layout.addWidget(self.stacking_value)
+                row.addWidget(self.stacking_value)
+            layout.addLayout(row)
             self.rows[key] = mark
-        self.lock_summary = QLabel("Fixed: 0  ·  Edge: 0\nEdge+Slide: 0")
+        self.lock_summary = QLabel("Fixed: 0 · Edge: 0 · Slide: 0")
         self.lock_summary.setWordWrap(True)
         self.lock_summary.setStyleSheet(
             "font-size: 11px; font-weight: 600; color: #24476b;"
@@ -797,10 +798,8 @@ class WorkflowChecklist(QWidget):
         )
         self.lock_warning.hide()
         layout.addWidget(self.lock_warning)
-        note = QLabel("Pass One and Pass Two launch only by button · final Electrical PASS pending")
-        note.setWordWrap(True)
-        note.setStyleSheet("font-size: 10px; color: #697586;")
-        layout.addWidget(note)
+        # The Pass/Verify rows already convey readiness; avoid a redundant
+        # multi-line note that pushes the live result off the viewport.
         self.reset()
 
     def reset(self):
@@ -821,8 +820,7 @@ class WorkflowChecklist(QWidget):
     def set_lock_summary(self, fixed: int, edge: int, slide: int,
                          positions: int | None = None, attempts: int = 24):
         self.lock_summary.setText(
-            f"Fixed locked: {fixed}  ·  Edge locked: {edge}\n"
-            f"Edge+Slide: {slide}"
+            f"Fixed: {fixed} · Edge: {edge} · Slide: {slide}"
         )
         if slide:
             self.lock_warning.setText(
@@ -1103,38 +1101,61 @@ class RouteMateWindow(QMainWindow):
         self.solve_summary = QLabel("No board solved")
         self.solve_summary.setWordWrap(True)
         self.solve_summary.setObjectName("solveSummary")
+        # Keep results/progress visible at every height. Only the preparation
+        # checklist scrolls; no more scrolling to find the winner or ETA.
         overview = QWidget()
         overview_layout = QVBoxLayout(overview)
-        overview_layout.setContentsMargins(8, 12, 8, 8)
-        overview_layout.setSpacing(11)
+        overview_layout.setContentsMargins(5, 5, 5, 5)
+        overview_layout.setSpacing(6)
         overview_layout.addWidget(self.project_summary)
         overview_layout.addWidget(self.checklist)
-        overview_layout.addWidget(self.solve_summary)
+        overview_layout.addStretch()
+
+        overview_scroll = QScrollArea()
+        overview_scroll.setObjectName("overviewChecklistScroll")
+        overview_scroll.setWidgetResizable(True)
+        overview_scroll.setFrameShape(QFrame.Shape.NoFrame)
+        overview_scroll.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+        )
+        overview_scroll.setWidget(overview)
+
         self.solve_activity = QLabel("100-point move check pending · STOP before Pass 1")
         self.solve_activity.setWordWrap(True)
         self.solve_activity.setStyleSheet(
-            "font-size: 13px; font-weight: 750; color: #123f61; padding: 4px;"
+            "font-size: 12px; font-weight: 750; color: #123f61; padding: 2px;"
         )
-        overview_layout.addWidget(self.solve_activity)
         self.solve_progress = QProgressBar()
         self.solve_progress.setRange(0, 100)
         self.solve_progress.setValue(0)
         self.solve_progress.setFormat("100-point move check: %v/%m")
-        overview_layout.addWidget(self.solve_progress)
         self.solve_worker_status = QLabel("Original CPU speed probe pending")
         self.solve_worker_status.setWordWrap(True)
-        overview_layout.addWidget(self.solve_worker_status)
         self.solve_eta = QLabel("Elapsed: —   Estimated remaining: —")
         self.solve_eta.setWordWrap(True)
-        overview_layout.addWidget(self.solve_eta)
-        overview_layout.addStretch()
+
+        result_footer = QFrame()
+        result_footer.setObjectName("overviewResultFooter")
+        footer_layout = QVBoxLayout(result_footer)
+        footer_layout.setContentsMargins(6, 6, 6, 6)
+        footer_layout.setSpacing(4)
+        footer_layout.addWidget(self.solve_summary)
+        footer_layout.addWidget(self.solve_activity)
+        footer_layout.addWidget(self.solve_progress)
+        footer_layout.addWidget(self.solve_worker_status)
+        footer_layout.addWidget(self.solve_eta)
+
+        overview_page = QWidget()
+        overview_page.setObjectName("overviewPage")
+        page_layout = QVBoxLayout(overview_page)
+        page_layout.setContentsMargins(0, 0, 0, 0)
+        page_layout.setSpacing(4)
+        page_layout.addWidget(overview_scroll, 1)
+        page_layout.addWidget(result_footer, 0)
+
         self.sidebar_tabs = QTabWidget()
         self.sidebar_tabs.setObjectName("sidebarTabs")
-        overview_scroll = QScrollArea()
-        overview_scroll.setWidgetResizable(True)
-        overview_scroll.setFrameShape(QFrame.Shape.NoFrame)
-        overview_scroll.setWidget(overview)
-        self.sidebar_tabs.addTab(overview_scroll, "Overview")
+        self.sidebar_tabs.addTab(overview_page, "Overview")
         self.sidebar_tabs.addTab(self.log, "Activity")
         left_panel = QWidget()
         left_layout = QVBoxLayout(left_panel)
@@ -1183,6 +1204,8 @@ class RouteMateWindow(QMainWindow):
         self.setStyleSheet("""
             QMainWindow { background: #edf6fd; }
             QWidget#sidebarTabs { background: #f7fbff; }
+            QFrame#overviewResultFooter { background: #f7fbff;
+                                          border-top: 1px solid #b9d4e5; }
             QTabWidget::pane { border: 1px solid #cbddec; border-radius: 10px;
                                 background: #f7fbff; }
             QTabBar::tab { color: #274965; background: #e6f0f9; padding: 9px 22px;
