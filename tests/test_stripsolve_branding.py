@@ -82,6 +82,61 @@ class StripSolveGuiTests(unittest.TestCase):
                 self.assertEqual(len(list((root / "icons").glob("*.png"))), 10)
                 self.assertEqual(export_assets(toolbar_png=True), [])
 
+    def test_artwork_revision_migrates_old_svgs_without_touching_reference_png(self):
+        import tempfile
+        from pathlib import Path
+        from unittest.mock import patch
+        from gui.assets_ui import export_assets, ARTWORK_MARKER, ARTWORK_REVISION
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            assets = root / "assets"
+            icons = root / "icons"
+            assets.mkdir()
+            icons.mkdir()
+            reference = assets / "app_icon.png"
+            # Simulate the old generated icon and a user-approved PNG.
+            reference.write_bytes(b"approved user PNG: never replace")
+            old = icons / "load_json.svg"
+            old.write_text("old cartoon icon", encoding="utf-8")
+            with patch("gui.assets_ui.ASSETS_DIR", assets), \
+                 patch("gui.assets_ui.ICONS_DIR", icons):
+                created = export_assets()
+                self.assertIn(old, created)
+                self.assertEqual(old.read_text(encoding="utf-8"), icon_svg("load_json"))
+                self.assertEqual(reference.read_bytes(),
+                                 b"approved user PNG: never replace")
+                self.assertEqual(
+                    (assets / ARTWORK_MARKER).read_text(encoding="utf-8").strip(),
+                    ARTWORK_REVISION,
+                )
+                # Custom SVG edits after migration must survive normal launch.
+                old.write_text("locally customised SVG", encoding="utf-8")
+                self.assertEqual(export_assets(), [])
+                self.assertEqual(old.read_text(encoding="utf-8"),
+                                 "locally customised SVG")
+                # Explicit toolbar --force still preserves approved PNG.
+                export_assets(force=True)
+                self.assertEqual(old.read_text(encoding="utf-8"), icon_svg("load_json"))
+                self.assertEqual(reference.read_bytes(),
+                                 b"approved user PNG: never replace")
+
+    def test_installed_reference_png_and_polished_splash_hero(self):
+        from PySide6.QtWidgets import QLabel
+        from PySide6.QtGui import QImage
+        from gui.assets_ui import ASSETS_DIR
+        approved = ASSETS_DIR / "app_icon.png"
+        self.assertTrue(approved.is_file())
+        reference = QImage(str(approved))
+        self.assertEqual((reference.width(), reference.height()), (1024, 1024))
+        splash = StripSolveSplash()
+        try:
+            self.assertIn("no solver running", splash.status_label.text())
+            artwork = splash.findChild(QLabel, "SplashBoardArtwork")
+            self.assertIsNotNone(artwork)
+            self.assertFalse(artwork.pixmap().isNull())
+        finally:
+            splash.close()
+
     def test_existing_toolbar_actions_use_icons_and_stripsolve_name(self):
         window = RouteMateWindow()
         try:
