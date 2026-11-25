@@ -53,7 +53,7 @@ class ToolRevisionSplashTests(unittest.TestCase):
         # GUI version advances independently of the repository release; 2.04
         # was a stale snapshot, not a renderer provenance requirement.
         gui_version = (ROOT / "gui/VERSION").read_text().strip()
-        self.assertRegex(gui_version, r"^2\\.\\d{2}$")
+        self.assertRegex(gui_version, r"^2\.\d{2}$")
         self.assertGreaterEqual(int(gui_version.split(".")[1]), 4)
 
 
