@@ -1,5 +1,13 @@
 # Changelog
 
+### GUI 2.17 — Full-width native Qt6 Pass One dashboard (25 November 2026)
+- Move live Pass One analytics to the entire main board-preview canvas via QStackedWidget; restore the large board preview on user request and keep the sidebar as Overview/Activity only.
+- Replace five-row leaderboard with original antialiased QPainter rounded KPI cards, live audited quality and wire/cut plots, outcome donut, per-seed runtime bars and worker/progress/ETA cards in existing Arctic Ice + Colourburst colours. No web content, fake chart samples or extra package dependencies.
+- On start/resume, show the live dashboard and reconstruct historical chart points from confirmed Pass One CSV entries. Stream the single strict-audited champion (Q, W, C and seed) and current seed timings from the unchanged native worker.
+- When Pass One completes, save champion JSON and both SVGs, then ask Yes/No (default No) to view the top verified board. No leaves the dashboard visible; Yes opens saved SVG board preview. Board preview and Live dashboard controls permit explicit switching.
+- Add offscreen Qt GUI and pure audited-ranking regression coverage; preserve Work directory, original project files, campaign CSV schema and Pass Two candidate-import-only behaviour.
+- Source-level integration complete; target macOS end-to-end GUI visual and regression run remains outstanding.
+
 ### GUI 2.16 — Live strict Pass One leaderboard and winner-preview consent (25 November 2026)
 - Add a dedicated, scrolling 🏆 Scoreboard tab without reducing the board canvas or crowding the compact Overview footer.
 - Live progress updates now carry the five highest independently audited strict PASS seeds, ranked by Q descending, then fewer wires, cuts and lower seed. Resume immediately restores verified leaders from retained CSV rows.
