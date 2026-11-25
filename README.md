@@ -2,13 +2,19 @@
 
 **Release milestone:** Version 2.00 — Consolidation of Two Repositories (24 November 2026).
 
-**Consolidation designation:** `2.00` (no Git tag published) · **npm/package version:** `2.0.0` · **StripSolve GUI:** `2.26` (`gui/VERSION`).
+**Consolidation designation:** `2.00` (no Git tag published) · **npm/package version:** `2.0.0` · **StripSolve GUI:** `2.39` (`gui/VERSION`).
 
-**START HERE IF CONTINUING IN A NEW CHAT:** [Active handoff — WR Audio/Moto discovery, multipass plans and current GUI boundary](docs/ACTIVE_HANDOFF_2026-11-24.md). It records the native solver call chain, completed 5k/10k Audio results, unfinished work, reference WRs, and the **destructive rerun warning**.
+**START HERE IF CONTINUING IN A NEW CHAT:** [Active handoff — latest native candidate-policy work, Moto research and GUI status](docs/ACTIVE_HANDOFF_2026-11-24.md). It records the native solver call chain, opt-in diagonal qualification, unfinished work, historical WR results and **destructive rerun warnings**.
 
 **Current engineering reference:** [Full repository audit (24 Nov 2026)](docs/REPOSITORY_AUDIT_2026-11-24.md) · [Documentation index](docs/INDEX.md) · [CHANGELOG.md](CHANGELOG.md).
 
 The audit records verified source checks and outstanding target-Mac tests; it does **not** claim the native solver or all tests passed on this machine.
+
+**26 November 2026 verification update:** The owner reports that the macOS GUI regression suite passed after the Slide-label and dashboard-return fixes, and that **all 7 headless Node solver suites passed**. This is a user-reported test outcome, separate from the older static audit; no new 5,000-seed Moto hunt or packaged standalone app verification is claimed.
+
+## Native V5 experimental candidate modes (26 November 2026)
+
+The solver CLI and saved-board auditor now support opt-in `--candidate-policy strict|diagonal|crossings|archive` qualification. The new `scripts/run_candidate_hunt.py` archives native-generated layouts and separates strict winners from diagonal and routing-repair research candidates. **The C annealer, native strict exit codes, and GUI's existing strict Pass One have not been relaxed**; GUI Pass Two still imports candidates but does not execute a search. See [candidate policies and verified Mac tests](docs/CANDIDATE_POLICIES.md). A small new-campaign smoke test is recommended before another 5,000 seeds.
 
 ## StripSolve desktop GUI (PySide6)
 
@@ -78,7 +84,7 @@ PATH="/opt/local/bin:$PATH" python3 run_gui.py
 \`\`\`
 
 Use **Load JSON** and review board dimensions, placement locks, cuts, stacks,
-automatic CPU allocation and the 100-point decoder timing check before pressing
+automatic CPU allocation and the static 100-point JSON complexity assessment before pressing
 Pass One GO. The old Python Quick Solve/Hell Mode engine is intentionally
 disabled; the native CLI is the only live solver. Existing \`Work/\` paths,
 source JSONs and compiled solver code are preserved.
