@@ -999,13 +999,13 @@ class RouteMateWindow(QMainWindow):
         self.setWindowIcon(app_icon)
         toolbar = QToolBar("Main")
         toolbar.setIconSize(QSize(24, 24))
-        toolbar.setObjectName("routeMateToolbar")
+        toolbar.setObjectName("stripSolveToolbar")
         toolbar.setStyleSheet("""
-            QToolBar#routeMateToolbar { background: #f7fbff; border: none; border-bottom: 1px solid #cbddec; padding: 9px; spacing: 8px; min-height: 54px; }
-            QToolBar#routeMateToolbar QToolButton { background: white; color: #245675; border: 1px solid #bfd7e9; border-radius: 9px; padding: 9px 14px; font-weight: 650; }
-            QToolBar#routeMateToolbar QToolButton:hover { background: #e8f7ff; border-color: #50b5dc; }
-            QToolBar#routeMateToolbar QToolButton:checked { background: #dceffc; border-color: #6aaddc; color: #1a5b92; }
-            QToolBar#routeMateToolbar QToolButton:disabled { background: #eef3f8; border-color: #d9e5ee; color: #90a4b5; }
+            QToolBar#stripSolveToolbar { background: #f7fbff; border: none; border-bottom: 1px solid #cbddec; padding: 9px; spacing: 8px; min-height: 54px; }
+            QToolBar#stripSolveToolbar QToolButton { background: white; color: #245675; border: 1px solid #bfd7e9; border-radius: 9px; padding: 9px 14px; font-weight: 650; }
+            QToolBar#stripSolveToolbar QToolButton:hover { background: #e8f7ff; border-color: #50b5dc; }
+            QToolBar#stripSolveToolbar QToolButton:checked { background: #dceffc; border-color: #6aaddc; color: #1a5b92; }
+            QToolBar#stripSolveToolbar QToolButton:disabled { background: #eef3f8; border-color: #d9e5ee; color: #90a4b5; }
         """)
         brand = QWidget()
         brand_row = QHBoxLayout(brand)
@@ -1824,7 +1824,7 @@ class RouteMateWindow(QMainWindow):
         self.log_line(f"[RULES] Cuts={'DRILLED ONLY' if self._probe_cut_drilled_only else 'KNIFE ALLOWED'}; "
                       f"wire stacking={'ALLOWED' if self._probe_stacking_allowed else 'OFF'}.")
         self.solve_activity.setText("CPU speed probe · comparing 3 or 4 workers")
-        self.log_line("[SPEED] Original Route-Mate CPU worker-scaling probe; "
+        self.log_line("[SPEED] StripSolve CPU worker-scaling probe; "
                       "separate from the native 100-decoder measurement.")
         if QApplication.platformName() == "offscreen":
             self.log_line("[SPEED] Offscreen GUI test: automatic probe skipped.")
@@ -3154,6 +3154,10 @@ class RouteMateWindow(QMainWindow):
         event.accept()
 
 
+# Historical class name remains importable for existing tests and integrations.
+StripSolveWindow = RouteMateWindow
+
+
 def main():
     app = QApplication(sys.argv)
     apply_arctic_theme(app)
@@ -3165,7 +3169,7 @@ def main():
     except (OSError, ValueError, RuntimeError):
         pass
     app.setWindowIcon(load_app_icon())
-    window = RouteMateWindow()
+    window = StripSolveWindow()
     splash = StripSolveSplash()
     window._startup_splash = splash  # Keep the Qt widget alive until finished.
     splash.finished.connect(window.show)
