@@ -1,4 +1,4 @@
-"""Unified Arctic Ice + Colourburst visual theme for every Route-O-Matic Qt window.
+"""Unified high-contrast Arctic Ice + Colourburst theme for StripSolve Qt windows.
 
 Only presentation: no solver, board, workflow, file or routing behaviour lives here.
 Fonts inherit from QApplication so dialogs, tooltips, buttons and the main window agree.
@@ -15,10 +15,10 @@ COLORS = {
     "snow": "#ffffff",
     "panel": "#f7fbff",
     "mist": "#e9f3fc",
-    "line": "#cbddec",
+    "line": "#a7c4d9",
     "ink": "#19334d",
-    "muted": "#536f88",
-    "blue": "#257ac2",
+    "muted": "#355670",
+    "blue": "#176aab",
     "cyan": "#13a9d2",
     "teal": "#168d95",
     "lime": "#9acb33",
@@ -45,7 +45,7 @@ QWidget#arcticTitleBar {
     border-radius: 8px;
 }
 QLabel#arcticWindowCaption {
-    color: #245476;
+    color: #153e5b;
     font-size: 12px;
     font-weight: 700;
     padding-left: 4px;
@@ -53,7 +53,7 @@ QLabel#arcticWindowCaption {
 QToolButton#arcticClose, QToolButton#arcticMinimize,
 QToolButton#arcticMaximize {
     background: transparent;
-    color: #3b6682;
+    color: #1d4e70;
     border: 0;
     border-radius: 7px;
     padding: 2px;
@@ -180,7 +180,7 @@ QTabBar::tab {
     background-color: #e6f0f9;
     border: 1px solid #d5e4ef;
     border-bottom: 0;
-    color: #57738b;
+    color: #264760;
     padding: 10px 18px;
     margin-right: 3px;
     border-top-left-radius: 8px;
@@ -228,24 +228,28 @@ QCheckBox, QRadioButton {
     color: #213d57;
 }
 QCheckBox:disabled, QRadioButton:disabled {
-    color: #94a7b8;
+    color: #62798a;
 }
 QProgressBar {
-    background-color: #e2edf7;
-    color: #234a69;
-    border: 1px solid #d1e1ee;
+    background-color: #d8ecf8;
+    color: #0f314a;
+    border: 1px solid #86afca;
     border-radius: 7px;
     text-align: center;
-    min-height: 13px;
+    font-size: 12px;
+    font-weight: 750;
+    min-height: 21px;
 }
 QProgressBar::chunk {
-    background-color: #17a6c8;
+    background-color: #20b0c8;
     border-radius: 6px;
 }
 QStatusBar {
-    background-color: #e4f0fa;
-    color: #365c7a;
-    border-top: 1px solid #cbddec;
+    background-color: #d7e9f6;
+    color: #173d59;
+    font-size: 12px;
+    font-weight: 650;
+    border-top: 1px solid #a2c5dd;
 }
 QStatusBar::item {
     border: none;
@@ -321,7 +325,7 @@ def apply_arctic_theme(app: QApplication) -> str:
     palette.setColor(QPalette.ColorRole.PlaceholderText, QColor(COLORS["muted"]))
     for role in (QPalette.ColorRole.Text, QPalette.ColorRole.WindowText,
                  QPalette.ColorRole.ButtonText):
-        palette.setColor(QPalette.ColorGroup.Disabled, role, QColor("#91a5b7"))
+        palette.setColor(QPalette.ColorGroup.Disabled, role, QColor("#647e91"))
     app.setPalette(palette)
     app.setStyleSheet(STYLESHEET)
     install_curved_windows(app)
