@@ -30,6 +30,8 @@
 
 ## Active WR experiment — Audio and Moto
 
+- [Live Moto Pass One: 871-seed regression and failure forensics (26 Nov 2026)](MOTO_PASS1_871_SEED_FORENSICS_2026-11-26.md) — verified log statistics, exact historical pass-ID match, near-miss repair research ideas only.
+
 - [WR 12k discovery + native call chain + last reported results + safe-use warning](ACTIVE_HANDOFF_2026-11-24.md). This **passes-only runner wipes output directories on rerun**, has no resume, and is separate from AUDIOEX's resumable forensic ladder.
 
 ## Active AUDIOEX experiment
