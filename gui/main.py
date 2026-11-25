@@ -2331,6 +2331,7 @@ class RouteMateWindow(QMainWindow):
             )
         self._solve_started = None
         self._pass_one_worker = None
+        self.scoreboard.eta.setText(self.solve_eta.text())
         self._pass_one_resume_done = 0
         self._pass_one_previous_average = None
         self.load_action.setEnabled(True)
@@ -2498,6 +2499,7 @@ class RouteMateWindow(QMainWindow):
                 f"{self._solve_done:,}/{self._solve_budget:,} seeds · "
                 f"ETA: {remaining}"
             )
+            self.scoreboard.eta.setText(self.solve_eta.text())
             return
         if self._calibration_worker is not None:
             self.solve_eta.setText(
