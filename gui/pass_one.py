@@ -223,16 +223,15 @@ def inspect_pass_one_campaign(project, moves, workers, drilled_only,
     }
 
 
-def top_five_audited(rows):
-    """Rank strict PASS rows only: Q descending, then wires, cuts, seed.
+def best_audited(rows):
+    """Best independent strict PASS by Q, then wires, cuts, seed.
 
-    Rows may be resumed CSV records or freshly independently-audited results.
-    This is a read-only ranking of already verified metrics, not the native
-    CLI's different 0-on-PASS quality value.
+    Used for display only; the saved-CSV winner replay remains independently
+    audited and uses the same ordering.
     """
     verified = [
         {
-            "status": "PASS",  # Retain provenance when ranking incrementally.
+            "status": "PASS",
             "seed": int(row["seed"]),
             "q": float(row["q"]),
             "w": int(row["w"]),
@@ -241,8 +240,9 @@ def top_five_audited(rows):
         }
         for row in rows if row.get("status") == "PASS"
     ]
-    verified.sort(key=lambda r: (-r["q"], r["w"], r["cut"], r["seed"]))
-    return verified[:5]
+    if not verified:
+        return None
+    return min(verified, key=lambda r: (-r["q"], r["w"], r["cut"], r["seed"]))
 
 
 def run_pass_one(project, moves, workers, drilled_only, stacking_allowed,
@@ -300,7 +300,7 @@ def run_pass_one(project, moves, workers, drilled_only, stacking_allowed,
 
     checked = len(retained)
     qualified = sum(row["status"] == "PASS" for row in retained.values())
-    leaders = top_five_audited(retained.values())
+    best = best_audited(retained.values())
     failures = sum(row["status"] == "FAIL" for row in retained.values())
     errors = 0
     attempts = [seed for seed in range(1, seeds + 1) if seed not in retained]
@@ -323,7 +323,7 @@ def run_pass_one(project, moves, workers, drilled_only, stacking_allowed,
             on_progress({"done": checked, "total": seeds,
                          "qualified": qualified, "failed": failures,
                          "errors": errors, "last": last,
-                         "best": dict(leaders[0]) if leaders else None,
+                         "best": dict(best) if best else None,
                          "history": ([dict(row) for row in retained.values()]
                                      if resume and last is None else None)})
 
@@ -383,7 +383,7 @@ def run_pass_one(project, moves, workers, drilled_only, stacking_allowed,
                         stream.flush()
                         os.fsync(stream.fileno())
                         if status == "PASS":
-                            leaders = top_five_audited([*leaders, data])
+                            best = best_audited([*([best] if best else []), data])
                             log(f"[PASS1][PASS] seed={seed:04d} "
                                 f"{row['w']}W/{row['cut']}C Q={row['q']:.2f} "
                                 f"{seconds:.3f}s")
