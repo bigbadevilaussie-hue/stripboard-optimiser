@@ -3204,6 +3204,8 @@ class RouteMateWindow(QMainWindow):
             self.project = project
             self.project_path = path
             self.active_workspace = workspace
+            self._winner_svg_files = None
+            self.scoreboard.reset_for_project(path.stem.upper())
             self.log_line(f"[WORK][PROJECT] {path.name} → {workspace}")
             self._solved_verified = False
             self._quick_source = None
