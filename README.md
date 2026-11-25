@@ -2,7 +2,7 @@
 
 **Release milestone:** Version 2.00 — Consolidation of Two Repositories (24 November 2026).
 
-**Consolidation designation:** `2.00` (no Git tag published) · **npm/package version:** `2.0.0` · **Route-Mate GUI:** `2.04` (`gui/VERSION`).
+**Consolidation designation:** `2.00` (no Git tag published) · **npm/package version:** `2.0.0` · **StripSolve GUI:** `2.13` (`gui/VERSION`).
 
 **START HERE IF CONTINUING IN A NEW CHAT:** [Active handoff — WR Audio/Moto discovery, multipass plans and current GUI boundary](docs/ACTIVE_HANDOFF_2026-11-24.md). It records the native solver call chain, completed 5k/10k Audio results, unfinished work, reference WRs, and the **destructive rerun warning**.
 
@@ -10,65 +10,52 @@
 
 The audit records verified source checks and outstanding target-Mac tests; it does **not** claim the native solver or all tests passed on this machine.
 
-## Headless solver
+## StripSolve desktop GUI (PySide6)
 
-**One native solver, plus an import-only desktop GUI shell.**
-The obsolete Tkinter GUI, Next.js web editor, Django backend and deployment
-stack have been removed. The Route-Mate PySide6 GUI is being directly transplanted
-at the same `gui/` and `run_gui.py` paths, but **optimisation is disabled** until
-the existing native CLI adapter has been implemented and independently tested.
-The GUI is not a second optimiser.
+**StripSolve** is the Arctic Ice + Colourburst desktop GUI for the existing
+native stripboard solver. It is the successor brand to the original Route-Mate
+GUI; the GitHub repository path and historical donor docs retain their names.
 
-## Current GUI milestone — Original Route-Mate import and lock review, then STOP
+The GUI imports donor JSON files, checks electrical/physical preparation,
+shows component/copper/schematic views, reviews locks and routing policy, and
+runs the existing native strict solver through **Pass One**. Choose a 10k or
+20k move budget; optional DEBUG runs **200 seeds**, while FULL runs **2,000**.
+Each campaign records PASS/FAIL/ERROR, completion state and timing in isolated
+per-project and per-budget folders. Resume preserves finished PASS/FAIL seeds,
+and overwriting prior results requires an explicit confirmation.
 
-The Route-Mate 1.44 PySide6 window has been copied into the repository,
-including its icons, source import support, electrical input sanity
-checks, read-only geometry contracts and local standalone renderer bridge.
-The old Python Quick Solve/Hell Mode routing engines are **not included**.
+On a completed campaign with qualifying seeds, the best audited seed is
+strictly replayed, saved to JSON and rendered as component and copper SVGs.
+**Pass Two currently imports qualified survivors but does not yet run an
+optimisation search.** Historical CSVs remain readable and undisturbed.
 
-```sh
+StripSolve comes with 10 copper/teal SVG toolbar icons and a 1024px
+StripSolve app icon, generated entirely offline with PySide6. A short splash
+shows desktop start-up only and does not simulate solver activity.
+
+\`\`\`sh
 python3 -m pip install -r requirements-gui.txt
-# MacPorts is used for the original Tk-compatible schematic PNG preview:
-sudo port install librsvg
+python3 tools/build_icons.py  # optional; GUI also generates missing assets
 PATH="/opt/local/bin:$PATH" python3 run_gui.py
-```
+\`\`\`
 
-Use **Load JSON**. This invokes the **original Route-Mate 1.44 GUI workflow**:
-choose actual/preferred board dimensions, choose the component-spacing setting,
-run the collector/electrical input sanity and read-only PRE-SOLVE checks, preview
-the board, and review each positioned component's Fixed / Movable / Edge / Slide
-status with an individual highlighted board view. After the last lock decision,
-**the solver remains disabled and the GUI stops before Pass 1**.
+Use **Load JSON** and review board dimensions, placement locks, cuts, stacks,
+CPU worker selection and the 100-point decoder timing check before pressing
+Pass One GO. The old Python Quick Solve/Hell Mode engine is intentionally
+disabled; the native CLI is the only live solver. Existing \`Work/\` paths,
+source JSONs and compiled solver code are preserved.
 
-Board dimensions are supplied by the user in the dialog rather than blindly
-rendering the JSON's large original working canvas (MOTOEX's raw fixture is
-99×500). Choosing 24×56 displays 24×56, without overwriting the source file.
+For strict regression checks:
 
-As in the donor GUI, stage/assumed-geometry sidecar files are saved alongside
-the JSON. These are reports and provenance, **not optimiser output**.
-No routing, worker calibration, speed probe, Python Quick Solve, native CLI
-subprocess, or Pass 1 is started.
+\`\`\`sh
+QT_QPA_PLATFORM=offscreen PATH="/opt/local/bin:$PATH" \
+  python3 -B -m unittest discover -s tests -v
+\`\`\`
 
-The same checks can be run without PySide6:
-
-```sh
-python3 -m gui.preflight test-fixtures/masters/moto/motoex.json
-python3 scripts/audit_repo_integrity.py
-python3 -m unittest discover -s tests -p 'test_*.py' -v
-```
-
-The donor workflow requires the local renderer for component/lock highlighting; if preview fails, the GUI displays an error and does not advance through lock review.
-To enable preview, compile the existing local renderers:
-
-```sh
-cd src/frontend
-npm install
-npm run build:renderers
-```
-
-This is **not** an end-to-end GUI integration. Next milestone will bind
-the same existing native CLI to the GUI, with no duplicate solver.
-
+The imported board/copper/schematic previews require the existing local
+renderer build; from \`src/frontend/\` run \`npm install && npm run build:renderers\`
+if necessary. For exact schematic raster parity the macOS installation also
+uses MacPorts \`librsvg\` (\`rsvg-convert\`).
 
 ### Schematic preview
 
