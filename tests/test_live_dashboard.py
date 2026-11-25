@@ -147,7 +147,9 @@ class LiveDashboardGuiTests(unittest.TestCase):
                 self.assertIn("View winning board",
                               [button.text() for button in dialog.findChildren(QPushButton)])
                 return QDialog.DialogCode.Rejected
-            with patch.object(QDialog, "exec", autospec=True, side_effect=inspect):
+            # A Python function binds the dialog instance; autospec on the
+            # PySide6 native descriptor does not bind self reliably.
+            with patch.object(QDialog, "exec", new=inspect):
                 self.assertFalse(window._ask_to_view_pass_one_winner(50))
         finally:
             window.close()
