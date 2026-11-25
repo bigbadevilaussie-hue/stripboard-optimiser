@@ -97,6 +97,23 @@ class LiveScoreboardGuiTests(unittest.TestCase):
         finally:
             window.close()
 
+    def test_loading_another_project_clears_stale_scoreboard_values(self):
+        window = RouteMateWindow()
+        try:
+            board = window.scoreboard
+            board.start("AUDIO", 10000, 200, debug=True)
+            board.update_progress(self._progress())
+            self.assertEqual(board.leader_rows[0][0].text(), "0050")
+            board.set_winner_available(True)
+            board.reset_for_project("MOTO")
+            self.assertIn("MOTO", board.mode.text())
+            self.assertIn("No Pass One campaign", board.mode.text())
+            self.assertEqual(board.leader_rows[0][0].text(), "—")
+            self.assertFalse(board.view_winner_button.isEnabled())
+            self.assertEqual(board.stat_values["qualified"].text(), "0")
+        finally:
+            window.close()
+
     def test_declining_winner_preview_preserves_board_and_keeps_saved_svgs(self):
         valid_svg = (
             '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20">'
