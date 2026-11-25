@@ -1,8 +1,10 @@
 # Documentation
 
-- [Current 100-point JSON complexity assessment](JSON_SNIFF.md) index — Version 2.00 / StripSolve GUI 2.26
+- Current application: **StripSolve GUI 2.39 / Q3** (26 November 2026); repository release designation 2.00. Mac owner reports the GUI regression tests and **all 7 Node headless suites passed** after the direct-to-`main` 26 Nov fixes. This is not a completed Moto candidate campaign.
 
 ## Start here (current authority)
+
+- [Native V5 candidate modes, 5k/10k runner, strict audit boundary and Mac verification](CANDIDATE_POLICIES.md) — **implemented and merged into `main`**; opt-in research paths only; GUI Pass One remains strict and Pass Two search remains import-only.
 
 - [Actual-JSON search-budget probe](BUDGET_PROBE.md)
 
@@ -11,7 +13,7 @@
 - [Q3 construction-quality contract and archive rescoring](QUALITY_Q3_2026-11-25.md)
 - [Historical Q2 construction-quality research](QUALITY_Q2_2026-11-25.md)
 
-**New chat / current live work:** [ACTIVE HANDOFF — Audio + Moto WR sweep, multipass and GUI status (24 Nov 2026)](ACTIVE_HANDOFF_2026-11-24.md). This is the most current conversation handoff; older research notes below are dated historical evidence.
+**New chat / current live work:** [ACTIVE HANDOFF — Audio + Moto WR sweep, candidate-policy changes and GUI status (updated 26 Nov 2026)](ACTIVE_HANDOFF_2026-11-24.md). Dated research notes below are historical evidence.
 
 1. [README](../README.md) — install, current architecture and commands
 2. [Project contract](../project.md) — accepted native pipeline and rules
