@@ -149,6 +149,8 @@ locally; commit that regenerated lockfile when the dependency install is verifie
 
 ## Native solver and strict verification
 
+**Experimental native candidate policies:** [diagonal / routing discovery, independent saved-board qualification and resumable 5k-seed runner](docs/CANDIDATE_POLICIES.md). This is opt-in; existing GUI Pass One and strict validation are unchanged.
+
 Example invocation (from `src/frontend/`, after the builds above):
 
 ```sh
