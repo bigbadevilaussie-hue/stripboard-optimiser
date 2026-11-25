@@ -63,6 +63,25 @@ class StripSolveGuiTests(unittest.TestCase):
                 self.assertFalse(icon.isNull())
                 self.assertFalse(icon.pixmap(QSize(24, 24)).isNull())
 
+    def test_asset_generator_writes_1024_png_and_ten_svg_masters(self):
+        import tempfile
+        from pathlib import Path
+        from unittest.mock import patch
+        from PySide6.QtGui import QImage
+        from gui.assets_ui import export_assets
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            with patch("gui.assets_ui.ASSETS_DIR", root / "assets"), \
+                 patch("gui.assets_ui.ICONS_DIR", root / "icons"):
+                made = export_assets(toolbar_png=True)
+                self.assertEqual(len(made), 22)  # app svg/png + 10 svg + 10 png
+                png = QImage(str(root / "assets" / "app_icon.png"))
+                self.assertFalse(png.isNull())
+                self.assertEqual((png.width(), png.height()), (1024, 1024))
+                self.assertEqual(len(list((root / "icons").glob("*.svg"))), 10)
+                self.assertEqual(len(list((root / "icons").glob("*.png"))), 10)
+                self.assertEqual(export_assets(toolbar_png=True), [])
+
     def test_existing_toolbar_actions_use_icons_and_stripsolve_name(self):
         window = RouteMateWindow()
         try:
