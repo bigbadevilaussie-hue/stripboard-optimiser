@@ -148,6 +148,7 @@ class LiveScoreboardGuiTests(unittest.TestCase):
                 self.assertIn("Do you want to see", ask.call_args.args[2])
                 self.assertEqual(window._top_svg, "original top")
                 self.assertEqual(window._copper_svg, "original copper")
+                self.assertIn("preview unchanged", window.board_result_label.text())
                 self.assertTrue(window.scoreboard.view_winner_button.isEnabled())
                 self.assertTrue(
                     (Path(temp) / "winner_seed_0050-components.svg").is_file()
@@ -159,6 +160,7 @@ class LiveScoreboardGuiTests(unittest.TestCase):
                 window.scoreboard.view_winner_button.click()
                 self.assertEqual(window._top_svg, valid_svg)
                 self.assertEqual(window._copper_svg, valid_svg)
+                self.assertIn("champion", window.board_result_label.text().lower())
             finally:
                 window.close()
 
