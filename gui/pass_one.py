@@ -323,7 +323,9 @@ def run_pass_one(project, moves, workers, drilled_only, stacking_allowed,
             on_progress({"done": checked, "total": seeds,
                          "qualified": qualified, "failed": failures,
                          "errors": errors, "last": last,
-                         "leaders": [dict(item) for item in leaders]})
+                         "best": dict(leaders[0]) if leaders else None,
+                         "history": ([dict(row) for row in retained.values()]
+                                     if resume and last is None else None)})
 
         log(
             f"[PASS1][{'RESUME' if resume else 'START'}] seeds=1..{seeds} "
