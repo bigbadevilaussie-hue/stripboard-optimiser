@@ -1,5 +1,9 @@
 # Changelog
 
+### GUI 2.37 — Score any opened solved board
+- Calculate existing Q2 construction metrics directly from the loaded JSON in Open Solved. Display W/C/S/Q in the header and total jumper length in Overview. No solver, campaign history, or new electrical verification required.
+
+
 ### GUI 2.36 — Champion board subtitle
 - Replace seed/budget/verification subtitle with actual replayed winner W, C, S and Q2 metrics, including when opening the saved winner later. Seed metadata remains in Activity. No solver or renderer changes.
 

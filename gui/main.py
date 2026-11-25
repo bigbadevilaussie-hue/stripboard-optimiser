@@ -1608,6 +1608,12 @@ class RouteMateWindow(QMainWindow):
                     or not isinstance(board.get("cuts"), list)):
                 raise ValueError("Expected valid board dimensions, wires and cuts.")
             from render.standalone_bridge import render_project_data
+            from gui.quality import construction_metrics
+            metrics = construction_metrics(project)
+            quality_summary = (
+                f"{metrics['w']}W · {metrics['cut']}C · S{metrics['s']} · "
+                f"Q{metrics['q']:.2f}"
+            )
             top, copper, diagnostic = render_project_data(project, web_preview=True)
             self._show_tool_revision(diagnostic, "RENDER")
             # Display first; if decoding fails, retain the prior preview state.
@@ -1616,14 +1622,16 @@ class RouteMateWindow(QMainWindow):
             self._opened_solved = {
                 "name": path.name, "top": top, "copper": copper,
                 "schematic": schematic, "schematic_png": schematic_png,
-                "summary": (f"{board['rows']} × {board['cols']} holes · "
-                            f"{len(board['wires'])} jumpers · {len(board['cuts'])} cuts"),
+                "summary": f"{board['rows']} × {board['cols']} holes",
+                "metrics": metrics, "quality_summary": quality_summary,
             }
             self.schematic_action.setEnabled(bool(schematic))
             self.return_project_button.setVisible(bool(self._top_svg))
             self._show_solved_overview()
             self._switch_board_side("top")
             self.log_line(f"[OPEN SOLVED] Read-only preview: {path}; no solver or audit invoked.")
+            self.log_line(f"[OPEN SOLVED][Q2] {quality_summary} · "
+                          f"{metrics['wire_length_mm']:.2f} mm jumper length")
         except (OSError, ValueError, TypeError, KeyError, RuntimeError, subprocess.SubprocessError) as exc:
             self.log_line(f"[OPEN SOLVED][ERROR] {exc}")
             QMessageBox.warning(self, "Open solved board failed", str(exc))
@@ -1636,7 +1644,9 @@ class RouteMateWindow(QMainWindow):
         self.checklist.hide()
         self.open_solved_summary.setText(
             "OPEN SOLVED\n\n" + opened["name"] + "\n\n" + opened["summary"]
-            + "\n\nRead-only preview\nNo preparation or verification run."
+            + "\n\n" + opened["quality_summary"]
+            + f"\nJumper length: {opened['metrics']['wire_length_mm']:.2f} mm"
+            + "\n\nRead-only preview\nConstruction score only; no new electrical verification."
         )
         self.open_solved_summary.show()
 
@@ -1727,7 +1737,7 @@ class RouteMateWindow(QMainWindow):
             self.copper_action.setChecked(side == "copper")
             self.schematic_action.setChecked(side == "schematic")
             self.board_project_label.setText(opened["name"] + " · " + opened["summary"])
-            self.board_result_label.setText("Open Solved · read-only preview")
+            self.board_result_label.setText("Open Solved · " + opened["quality_summary"])
             if side == "schematic" and opened["schematic_png"]:
                 self.top_view.show_png(opened["schematic_png"])
             elif side == "schematic":
