@@ -559,12 +559,10 @@ def render_project(
         top_svg = add_offboard_terminals(top_svg, source_project)
         top_svg = add_component_highlight(top_svg, project, highlight_component_id)
         top_svg = add_board_coordinate_labels(top_svg, rows, cols)
-    top_svg = add_assumed_contact_highlights(top_svg, source_project)
+    # Nominal contact warnings belong in Activity and physical reports,
+    # not the board artwork. Keep only the explicit lock-review highlight.
     copper_svg = add_board_coordinate_labels(
         copper.read_text(encoding="utf-8"), rows, cols, mirrored=True
-    )
-    copper_svg = add_assumed_contact_highlights(
-        copper_svg, source_project, mirrored=True,
     )
     corrections = project.get("_routeMateLabelAdjustments") or []
     label_log = "\n".join(

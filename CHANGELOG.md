@@ -1,5 +1,11 @@
 # Changelog
 
+### GUI 2.30 — Clean board artwork
+- Stop adding nominal contact warning boxes to both board sides, including Open Solved, winner SVGs and print exports.
+- Keep explicit selected-component highlighting for lock review; retain cut symbols, electrical colouring and physical diagnostics.
+- No changes to geometry checks, solver or TypeScript renderer. Previously saved SVGs are unchanged; re-render their JSON for clean artwork.
+
+
 ### GUI 2.29 — Keep Open Solved in the main board canvas
 - Replace separate preview dialog with the existing board viewport and toolbar side controls.
 - Keep read-only solved preview separate from active project; Project board returns to the active view. New load or campaign/winner preview clears it.

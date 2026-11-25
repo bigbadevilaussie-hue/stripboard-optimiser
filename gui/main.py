@@ -1552,7 +1552,7 @@ class RouteMateWindow(QMainWindow):
             return 0
         self.log_line(
             f"[CONTACT][{stage}][ASSUMED_RISK] {len(contacts)} "
-            "nominal body/pad contact(s) marked RED on both board sides. "
+            "nominal body/pad contact(s) flagged in diagnostics. "
             "Dimensions are ASSUMED, not certified physical collisions."
         )
         for issue in contacts[:100]:
@@ -3075,7 +3075,7 @@ class RouteMateWindow(QMainWindow):
              f"Electrical PASS · {len(overhangs)} nominal board overhang(s) · "
              "physical fit UNVERIFIED"
              if overhangs else
-             f"Electrical PASS · {contact_count} nominal contacts marked RED · "
+             f"Electrical PASS · {contact_count} nominal contacts · "
              "physical fit UNVERIFIED"
              if contact_count else
              f"Electrical PASS · {len(solved['board']['cuts'])} cuts · "
@@ -3126,7 +3126,7 @@ class RouteMateWindow(QMainWindow):
             self.statusBar().showMessage(
                 ("Electrical PASS but 2.5D HARD CONFLICT: inspect Activity before building."
                  if hard_conflict else
-                 f"Electrical PASS, but {contact_count} nominal contacts are RED; "
+                 f"Electrical PASS, but {contact_count} nominal contacts flagged; "
                  "inspect Activity and verify actual package dimensions."
                  if contact_count else
                  f"Electrical PASS — {len(solved['board']['cuts'])} cuts, "
