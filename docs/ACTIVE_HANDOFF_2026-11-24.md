@@ -1,10 +1,24 @@
-# ACTIVE HANDOFF — StripSolve (updated 25 Nov 2026)
+# ACTIVE HANDOFF — StripSolve (updated 26 Nov 2026)
 
 ## Current release: StripSolve GUI 2.39 / Q3 (25 November 2026)
 
+
+## 26 November 2026 — LATEST VERIFIED ENGINEERING STATUS
+
+- The owner reports the Mac Python GUI regression suite now passes after the fixes to the **Slide/EXPERIMENTAL** label and dashboard return-to-board fallback; the immediately preceding run had 2 failures among 129 Python tests.
+- The owner also reported **"All 7 suites passed"** from `src/frontend` after running `npm run test:headless`. This is owner-provided target-Mac evidence, not an assertion that a separate packaged app, full 5k-seed campaign, or new world record has passed.
+- Native candidate policies and the research runner were merged into **`main`** at `7d24708`. GUI regression fixes were committed to **`main`** at `e51b657`. [Policy details and commands](CANDIDATE_POLICIES.md), [changelog](../CHANGELOG.md).
+- The opt-in CLI accepts `--candidate-policy strict|diagonal|crossings|archive` **only with** `--strict 1`. The native result's candidate prequalification is diagnostic; the saved-board audit determines research acceptance. Default strict behaviour and final build-ready verification remain strict. The existing GUI Pass One is unchanged, and GUI Pass Two **still does not perform an optimisation search**.
+- The **previous Moto 5,000-seed diagonal hunt was stopped manually**, not completed. Last observed evidence: **369 recorded trials**, **3 strict passes**, **349 archived candidates with diagonal-related flags**, with many also failing other electrical/physical rules. Do not infer those candidates are electrically complete; do not claim the new policy has recovered a historical WR.
+- New isolated controller: `scripts/run_candidate_hunt.py` (default 5,000 seeds / 10k moves / 2 workers; resumable; class-specific champions and audit records). Prefer a fresh **10-seed smoke campaign** before 5,000 trials. **Do not rerun the old destructive WR Audio/Moto script** or overwrite the stopped Moto results.
+- Repository collaboration rule from owner: **make future approved changes directly on `main`; do not create feature branches or new pull requests**.
+
+**Current release:** GUI **2.39 / Q3**; this research-policy addition is not a GUI feature-version bump. The earlier dated notes below remain useful historical evidence but may describe superseded GUI budget or Pass Two plans.
+
+
 Budget recommendation: [100-point JSON complexity sniff](JSON_SNIFF.md). CPU allocation is separate; no native decodes or qualification trials run before GO.
 
-GUI 2.26: speed calibration remains a 100-decode timing-only measurement. The separate actual-JSON budget probe uses strict native solves and independent saved-board audits, targets 100 survivors per 2,000 seeds (5%), and compares 10k/20k only as needed. Compatible completed FULL history takes priority. See [budget probe](BUDGET_PROBE.md). Locked Edge mounts automatically select the Edge decoder in speed calibration, probe, Pass One and replay. No Slide search or strict-rule change.
+**Historical GUI 2.26 budget policy (superseded by GUI 2.39):** The prior speed probe and actual-JSON qualification budget probe are documented in [budget probe](BUDGET_PROBE.md), but **current GUI 2.39 uses the static 100-point JSON complexity sniff before GO**. Locked Edge decoder selection remains separate. No Slide search or change to strict GUI qualification.
 
 macOS standalone build: [build_mac_app.sh](../build_mac_app.sh) adapts the Mac-tested Route-Mate packaging workflow to StripSolve, including the native V5 CLI, Node, SVG renderers, librsvg converter and approved artwork. See [STANDALONE_MACOS.md](STANDALONE_MACOS.md). Packaged Work lives in `~/Library/Application Support/StripSolve/Work/`; source checkout Work is unchanged. The new StripSolve bundle is not yet Mac-verified.
 
