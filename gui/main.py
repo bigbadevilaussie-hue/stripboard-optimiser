@@ -313,8 +313,9 @@ class PassOneDialog(QDialog):
         heading.setStyleSheet("font-size: 17px; font-weight: 800;")
         layout.addWidget(heading)
         explanation = QLabel(
-            "Run 2,000 independent seeds. Save PASS, FAIL and ERROR attempts "
-            "with seed, cuts, wires, Q/100 and seconds to this project's "
+            "Run 200 seeds in DEBUG mode, or 2,000 in normal mode. "
+            "Save PASS, FAIL and ERROR attempts with seed, cuts, wires, Q/100 "
+            "and seconds to this project's "
             "selected 10k/20k directory. The verified winner is replayed "
             "and saved separately when the campaign completes."
         )
@@ -359,6 +360,10 @@ class PassOneDialog(QDialog):
             self.twenty_k.setChecked(True)
         layout.addWidget(self.ten_k)
         layout.addWidget(self.twenty_k)
+        self.debug_mode = QCheckBox("DEBUG MODE — ON: 200 seeds · OFF: 2,000 seeds")
+        self.debug_mode.setObjectName("passOneDebugMode")
+        self.debug_mode.setChecked(False)
+        layout.addWidget(self.debug_mode)
         self.confirm = QCheckBox(
             "I confirm the selected Pass One budget and want to continue."
         )
@@ -379,12 +384,18 @@ class PassOneDialog(QDialog):
     def moves(self):
         return 10000 if self.ten_k.isChecked() else 20000
 
+    def debug(self):
+        return self.debug_mode.isChecked()
+
+    def seeds(self):
+        return 200 if self.debug() else 2000
+
 
 class PassOneExistingDialog(QDialog):
     """A separate, explicit gate before overwriting previous test results."""
 
     def __init__(self, source_name, moves, existing, resume_info=None,
-                 resume_error=None, parent=None):
+                 resume_error=None, parent=None, *, seeds=2000, debug=False):
         super().__init__(parent)
         self.setWindowFlag(Qt.WindowType.FramelessWindowHint, True)
         self.setWindowTitle("Pass One — Previous results found")
@@ -397,6 +408,7 @@ class PassOneExistingDialog(QDialog):
         warning = QLabel(
             f"Project: {source_name}\n"
             f"Move budget: {moves // 1000}k\n"
+            f"Campaign: {'DEBUG · 200 seeds' if debug else 'FULL · 2,000 seeds'}\n"
             f"Existing files: {len(existing)}\n"
             "RESTART will overwrite ONLY this project's selected move-budget "
             "CSV/log and its winner JSON/SVG. Other budgets and projects remain untouched."
@@ -406,7 +418,7 @@ class PassOneExistingDialog(QDialog):
         if resume_info is not None and resume_info["state"] != "COMPLETED":
             details = QLabel(
                 f"Saved campaign: {resume_info['state']} · "
-                f"{resume_info['done']:,}/{2000:,} confirmed seeds · "
+                f"{resume_info['done']:,}/{seeds:,} confirmed seeds · "
                 f"{resume_info['qualified']} verified · "
                 f"{resume_info['errors']} errors to retry."
             )
@@ -895,7 +907,8 @@ class PassOneWorker(QThread):
     failed = Signal(str)
     cancelled = Signal()
 
-    def __init__(self, project, moves, workers, drilled, stacking, output, parent=None, *, resume=False):
+    def __init__(self, project, moves, workers, drilled, stacking, output,
+                 parent=None, *, resume=False, seeds=2000, debug=False):
         super().__init__(parent)
         self.project = copy.deepcopy(project)
         self.moves = moves
@@ -904,6 +917,8 @@ class PassOneWorker(QThread):
         self.stacking = stacking
         self.output = output
         self.resume = resume
+        self.seeds = seeds
+        self.debug = debug
 
     def run(self):
         from gui.pass_one import run_pass_one
@@ -913,7 +928,7 @@ class PassOneWorker(QThread):
                 self.project, self.moves, self.workers,
                 self.drilled, self.stacking, self.output,
                 self.tick.emit, self.diagnostic.emit, self.isInterruptionRequested,
-                resume=self.resume,
+                seeds=self.seeds, resume=self.resume, debug=self.debug,
             )
             self.completed.emit(result)
         except Cancelled:
@@ -1970,6 +1985,8 @@ class RouteMateWindow(QMainWindow):
             self.log_line("[PASS1][CANCELLED] GO not pressed; results untouched.")
             return
         moves = dialog.moves()
+        debug = dialog.debug()
+        seeds = dialog.seeds()
         try:
             from gui.native_calibration import prerequisites
             from gui.pass_one import AUDITOR, inspect_pass_one_campaign
@@ -1979,8 +1996,8 @@ class RouteMateWindow(QMainWindow):
             workspace = project_workspace(self.project_path, self.work_root, create=False)
             if workspace != self.active_workspace:
                 raise ValueError("Loaded project and workspace disagree — no files cleared.")
-            folder = pass_one_budget_dir(workspace, moves)
-            existing = campaign_existing_files(workspace, moves)
+            folder = pass_one_budget_dir(workspace, moves, debug=debug)
+            existing = campaign_existing_files(workspace, moves, debug=debug)
             resume = False
             snapshot = None
             if existing:
@@ -1988,7 +2005,7 @@ class RouteMateWindow(QMainWindow):
                     snapshot = inspect_pass_one_campaign(
                         self.project, moves, self._recommended_workers,
                         self._probe_cut_drilled_only, self._probe_stacking_allowed,
-                        folder,
+                        folder, seeds=seeds, debug=debug,
                     )
                     error = None
                 except (OSError, ValueError, KeyError, TypeError) as exc:
@@ -1998,7 +2015,8 @@ class RouteMateWindow(QMainWindow):
                     for p in existing
                 }
                 choice = PassOneExistingDialog(
-                    self.project_path.name, moves, existing, snapshot, error, self
+                    self.project_path.name, moves, existing, snapshot, error, self,
+                    seeds=seeds, debug=debug,
                 )
                 if choice.exec() != QDialog.DialogCode.Accepted or choice.action is None:
                     self.log_line("[PASS1][CANCELLED] Existing results preserved.")
@@ -2006,7 +2024,7 @@ class RouteMateWindow(QMainWindow):
                 # Re-check every saved file after the user reviews the warning.
                 current = {
                     str(p): (p.stat().st_size, p.stat().st_mtime_ns)
-                    for p in campaign_existing_files(workspace, moves)
+                    for p in campaign_existing_files(workspace, moves, debug=debug)
                 }
                 if current != original:
                     raise ValueError("Results changed while confirming; nothing overwritten.")
@@ -2015,9 +2033,9 @@ class RouteMateWindow(QMainWindow):
                     if snapshot is None or snapshot["state"] == "COMPLETED":
                         raise ValueError("Resume is not available for this campaign")
                 else:
-                    folder = clear_pass_one_budget(workspace, moves)
+                    folder = clear_pass_one_budget(workspace, moves, debug=debug)
             else:
-                folder = pass_one_budget_dir(workspace, moves, create=True)
+                folder = pass_one_budget_dir(workspace, moves, create=True, debug=debug)
         except (OSError, ValueError, RuntimeError) as exc:
             QMessageBox.critical(self, "Pass One startup", str(exc))
             return
@@ -2029,12 +2047,13 @@ class RouteMateWindow(QMainWindow):
         self._pass_one_previous_average = (
             snapshot["seconds_per_seed"] if resume else None
         )
-        self._solve_budget = 2000
-        self.solve_progress.setRange(0, 2000)
+        self._solve_budget = seeds
+        self.solve_progress.setRange(0, seeds)
         self.solve_progress.setValue(self._solve_done)
         self.solve_progress.setFormat("Pass One: %v/%m seeds")
         self.solve_activity.setText(
-            f"Pass One · {moves:,} moves · {self._solve_done:,}/2,000"
+            f"Pass One {'DEBUG' if debug else 'FULL'} · "
+            f"{moves:,} moves · {self._solve_done:,}/{seeds:,}"
         )
         self.solve_worker_status.setText(
             f"{self._recommended_workers} workers · "
@@ -2042,7 +2061,8 @@ class RouteMateWindow(QMainWindow):
         )
         self._set_board_summary(
             f"Pass One {'resuming' if resume else 'running'} · "
-            f"{moves // 1000}k moves · not a final routed board",
+            f"{moves // 1000}k moves · {'DEBUG' if debug else 'FULL'} · "
+            "not a final routed board",
             level="working",
         )
         self.load_action.setEnabled(False)
@@ -2053,14 +2073,14 @@ class RouteMateWindow(QMainWindow):
         self._solve_clock.start()
         self.log_line(
             f"[PASS1][{'RESUME' if resume else 'GO'}] "
-            f"2,000 native seeds × {moves:,} moves; {self._recommended_workers} "
+            f"{seeds:,} native seeds × {moves:,} moves; {self._recommended_workers} "
             f"workers; folder={folder}; "
             f"{'existing PASS/FAIL rows preserved' if resume else 'selected budget only cleared'}."
         )
         worker = PassOneWorker(
             self.project, moves, self._recommended_workers,
             self._probe_cut_drilled_only, self._probe_stacking_allowed,
-            folder, self, resume=resume
+            folder, self, resume=resume, seeds=seeds, debug=debug
         )
         self._pass_one_worker = worker
         worker.tick.connect(self._pass_one_tick)
