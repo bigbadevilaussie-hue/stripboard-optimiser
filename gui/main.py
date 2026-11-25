@@ -2249,7 +2249,7 @@ class RouteMateWindow(QMainWindow):
             "Both component-side and copper-side SVGs have been saved.\n\n"
             "Do you want to see the winning board now?",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            QMessageBox.StandardButton.Yes,
+            QMessageBox.StandardButton.No,
         )
         return answer == QMessageBox.StandardButton.Yes
 
