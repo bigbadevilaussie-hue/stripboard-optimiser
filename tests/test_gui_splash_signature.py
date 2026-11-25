@@ -1,4 +1,4 @@
-"""Renderer revision splash must use a valid PySide6 constructor."""
+"""Renderer revision provenance must be log-only: no Qt popup or status override."""
 import os
 import unittest
 
@@ -17,14 +17,22 @@ class RendererSplashSignatureTests(unittest.TestCase):
     def setUpClass(cls):
         cls.app = QApplication.instance() or QApplication([])
 
-    def test_revision_splash_constructor(self):
+    def test_renderer_revisions_are_log_only(self):
         window = RouteMateWindow()
         try:
-            window._display_tool_splash("RENDER", "[TOOL-REVISION] tool=RENDER test")
-            self.assertIsNotNone(window._active_tool_splash)
+            window.statusBar().showMessage("Existing status")
+            before = set(QApplication.topLevelWidgets())
+            for tool in ("RENDER", "SCHEMATIC"):
+                stamp = f"[TOOL-REVISION] tool={tool} test"
+                window._show_tool_revision(stamp, tool)
+                window._show_tool_revision(stamp, tool)
+                self.assertEqual(window.log.toPlainText().count(stamp), 1)
+            QApplication.processEvents()
+            self.assertEqual(set(QApplication.topLevelWidgets()), before)
+            self.assertEqual(window.statusBar().currentMessage(), "Existing status")
+            self.assertFalse(hasattr(window, "_display_tool_splash"))
+            self.assertFalse(hasattr(window, "_active_tool_splash"))
         finally:
-            if window._active_tool_splash is not None:
-                window._active_tool_splash.close()
             window.close()
 
 

@@ -3,7 +3,7 @@
 ### GUI 2.20 — Remove renderer popups and duplicate seed count (25 November 2026)
 - Remove renderer/schematic Qt revision splash implementation and status-bar override; keep Activity and headless stderr provenance.
 - Remove duplicate seed count from dashboard ETA. Keep elapsed and throughput-based ETA unchanged.
-- Update regression expectations to require log-only renderer revisions and no duplicate seed counts.
+- Update regression expectations to require log-only renderer revisions and no duplicate seed counts. Replace obsolete Qt splash-constructor test with real log-only, duplicate-stamp and no-popup checks.
 - Mac 2.19 baseline: 98 of 100 tests passed; two ETA duplication failures identified. 2.20 target-Mac rerun outstanding.
 
 
