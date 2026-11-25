@@ -1,4 +1,4 @@
-# Documentation index — Version 2.00 / StripSolve GUI 2.19
+# Documentation index — Version 2.00 / StripSolve GUI 2.20
 
 ## Start here (current authority)
 

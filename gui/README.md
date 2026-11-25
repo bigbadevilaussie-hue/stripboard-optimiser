@@ -1,6 +1,8 @@
-# StripSolve GUI 2.19 — Arctic Ice + Colourburst
+# StripSolve GUI 2.20 — Arctic Ice + Colourburst
 
-## Current release: StripSolve GUI 2.19 / Q2 (25 November 2026)
+## Current release: StripSolve GUI 2.20 / Q2 (25 November 2026)
+
+GUI 2.20: renderer-version popup windows removed entirely; revision stamps remain in Activity and CLI stderr. Seed count appears only above the progress bar, not inside the ETA text.
 
 The live construction score is Q2, with W = jumper count, C = cut count,
 L = total jumper span in mm (2.54 mm pitch), D = nonvertical jumper count,
@@ -237,9 +239,9 @@ not require a GUI version bump.
   showing Git revision and a fingerprint of the **actual compiled dist tree**.
   This helps identify stale builds instead of incorrectly labelling them as
   current code.
-- The GUI shows a **non-blocking Qt splash** on first use of each renderer
-  revision, plus a permanent banner in Activity; repeated part highlights do
-  not raise repeated splashes. The GUI title includes its own 2.04 revision.
+- Since GUI 2.20, renderer revisions appear **only in Activity**, once per
+  distinct stamp. No renderer splash window or status-bar interruption.
+  The standalone CLI stderr provenance and the branded application startup splash remain.
 - Compiled JavaScript is committed with the TypeScript source. A clean
   `git pull --ff-only` is sufficient; rebuilding is optional unless sources
   have subsequently changed. Regression check:

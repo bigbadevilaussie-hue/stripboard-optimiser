@@ -48,8 +48,11 @@ class ToolRevisionSplashTests(unittest.TestCase):
         self.assertIn('self._show_tool_revision(_renderer_log, "RENDER")', code)
         self.assertIn('self._show_tool_revision(diagnostic, "SCHEMATIC")', code)
         self.assertIn('GUI_GIT_REVISION', code)
-        self.assertIn("QSplashScreen", code)
-        self.assertIn("self._display_tool_splash(tool, revision)", code)
+        self.assertNotIn("QSplashScreen", code)
+        self.assertNotIn("_display_tool_splash", code)
+        handler = code.split("    def _show_tool_revision(", 1)[1].split("    def _log_handoff(", 1)[0]
+        self.assertIn("self.log_line(revision)", handler)
+        self.assertNotIn("statusBar()", handler)
         # GUI version advances independently of the repository release; 2.04
         # was a stale snapshot, not a renderer provenance requirement.
         gui_version = (ROOT / "gui/VERSION").read_text().strip()

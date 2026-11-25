@@ -61,7 +61,7 @@ from PySide6.QtWidgets import (
     QApplication, QCheckBox, QDialog, QDialogButtonBox, QFileDialog,
     QFormLayout, QGraphicsScene, QGraphicsView, QGroupBox, QHBoxLayout,
     QLabel, QMainWindow, QMessageBox, QPlainTextEdit, QPushButton, QRadioButton, QComboBox, QInputDialog,
-    QLineEdit, QSplitter, QToolBar, QVBoxLayout, QWidget, QProgressBar, QTabWidget, QFrame, QSplashScreen, QScrollArea, QStackedWidget,
+    QLineEdit, QSplitter, QToolBar, QVBoxLayout, QWidget, QProgressBar, QTabWidget, QFrame, QScrollArea, QStackedWidget,
 )
 
 
@@ -962,7 +962,6 @@ class RouteMateWindow(QMainWindow):
         self._schematic_png = None  # Old Tk GUI’s rsvg-convert preview bytes
         self._board_side = "top"
         self._tool_revisions_seen: set[str] = set()
-        self._active_tool_splash = None
         self._solver_worker = None
         self._speed_probe_worker = None
         self._calibration_worker = None
@@ -1301,42 +1300,13 @@ class RouteMateWindow(QMainWindow):
                          if line.startswith(prefix)), None)
         if revision is None:
             revision = (f"[{tool}][REVISION NOT STAMPED] Compiled renderer lacks "
-                        "revision splash; rebuild with cd src/frontend && npm run build:renderers")
+                        "revision stamp; rebuild with cd src/frontend && npm run build:renderers")
         if revision in self._tool_revisions_seen:
             return
         self._tool_revisions_seen.add(revision)
         self.log_line(f"━━━━━━ {tool} · EXECUTABLE REVISION ━━━━━━")
         self.log_line(revision)
         self.log_line("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-        self.statusBar().showMessage(revision, 8000)
-        self._display_tool_splash(tool, revision)
-
-    def _display_tool_splash(self, tool: str, revision: str):
-        """Brief visible Qt splash; not a blocking dialog or a fake solver run."""
-        pix = QPixmap(690, 156)
-        pix.fill(QColor("#edf6fd"))
-        painter = QPainter(pix)
-        painter.setPen(QColor("#19334d"))
-        font = painter.font()
-        font.setPointSize(20)
-        font.setBold(True)
-        painter.setFont(font)
-        painter.drawText(24, 48, f"STRIPBOARD · {tool}")
-        font.setPointSize(10)
-        font.setBold(False)
-        painter.setFont(font)
-        painter.setPen(QColor("#536f88"))
-        painter.drawText(24, 88, revision)
-        painter.drawText(24, 123, f"GUI {GUI_VERSION}  ·  checked-out {GUI_GIT_REVISION}")
-        painter.end()
-        if self._active_tool_splash is not None:
-            self._active_tool_splash.close()
-        # PySide6 QSplashScreen takes (pixmap, flags), not (parent, pixmap, flags).
-        splash = QSplashScreen(pix, Qt.WindowType.WindowStaysOnTopHint)
-        self._active_tool_splash = splash
-        splash.show()
-        splash.repaint()
-        QTimer.singleShot(1800, splash.close)
 
     def _log_handoff(self, handoff: dict[str, Any]):
         self.log_line(
@@ -2547,7 +2517,6 @@ class RouteMateWindow(QMainWindow):
             )
             self.dashboard.eta.setText(
                 f"Elapsed: {self._clock_text(elapsed)} · "
-                f"{self._solve_done:,}/{self._solve_budget:,} seeds · "
                 f"ETA: {remaining}"
             )
             return

@@ -1,6 +1,8 @@
 # ACTIVE HANDOFF — StripSolve (updated 25 Nov 2026)
 
-## Current release: StripSolve GUI 2.19 / Q2 (25 November 2026)
+## Current release: StripSolve GUI 2.20 / Q2 (25 November 2026)
+
+GUI 2.20: renderer-version popup windows removed entirely; revision stamps remain in Activity and CLI stderr. Seed count appears only above the progress bar, not inside the ETA text.
 
 The live construction score is Q2, with W = jumper count, C = cut count,
 L = total jumper span in mm (2.54 mm pitch), D = nonvertical jumper count,

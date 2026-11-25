@@ -2,7 +2,7 @@
 
 **Release milestone:** Version 2.00 — Consolidation of Two Repositories (24 November 2026).
 
-**Consolidation designation:** `2.00` (no Git tag published) · **npm/package version:** `2.0.0` · **StripSolve GUI:** `2.19` (`gui/VERSION`).
+**Consolidation designation:** `2.00` (no Git tag published) · **npm/package version:** `2.0.0` · **StripSolve GUI:** `2.20` (`gui/VERSION`).
 
 **START HERE IF CONTINUING IN A NEW CHAT:** [Active handoff — WR Audio/Moto discovery, multipass plans and current GUI boundary](docs/ACTIVE_HANDOFF_2026-11-24.md). It records the native solver call chain, completed 5k/10k Audio results, unfinished work, reference WRs, and the **destructive rerun warning**.
 
@@ -16,7 +16,9 @@ The audit records verified source checks and outstanding target-Mac tests; it do
 native stripboard solver. It is the successor brand to the original Route-Mate
 GUI; the GitHub repository path and historical donor docs retain their names.
 
-## Current release: StripSolve GUI 2.19 / Q2 (25 November 2026)
+## Current release: StripSolve GUI 2.20 / Q2 (25 November 2026)
+
+GUI 2.20: renderer-version popup windows removed entirely; revision stamps remain in Activity and CLI stderr. Seed count appears only above the progress bar, not inside the ETA text.
 
 The live construction score is Q2, with W = jumper count, C = cut count,
 L = total jumper span in mm (2.54 mm pitch), D = nonvertical jumper count,
