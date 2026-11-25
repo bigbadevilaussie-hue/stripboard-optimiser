@@ -5,7 +5,7 @@ from unittest.mock import patch
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 try:
-    from PySide6.QtWidgets import QApplication, QDialog, QLabel
+    from PySide6.QtWidgets import QApplication, QDialog, QRadioButton
     from gui.main import RouteMateWindow, RoutingRulesDialog, LockDialog
 except ImportError:
     QApplication = None
@@ -23,7 +23,7 @@ class RoutingRulesTests(unittest.TestCase):
         try:
             self.assertEqual(d.values(), {"drilled_only": False, "stacking_allowed": True})
             self.assertTrue(any("knife cuts" in label.text().lower()
-                                for label in d.findChildren(QLabel)))
+                                for label in d.findChildren(QRadioButton)))
         finally:
             d.close()
 
