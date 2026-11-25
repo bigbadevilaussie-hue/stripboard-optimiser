@@ -1128,6 +1128,11 @@ class RouteMateWindow(QMainWindow):
             "font-size: 12px; font-weight: 750; color: #123f61; padding: 2px;"
         )
         self.solve_progress = QProgressBar()
+        # The fill must never obscure tiny text in the narrow overview footer.
+        # Counts live in the adjacent label, not inside the coloured bar.
+        self.solve_progress.setTextVisible(False)
+        self.solve_progress.setFixedHeight(17)
+        self.solve_progress.setToolTip("Pass progress; completed seed count appears above")
         self.solve_progress.setRange(0, 100)
         self.solve_progress.setValue(0)
         self.solve_progress.setFormat("100-point move check: %v/%m")
@@ -2145,8 +2150,7 @@ class RouteMateWindow(QMainWindow):
         self.solve_progress.setValue(self._solve_done)
         self.solve_progress.setFormat("Pass One: %v/%m seeds")
         self.solve_activity.setText(
-            f"Pass One {'DEBUG' if debug else 'FULL'} · "
-            f"{moves:,} moves · {self._solve_done:,}/{seeds:,}"
+            f"Pass One · {self._solve_done:,}/{seeds:,} confirmed"
         )
         self.solve_worker_status.setText(
             f"{self._recommended_workers} workers · "
@@ -2166,6 +2170,11 @@ class RouteMateWindow(QMainWindow):
         self.stop_action.setEnabled(True)
         self._solve_started = perf_counter()
         self._solve_clock.start()
+        self.statusBar().showMessage(
+            f"PASS ONE RUNNING · {moves // 1000}k · "
+            f"{'DEBUG' if debug else 'FULL'} · "
+            f"{self._solve_done:,}/{seeds:,} confirmed"
+        )
         self.log_line(
             f"[PASS1][{'RESUME' if resume else 'GO'}] "
             f"{seeds:,} native seeds × {moves:,} moves; {self._recommended_workers} "
@@ -2193,12 +2202,15 @@ class RouteMateWindow(QMainWindow):
         passed = progress["qualified"]
         errors = progress.get("errors", 0)
         self.solve_activity.setText(
-            f"Pass One · {self._solve_done:,}/{progress['total']:,} "
-            f"confirmed · {passed:,} verified"
+            f"Pass One · {self._solve_done:,}/{progress['total']:,} confirmed"
         )
         self.solve_worker_status.setText(
             f"{self._recommended_workers} workers · {passed} strict PASS · "
             f"{errors} errors"
+        )
+        self.statusBar().showMessage(
+            f"PASS ONE RUNNING · {self._solve_done:,}/{progress['total']:,} seeds · "
+            f"{passed} verified · {errors} errors"
         )
         self._update_solve_clock()
 
@@ -2350,6 +2362,7 @@ class RouteMateWindow(QMainWindow):
         )
 
     def _pass_one_failed(self, error):
+        self.statusBar().showMessage("PASS ONE FAILED · results preserved · see Activity")
         self.dashboard.interrupted("FAILED · partial audited results retained")
         self._calibration_stages["PASS1"] = "failed"
         self._refresh_checklist()
@@ -2358,6 +2371,7 @@ class RouteMateWindow(QMainWindow):
         self.log_line("[PASS1][ERROR] " + str(error))
 
     def _pass_one_cancelled(self):
+        self.statusBar().showMessage("PASS ONE STOPPED · audited results saved · resume available")
         self.dashboard.interrupted("STOPPED · audited results preserved for resume")
         self.solve_activity.setText("PASS ONE STOPPED · resume preserves PASS/FAIL rows")
         self._set_board_summary("Pass One stopped · resume available", level="working")
@@ -2534,12 +2548,21 @@ class RouteMateWindow(QMainWindow):
                 remaining = f"~{self._clock_text(eta_seconds)} (previous seed timings)"
             else:
                 remaining = "measuring first completed seed"
+            # Sidebar: a single compact line; the full throughput detail
+            # belongs in the roomy dashboard's run-control panel.
+            compact_eta = remaining.split(" (", 1)[0]
             self.solve_eta.setText(
+                f"Elapsed: {self._clock_text(elapsed)} · ETA: {compact_eta}"
+            )
+            self.solve_eta.setToolTip(
+                f"{self._solve_done:,}/{self._solve_budget:,} seeds · "
+                f"ETA: {remaining}"
+            )
+            self.dashboard.eta.setText(
                 f"Elapsed: {self._clock_text(elapsed)} · "
                 f"{self._solve_done:,}/{self._solve_budget:,} seeds · "
                 f"ETA: {remaining}"
             )
-            self.dashboard.eta.setText(self.solve_eta.text())
             return
         if self._calibration_worker is not None:
             self.solve_eta.setText(
