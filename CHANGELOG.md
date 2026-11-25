@@ -1,5 +1,13 @@
 # Changelog
 
+### GUI 2.16 — Live strict Pass One leaderboard and winner-preview consent (25 November 2026)
+- Add a dedicated, scrolling 🏆 Scoreboard tab without reducing the board canvas or crowding the compact Overview footer.
+- Live progress updates now carry the five highest independently audited strict PASS seeds, ranked by Q descending, then fewer wires, cuts and lower seed. Resume immediately restores verified leaders from retained CSV rows.
+- Show checked/PASS/error counts, latest seed result, move budget and debug/full mode, then retain final leaders after completion.
+- Persist the champion's component/copper SVGs and JSON before asking "Do you want to see the winning board now?" No preserves the existing viewer; Yes opens the saved SVGs. The Scoreboard has a "View saved winner" button to open them later without rerunning the solver.
+- Clearing or loading a new project resets stale scoreboard content; no existing campaign CSV schema, Work directories, native decoder or strict audit rules changed.
+- Add GUI and campaign regression tests for ranking, resume, progress streaming and declining winner previews. Full Mac Qt test run pending.
+
 ### GUI 2.15 — Compact overview with fixed Pass One results (25 November 2026)
 - Keep the champion summary, live Pass One activity/progress, worker count and elapsed/ETA visibly anchored below the scrolling preparation checklist.
 - Reduce checklist padding and row spacing; show cuts and wire-stacking settings inline rather than on extra lines.
