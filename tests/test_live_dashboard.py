@@ -41,7 +41,7 @@ class AuditedChampionTests(unittest.TestCase):
 
 os.environ.setdefault('QT_QPA_PLATFORM','offscreen')
 try:
-    from PySide6.QtWidgets import QApplication, QStackedWidget
+    from PySide6.QtWidgets import QApplication, QStackedWidget, QDialog, QLabel, QPushButton
     from gui.live_dashboard import LiveDashboard, SmoothPlot, OutcomeRing
     from gui.main import RouteMateWindow
 except ImportError:
@@ -94,6 +94,43 @@ class LiveDashboardGuiTests(unittest.TestCase):
             self.assertIsInstance(board.ring,OutcomeRing)
         finally:
             board.close()
+
+    def test_pass_rate_uses_actual_audited_seeds(self):
+        ring = OutcomeRing()
+        try:
+            for counts, expected in [
+                ((0, 0, 0, 200), '—'),
+                ((17, 183, 0, 0), '8.5%'),
+                ((10, 70, 0, 120), '12.5%'),
+                ((1, 3, 2, 194), '25.0%'),
+                ((0, 200, 0, 0), '0.0%'),
+                ((200, 0, 0, 0), '100.0%'),
+            ]:
+                ring.set_counts(*counts)
+                self.assertEqual(ring.pass_rate_text(), expected)
+        finally:
+            ring.close()
+
+    def test_winner_dialog_plain_english_and_actual_metrics(self):
+        window = RouteMateWindow()
+        try:
+            window.dashboard._best = dict(seed=50,w=13,cut=41,s=1,q=70.52,wire_length_mm=264.16)
+            window.dashboard.ring.set_counts(17,183,0,0)
+            def inspect(dialog):
+                labels = [label.text() for label in dialog.findChildren(QLabel)]
+                for text in ("Quality score", "70.52 / 100", "Jumper wires",
+                             "Track cuts", "Max wire stack", "No stacking",
+                             "264.16 mm", "10.40 inches",
+                             "17 of 200 audited seeds qualified (8.5%)."):
+                    self.assertIn(text, labels)
+                self.assertFalse(any("Q2" in text for text in labels))
+                self.assertIn("View winning board",
+                              [button.text() for button in dialog.findChildren(QPushButton)])
+                return QDialog.DialogCode.Rejected
+            with patch.object(QDialog, "exec", autospec=True, side_effect=inspect):
+                self.assertFalse(window._ask_to_view_pass_one_winner(50))
+        finally:
+            window.close()
 
     def test_dashboard_is_main_preview_not_sidebar(self):
         window = RouteMateWindow()

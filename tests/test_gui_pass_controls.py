@@ -448,12 +448,14 @@ class PassControlTests(unittest.TestCase):
             self.assertNotIn("observed throughput", display)
             self.assertNotIn("1,259/2,000 seeds", w.dashboard.eta.text())
             self.assertIn("observed throughput", w.dashboard.eta.text())
+            self.assertEqual(w.dashboard.remaining.text(), "~5m 04s")
             self.assertNotIn("1,259/2,000 seeds", w.solve_eta.toolTip())
 
             w._solve_done = 0
             w._update_solve_clock()
             self.assertIn("ETA: measuring…", w.solve_eta.text())
-            self.assertIn("measuring first completed seed", w.dashboard.eta.text())
+            self.assertEqual(w.dashboard.remaining.text(), "Measuring…")
+            self.assertIn("first completed seed", w.dashboard.eta.text())
 
             w._solve_done = 2000
             w._update_solve_clock()

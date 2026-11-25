@@ -86,16 +86,17 @@ def _nice_number(number: float):
 class MetricCard(QFrame):
     """Large data metric with gradient accent and miniature antialiased trace."""
 
-    def __init__(self, caption, color, symbol, parent=None):
+    def __init__(self, caption, color, symbol, parent=None, *, nested=False):
         super().__init__(parent)
         self.setObjectName('metricCard')
-        self.setMinimumHeight(113)
+        self.setMinimumHeight(105 if nested else 113)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         self.color = QColor(color)
         self._trace = []
         self._color = color
         self.setStyleSheet('QFrame#metricCard {background: white; border: 1px solid #cbddec; border-radius: 16px;}')
-        _shadow(self)
+        if not nested:
+            _shadow(self)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(17, 12, 15, 12)
         layout.setSpacing(5)
@@ -109,10 +110,11 @@ class MetricCard(QFrame):
         self.value.setMinimumHeight(34)
         layout.addWidget(self.value)
         self.detail = _label('Waiting for audited results', 'metricDetail', 11, MUTED, 600)
-        self.detail.setWordWrap(False)
+        self.detail.setWordWrap(True)
         layout.addWidget(self.detail)
         # Small sparkline strip at the card's base, drawn behind text.
-        layout.addSpacing(12)
+        if not nested:
+            layout.addSpacing(12)
 
     def set_metric(self, value, detail, trace=None):
         self.value.setText(str(value))
@@ -277,18 +279,23 @@ class OutcomeRing(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.counts = (0,0,0,0)
-        self.setMinimumHeight(155)
+        self.setMinimumHeight(190)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
     def set_counts(self, passed, failed, errors, remaining):
         self.counts = tuple(max(0,int(v)) for v in (passed,failed,errors,remaining))
         self.update()
 
+    def pass_rate_text(self):
+        passed, failed, _, _ = self.counts
+        audited = passed + failed
+        return f"{100 * passed / audited:.1f}%" if audited else "—"
+
     def paintEvent(self, event):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         passed, failed, errors, remaining = self.counts
-        total = max(1,sum(self.counts))
+        total = max(1, passed + failed)
         diameter = min(self.width()*0.53,self.height()-16,180)
         diameter = max(45,diameter)
         left = max(12,(self.width()*0.55-diameter)/2)
@@ -297,7 +304,8 @@ class OutcomeRing(QWidget):
                             Qt.PenCapStyle.RoundCap))
         painter.drawArc(ring,0,5760)
         current = 90*16
-        for value,color in ((passed,TEAL),(failed,BLUE),(errors,CORAL),(remaining,'#dbe7ef')):
+        # The ring and its central percentage share the same denominator.
+        for value,color in ((passed,TEAL),(failed,BLUE)):
             if value:
                 sweep = -int(value/total*5760)
                 painter.setPen(QPen(QColor(color),19,Qt.PenStyle.SolidLine,
@@ -309,15 +317,15 @@ class OutcomeRing(QWidget):
         font.setBold(True)
         painter.setFont(font)
         painter.drawText(ring.adjusted(8,4,-8,-12),Qt.AlignmentFlag.AlignCenter,
-                         f'{round(passed/max(1,passed+failed)*100)}%')
+                         self.pass_rate_text())
         font = QFont('Helvetica Neue',9)
         painter.setFont(font)
         painter.setPen(QColor(MUTED))
         painter.drawText(ring.adjusted(3,diameter*0.40,-3,0),
-                         Qt.AlignmentFlag.AlignCenter,'strict pass rate')
+                         Qt.AlignmentFlag.AlignCenter,'Pass rate')
         leg_x = max(ring.right()+20,self.width()*0.56)
         y = max(14,(self.height()-92)/2)
-        for title,value,color in (('Strict PASS',passed,TEAL),('Not qualified',failed,BLUE),
+        for title,value,color in (('Verified',passed,TEAL),('Not qualified',failed,BLUE),
                                   ('Errors',errors,CORAL),('Pending',remaining,'#a3baca')):
             painter.setPen(Qt.PenStyle.NoPen)
             painter.setBrush(QColor(color))
@@ -388,7 +396,7 @@ class LiveDashboard(QWidget):
 
         header = QHBoxLayout()
         labels = QVBoxLayout(); labels.setSpacing(3)
-        self.heading = _label('PASS ONE  /  PERFORMANCE', 'liveHeading', 22, INK, 850)
+        self.heading = _label('PASS ONE  /  LIVE RESULTS', 'liveHeading', 22, INK, 850)
         self.subtitle = _label('STRIPSOLVE · Awaiting native solver', 'liveSubtitle', 12, MUTED, 600)
         labels.addWidget(self.heading); labels.addWidget(self.subtitle)
         header.addLayout(labels); header.addStretch()
@@ -400,16 +408,20 @@ class LiveDashboard(QWidget):
         content.addLayout(header)
 
         middle = QHBoxLayout(); middle.setSpacing(13)
-        quality_card = _card(minheight=247)
+        quality_card = _card(minheight=285)
         qlayout = QVBoxLayout(quality_card)
-        qlayout.setContentsMargins(16,14,16,12); qlayout.setSpacing(10)
-        qlayout.addLayout(_title_row('QUALITY PERFORMANCE · Q2'))
-        self.bestq = MetricCard('Best verified quality',CYAN,'✦')
+        qlayout.setContentsMargins(16,14,16,16); qlayout.setSpacing(14)
+        qlayout.addLayout(_title_row('BEST VERIFIED BOARD'))
+        self.bestq = MetricCard('Quality score',CYAN,'✦', nested=True)
+        self.bestq.value.setStyleSheet(f'color:{TEAL}; font-size:36px; font-weight:850;')
+        self.bestq.setToolTip('Construction quality out of 100. Higher is better. '
+                             'Fewer wires, cuts, shorter jumpers and less stacking improve the score.')
         qlayout.addWidget(self.bestq)
         score_grid = QGridLayout()
-        self.w_card = MetricCard('W · Wires',BLUE,'⌁')
-        self.c_card = MetricCard('C · Cuts',COPPER,'✂')
-        self.s_card = MetricCard('S · Max stack',CORAL,'≡')
+        score_grid.setHorizontalSpacing(12)
+        self.w_card = MetricCard('Jumper wires',BLUE,'⌁', nested=True)
+        self.c_card = MetricCard('Track cuts',COPPER,'✂', nested=True)
+        self.s_card = MetricCard('Max wire stack',CORAL,'≡', nested=True)
         for i, widget in enumerate((self.w_card, self.c_card, self.s_card)):
             score_grid.addWidget(widget,0,i)
             score_grid.setColumnStretch(i,1)
@@ -432,8 +444,10 @@ class LiveDashboard(QWidget):
         self.length_mm = _label('—', 'wireLengthMm', 30, CYAN, 850)
         self.length_inches = _label('—', 'wireLengthInches', 18, MUTED, 700)
         self.average_length = _label('—', 'wireLengthAverage', 12, MUTED, 600)
+        wl.addStretch(1)
         wl.addWidget(self.length_mm); wl.addWidget(self.length_inches)
-        wl.addWidget(self.average_length); wl.addStretch()
+        wl.addSpacing(12)
+        wl.addWidget(self.average_length); wl.addStretch(1)
         bottom.addWidget(wc_card,6)
 
         runtime_card = _card(minheight=212)
@@ -452,7 +466,16 @@ class LiveDashboard(QWidget):
         self.progress.setRange(0,1); self.progress.setValue(0)
         self.progress.setTextVisible(False)
         pace.addWidget(self.progress)
-        self.eta = _label('Elapsed: —   ETA: —','liveEta',11,MUTED,650)
+        timing = QGridLayout(); timing.setHorizontalSpacing(12); timing.setVerticalSpacing(3)
+        timing.addWidget(_label('Elapsed time','elapsedCaption',11,MUTED,700),0,0)
+        timing.addWidget(_label('Time remaining','remainingCaption',11,MUTED,700),0,1)
+        self.elapsed = _label('—','elapsedValue',20,INK,800)
+        self.remaining = _label('—','remainingValue',20,TEAL,800)
+        self.remaining.setWordWrap(True)
+        timing.addWidget(self.elapsed,1,0)
+        timing.addWidget(self.remaining,1,1)
+        pace.addLayout(timing)
+        self.eta = _label('','liveEta',10,MUTED,550)
         self.eta.setWordWrap(True)
         pace.addWidget(self.eta)
         self.run_note = _label("", "runNote", 11, MUTED, 600)
@@ -463,7 +486,7 @@ class LiveDashboard(QWidget):
         content.addLayout(bottom,2)
 
         actions = QHBoxLayout()
-        self.disclaimer = _label('Only strictly audited boards can become champion.',
+        self.disclaimer = _label('Only independently verified boards qualify.',
                                  'liveFootnote',11,MUTED,550)
         self.disclaimer.setWordWrap(True)
         actions.addWidget(self.disclaimer,1)
@@ -490,7 +513,7 @@ class LiveDashboard(QWidget):
                               'STRIPSOLVE · Awaiting native solver')
         self.state.setText('● READY')
         self._set_state_style(TEAL,'#d7f2f1')
-        self.eta.setText('Elapsed: —   ETA: —')
+        self.set_run_times('—', '—')
         self.run_note.clear()
         self.winner_button.setEnabled(False)
         self._update_view()
@@ -499,10 +522,15 @@ class LiveDashboard(QWidget):
         self.reset_for_project(project)
         self._total=max(0,int(seeds))
         self.subtitle.setText(f'{project.upper()}  ·  {int(moves)//1000}k moves  ·  '
-                              f'{"DEBUG" if debug else "FULL"}  ·  Q2')
+                              f'{"Debug run" if debug else "Full run"}')
         self.state.setText('● RESUMING' if resumed else '● LIVE RUNNING')
         self._set_state_style(TEAL,'#d7f2f1')
         self._update_view()
+
+    def set_run_times(self, elapsed, remaining, detail=''):
+        self.elapsed.setText(elapsed)
+        self.remaining.setText(remaining)
+        self.eta.setText(detail)
 
     def _set_state_style(self,foreground,background):
         self.state.setStyleSheet(f'color:{foreground};background:{background};'
@@ -542,9 +570,10 @@ class LiveDashboard(QWidget):
         if best:
             self.bestq.set_metric(f'{float(best["q"]):.2f} / 100',
                                   f'Seed {int(best["seed"]):04d} · verified')
-            self.w_card.set_metric(str(best["w"]), 'Jumpers')
-            self.c_card.set_metric(str(best["cut"]), 'Track cuts')
-            self.s_card.set_metric(str(best["s"]), 'Maximum overlap')
+            self.w_card.set_metric(str(best["w"]), 'On the board')
+            self.c_card.set_metric(str(best["cut"]), 'In the copper tracks')
+            stack = int(best["s"])
+            self.s_card.set_metric(str(stack), 'No stacking' if stack <= 1 else 'Wires overlapping')
             length = float(best["wire_length_mm"])
             self.length_mm.setText(f'{length:,.2f} mm')
             self.length_inches.setText(f'{length/25.4:,.2f} in')

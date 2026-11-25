@@ -320,7 +320,7 @@ class PassOneDialog(QDialog):
         layout.addWidget(heading)
         explanation = QLabel(
             "Run 200 seeds in DEBUG mode, or 2,000 in normal mode. "
-            "Save PASS, FAIL and ERROR attempts with seed, W, C, S, Q2 and wire length "
+            "Save every seed result, including its quality score and construction statistics "
             "and seconds to this project's "
             "selected 10k/20k directory. The verified winner is replayed "
             "and saved separately when the campaign completes."
@@ -1574,7 +1574,7 @@ class RouteMateWindow(QMainWindow):
             f"{project} · PASS ONE {'LIVE' if running else 'PERFORMANCE'}"
         )
         self.board_result_label.setText(
-            "Live strict-audit performance · quality, wires, cuts and seed timing"
+            "Best verified board · live campaign results"
         )
 
     def _return_to_board_preview(self):
@@ -2121,7 +2121,7 @@ class RouteMateWindow(QMainWindow):
         self.statusBar().showMessage(
             f"PASS ONE RUNNING · {moves // 1000}k · "
             f"{'DEBUG' if debug else 'FULL'} · "
-            "Q2"
+            "Quality optimisation"
         )
         self.log_line(
             f"[PASS1][{'RESUME' if resume else 'GO'}] "
@@ -2223,31 +2223,65 @@ class RouteMateWindow(QMainWindow):
             QMessageBox.warning(self, "Saved Pass One winner unavailable", str(exc))
 
     def _ask_to_view_pass_one_winner(self, seed: int) -> bool:
-        """Rounded winner dialog; both SVGs have already been saved."""
+        """Show the independently verified champion using readable build metrics."""
         dialog = QDialog(self)
-        dialog.setWindowFlag(Qt.WindowType.FramelessWindowHint, True)
-        dialog.setWindowTitle("Pass One champion")
-        dialog.setMinimumWidth(440)
-        dialog.setStyleSheet("QDialog { background: #edf6fd; } "
-                             "QFrame#winnerCard { background: white; border: 1px solid #cbddec; border-radius: 16px; }")
-        layout = QVBoxLayout(dialog)
+        dialog.setWindowTitle("Pass One complete")
+        dialog.setMinimumWidth(510)
+        dialog.setStyleSheet("""
+            QDialog { background: #edf6fd; }
+            QFrame#winnerCard { background: white; border: 1px solid #cbddec; border-radius: 16px; }
+            QFrame#winnerMetric { background: #f1f8fd; border: 1px solid #d3e6f3; border-radius: 12px; }
+            QPushButton#winnerStay { background: white; color: #215d88;
+                border: 1px solid #a5c9e1; border-radius: 9px; padding: 11px; font-weight: 700; }
+            QPushButton#winnerStay:hover { background: #e6f5fd; }
+        """)
+        layout = QVBoxLayout(dialog); layout.setContentsMargins(14,14,14,14)
         card = QFrame(); card.setObjectName("winnerCard")
-        content = QVBoxLayout(card); content.setContentsMargins(24, 20, 24, 20)
-        title = QLabel("🏆  PASS ONE CHAMPION")
-        title.setStyleSheet("font-size: 20px; font-weight: 800; color: #19334d;")
+        content = QVBoxLayout(card); content.setContentsMargins(22,20,22,20); content.setSpacing(12)
+        title = QLabel("🏆  Pass One champion")
+        title.setStyleSheet("font-size: 23px; font-weight: 850; color: #19334d;")
         content.addWidget(title)
+        subtitle = QLabel(f"Seed {int(seed):04d} · Independently verified")
+        subtitle.setStyleSheet("color: #536f88; font-size: 13px;")
+        content.addWidget(subtitle)
         best = self.dashboard._best or {}
-        content.addWidget(QLabel(f"Verified seed {int(seed):04d}"))
+
+        def metric(caption, value, detail="", accent="#19334d"):
+            frame = QFrame(); frame.setObjectName("winnerMetric")
+            inner = QVBoxLayout(frame); inner.setContentsMargins(13,10,13,10); inner.setSpacing(4)
+            label = QLabel(caption); label.setStyleSheet("color:#536f88;font-size:12px;font-weight:700;")
+            number = QLabel(str(value)); number.setStyleSheet(f"color:{accent};font-size:25px;font-weight:800;")
+            inner.addWidget(label); inner.addWidget(number)
+            if detail:
+                sub = QLabel(detail); sub.setWordWrap(True); sub.setStyleSheet("color:#536f88;font-size:11px;")
+                inner.addWidget(sub)
+            return frame
+
         if best and all(k in best for k in ("w", "cut", "s", "q", "wire_length_mm")):
-            score = QLabel(f"Q2  {float(best['q']):.2f}")
-            score.setStyleSheet("font-size: 30px; font-weight: 800; color: #168d95;")
-            content.addWidget(score)
-            content.addWidget(QLabel(f"W {best['w']}    C {best['cut']}    S {best['s']}"))
+            content.addWidget(metric("Quality score", f"{float(best['q']):.2f} / 100",
+                                     "Higher is better", "#168d95"))
+            stats = QHBoxLayout(); stats.setSpacing(10)
+            stack = int(best["s"])
+            stats.addWidget(metric("Jumper wires", best["w"]))
+            stats.addWidget(metric("Track cuts", best["cut"]))
+            stats.addWidget(metric("Max wire stack", stack,
+                                   "No stacking" if stack <= 1 else "Overlapping wires"))
+            content.addLayout(stats)
             length = float(best["wire_length_mm"])
-            content.addWidget(QLabel(f"Wire length: {length:.2f} mm · {length/25.4:.2f} in"))
-        content.addWidget(QLabel("Both board SVGs saved."))
-        buttons = QHBoxLayout()
-        stay = QPushButton("Stay on dashboard"); stay.setAutoDefault(True); stay.setDefault(True)
+            content.addWidget(metric("Total jumper length", f"{length:,.2f} mm",
+                                     f"{length/25.4:,.2f} inches", "#257ac2"))
+        passed, failed, _, _ = self.dashboard.ring.counts
+        if passed + failed:
+            content.addWidget(QLabel(f"{passed:,} of {passed + failed:,} audited seeds qualified "
+                                     f"({self.dashboard.ring.pass_rate_text()})."))
+        saved = QLabel("✓  Winning board saved — component and copper views")
+        saved.setWordWrap(True); saved.setStyleSheet("color:#117b83;font-weight:650;")
+        content.addWidget(saved)
+        question = QLabel("Would you like to view the winning board?")
+        question.setWordWrap(True); content.addWidget(question)
+        buttons = QHBoxLayout(); buttons.setSpacing(10)
+        stay = QPushButton("Stay on dashboard"); stay.setObjectName("winnerStay")
+        stay.setAutoDefault(True); stay.setDefault(True)
         view = QPushButton("View winning board"); view.setObjectName("nextActionButton")
         stay.clicked.connect(dialog.reject); view.clicked.connect(dialog.accept)
         buttons.addWidget(stay); buttons.addWidget(view)
@@ -2256,6 +2290,7 @@ class RouteMateWindow(QMainWindow):
 
     def _pass_one_completed(self, result):
         done = result.get("completed", True)
+        self._freeze_pass_one_clock(completed=done)
         self._calibration_stages["PASS1"] = "done" if done else "failed"
         self._refresh_checklist()
         self.solve_progress.setValue(result["checked"])
@@ -2331,15 +2366,17 @@ class RouteMateWindow(QMainWindow):
         self._set_board_summary("Pass One stopped · resume available", level="working")
         self.log_line("[PASS1][CANCELLED] No Pass Two automatically started.")
 
-    def _pass_one_finished(self):
+    def _freeze_pass_one_clock(self, *, completed=False):
         self._solve_clock.stop()
         if self._solve_started is not None:
-            self.solve_eta.setText(
-                f"Elapsed: {self._clock_text(perf_counter() - self._solve_started)}"
-            )
-        self._solve_started = None
+            elapsed = self._clock_text(perf_counter() - self._solve_started)
+            self.solve_eta.setText(f"Elapsed: {elapsed}")
+            self.dashboard.set_run_times(elapsed, "Finished" if completed else "Stopped")
+            self._solve_started = None
+
+    def _pass_one_finished(self):
+        self._freeze_pass_one_clock()
         self._pass_one_worker = None
-        self.dashboard.eta.setText(self.solve_eta.text())
         self._pass_one_resume_done = 0
         self._pass_one_previous_average = None
         self.load_action.setEnabled(True)
@@ -2515,10 +2552,15 @@ class RouteMateWindow(QMainWindow):
             self.solve_eta.setToolTip(
                 f"ETA: {remaining}"
             )
-            self.dashboard.eta.setText(
-                f"Elapsed: {self._clock_text(elapsed)} · "
-                f"ETA: {remaining}"
-            )
+            if not remaining_seeds:
+                self.dashboard.set_run_times(self._clock_text(elapsed), "Finishing")
+            elif compact_eta == "measuring…":
+                self.dashboard.set_run_times(self._clock_text(elapsed), "Measuring…",
+                                             "Waiting for the first completed seed")
+            else:
+                self.dashboard.set_run_times(self._clock_text(elapsed), compact_eta,
+                                             "Estimated from observed throughput" if measured_here > 0
+                                             else "Estimated from previous seed timings")
             return
         if self._calibration_worker is not None:
             self.solve_eta.setText(

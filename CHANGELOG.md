@@ -1,5 +1,12 @@
 # Changelog
 
+### GUI 2.21 — Readable champion and live metrics (25 November 2026)
+- Replace unexplained scoring abbreviations with labelled construction metrics and quality out of 100. Keep Q2 version internally.
+- Display audited pass rate with one decimal and use the same audited denominator for the ring. No audited seeds shows a dash; pending/errors remain separate counts.
+- Refine card spacing, wire length and elapsed/remaining timing; stop the timer before champion consent.
+- Add pass-rate and winner-dialog regression tests. Mac 2.20 baseline: 100 tests passed in 7.745s. 2.21 Mac suite and visual check outstanding.
+
+
 ### GUI 2.20 — Remove renderer popups and duplicate seed count (25 November 2026)
 - Remove renderer/schematic Qt revision splash implementation and status-bar override; keep Activity and headless stderr provenance.
 - Remove duplicate seed count from dashboard ETA. Keep elapsed and throughput-based ETA unchanged.
