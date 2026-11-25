@@ -2240,6 +2240,19 @@ class RouteMateWindow(QMainWindow):
             self.log_line(f"[PASS1][WINNER][VIEW ERROR] {exc}")
             QMessageBox.warning(self, "Saved Pass One winner unavailable", str(exc))
 
+    def _ask_to_view_pass_one_winner(self, seed: int) -> bool:
+        """One explicit Yes/No choice; saved SVGs already exist."""
+        answer = QMessageBox.question(
+            self,
+            "🏆 Pass One winning SVG",
+            f"Seed {int(seed):04d} is strictly verified.\n"
+            "Both component-side and copper-side SVGs have been saved.\n\n"
+            "Do you want to see the winning board now?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.Yes,
+        )
+        return answer == QMessageBox.StandardButton.Yes
+
     def _pass_one_completed(self, result):
         done = result.get("completed", True)
         self._calibration_stages["PASS1"] = "done" if done else "failed"
@@ -2266,16 +2279,7 @@ class RouteMateWindow(QMainWindow):
                 try:
                     self._display_pass_one_champion(result, show_preview=False)
                     if not self._close_when_idle:
-                        answer = QMessageBox.question(
-                            self,
-                            "🏆 Pass One winning SVG",
-                            f"Seed {int(result['winner_seed']):04d} is strictly verified.\n"
-                            "Both component-side and copper-side SVGs have been saved.\n\n"
-                            "Do you want to see the winning board now?",
-                            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-                            QMessageBox.StandardButton.Yes,
-                        )
-                        if answer == QMessageBox.StandardButton.Yes:
+                        if self._ask_to_view_pass_one_winner(result["winner_seed"]):
                             self._show_pass_one_winner()
                         else:
                             self.log_line(
