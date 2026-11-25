@@ -1,4 +1,4 @@
-# StripSolve GUI 2.17 — Arctic Ice + Colourburst
+# StripSolve GUI 2.18 — Arctic Ice + Colourburst
 
 **Live Pass One dashboard (2.17):** The full main preview area—not the
 sidebar—is replaced by a modern native Qt6 dashboard when Pass One starts.
