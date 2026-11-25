@@ -3,7 +3,7 @@
 
     python3 tools/build_icons.py              # keep existing custom artwork
     python3 tools/build_icons.py --png        # export 48x48 toolbar PNGs
-    python3 tools/build_icons.py --force      # deliberately replace artwork
+    python3 tools/build_icons.py --force      # refresh SVGs; keep approved PNG
 
 Produces gui/assets/app_icon.svg, gui/assets/app_icon.png (1024x1024),
 and 10 gui/icons/*.svg masters (48x48 rendered at 24x24 in the GUI).
@@ -28,7 +28,7 @@ def main() -> int:
     parser.add_argument("--png", action="store_true",
                         help="also export 48x48 toolbar PNG copies")
     parser.add_argument("--force", action="store_true",
-                        help="replace existing art (default: preserve it)")
+                        help="refresh existing toolbar artwork; preserve approved app PNG")
     args = parser.parse_args()
     os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
     app = QApplication.instance() or QApplication([])
