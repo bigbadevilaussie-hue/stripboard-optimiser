@@ -437,6 +437,7 @@ class PassControlTests(unittest.TestCase):
             w._update_solve_clock()
             display = w.solve_eta.text()
             self.assertIn("1,259/2,000 seeds", display)
+            self.assertEqual(w.scoreboard.eta.text(), display)
             self.assertIn("ETA: ~5m 04s", display)
             self.assertNotIn("remaining unknown", display)
 
