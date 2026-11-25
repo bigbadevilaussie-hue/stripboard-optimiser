@@ -1,5 +1,10 @@
 # Changelog
 
+### GUI 2.31 — Schematic in Open Solved
+- Render and cache the selected solved JSON schematic separately from the active project, using the existing librsvg path. Enable Schematic when available, with existing QtSvg fallback if raster conversion fails.
+- Keep all three views in the main canvas, restore the active project's schematic on return. No solver or artwork changes.
+
+
 ### GUI 2.30 — Clean board artwork
 - Stop adding nominal contact warning boxes to both board sides, including Open Solved, winner SVGs and print exports.
 - Keep explicit selected-component highlighting for lock review; retain cut symbols, electrical colouring and physical diagnostics.

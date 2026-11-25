@@ -32,6 +32,9 @@ class OpenSolvedTests(unittest.TestCase):
             window.project = original
             window._top_svg = "old top"
             window._copper_svg = "old copper"
+            window._schematic_svg = "old schematic"
+            window._schematic_png = b"old png"
+            window.schematic_action.setEnabled(True)
             with tempfile.TemporaryDirectory() as tmp:
                 path = Path(tmp) / "solved.json"
                 payload = {"board": {"rows": 24, "cols": 56, "wires": [], "cuts": []}}
@@ -41,6 +44,8 @@ class OpenSolvedTests(unittest.TestCase):
                 with patch("gui.main.QFileDialog.getOpenFileName", return_value=(str(path), "")), \
                      patch("render.standalone_bridge.render_project_data", return_value=("top", "copper", "")) as render, \
                      patch.object(BoardView, "show_svg") as display, \
+                     patch.object(BoardView, "show_png") as display_png, \
+                     patch.object(window, "_build_schematic_preview", return_value=("solved schematic", b"solved png")) as schematic, \
                      patch.object(QDialog, "exec", side_effect=AssertionError("Unexpected preview dialog")), \
                      patch.object(window, "load_json") as load, \
                      patch.object(window, "start_pass_one") as solve:
@@ -48,13 +53,21 @@ class OpenSolvedTests(unittest.TestCase):
                     render.assert_called_once_with(payload, web_preview=True)
                     self.assertIs(window.preview_stack.currentWidget(), window.top_view)
                     self.assertIn("solved.json", window.board_project_label.text())
+                    schematic.assert_called_once_with(payload)
+                    self.assertTrue(window.schematic_action.isEnabled())
                     window.copper_action.trigger()
+                    window.schematic_action.trigger()
+                    self.assertTrue(window.schematic_action.isChecked())
+                    display_png.assert_called_once_with(b"solved png")
                     window.top_action.trigger()
                     self.assertEqual([call.args[0] for call in display.call_args_list],
                                      ["top", "top", "copper", "top"])
                     window.return_project_button.click()
                     self.assertIsNone(window._opened_solved)
                     self.assertEqual(display.call_args.args[0], "old top")
+                    self.assertTrue(window.schematic_action.isEnabled())
+                    window.schematic_action.trigger()
+                    self.assertEqual(display_png.call_args.args[0], b"old png")
                     load.assert_not_called()
                     solve.assert_not_called()
                 self.assertEqual(path.read_bytes(), before)

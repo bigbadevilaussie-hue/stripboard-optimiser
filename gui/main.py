@@ -1449,28 +1449,31 @@ class RouteMateWindow(QMainWindow):
 
     def _cache_schematic_preview(self, project: dict[str, Any]):
         """Render imported schematic once; keep the board/lock workflow unchanged."""
-        from render.schematic_bridge import render_schematic_data, rasterize_schematic_svg
-
         self._schematic_svg = None
         self._schematic_png = None
         self.schematic_action.setEnabled(False)
-        # A new project always starts on its component-side board view, so the
-        # original per-component lock highlighting is still visible.
         self._board_side = "top"
+        self._schematic_svg, self._schematic_png = self._build_schematic_preview(project)
+        self.schematic_action.setEnabled(bool(self._schematic_svg))
+
+    def _build_schematic_preview(self, project: dict[str, Any]):
+        """Build a schematic snapshot without altering the active project or view."""
+        from render.schematic_bridge import render_schematic_data, rasterize_schematic_svg
+
         try:
             svg, diagnostic = render_schematic_data(project)
             if not QSvgRenderer(QByteArray(svg.encode("utf-8"))).isValid():
                 raise ValueError("Standalone schematic SVG is invalid for Qt.")
-        except (OSError, RuntimeError, ValueError, TypeError, subprocess.SubprocessError) as exc:
+        except (OSError, RuntimeError, ValueError, TypeError, KeyError, subprocess.SubprocessError) as exc:
             self.log_line(f"[SCHEMATIC][WARN] Preview unavailable: {exc}")
-            # A renderer failure must never prevent the donor import/lock review.
-            return
-        self._schematic_svg = svg
+            # A renderer failure must never prevent board viewing or lock review.
+            return None, None
+        png = None
         self._show_tool_revision(diagnostic, "SCHEMATIC")
         try:
             # Exactly the renderer path used by the old Tk GUI: the existing
             # standalone schematic SVG converted to PNG by librsvg at 2400px.
-            self._schematic_png = rasterize_schematic_svg(svg)
+            png = rasterize_schematic_svg(svg)
             self.log_line(
                 "[SCHEMATIC] Original Tk-compatible librsvg PNG (2400 px) ready."
             )
@@ -1479,11 +1482,11 @@ class RouteMateWindow(QMainWindow):
             # the reason explicit instead of silently claiming visual parity.
             self.log_line(f"[SCHEMATIC][WARN] Tk PNG preview unavailable: {exc}")
             self.log_line("[SCHEMATIC][WARN] Using direct QtSvg fallback; text may be faint.")
-        self.schematic_action.setEnabled(True)
         self.log_line("[SCHEMATIC] Original JSON schematic ready. Solver not started.")
         for line in diagnostic.splitlines():
             if line.startswith("Saved "):
                 self.log_line("[SCHEMATIC] " + line)
+        return svg, png
 
     def _record_assumed_geometry(self, project: dict[str, Any], *, stage=None):
         """Use the SAME versioned geometry generator as collect.py.
@@ -1597,12 +1600,14 @@ class RouteMateWindow(QMainWindow):
             self._show_tool_revision(diagnostic, "RENDER")
             # Display first; if decoding fails, retain the prior preview state.
             self.top_view.show_svg(top)
+            schematic, schematic_png = self._build_schematic_preview(project)
             self._opened_solved = {
                 "name": path.name, "top": top, "copper": copper,
+                "schematic": schematic, "schematic_png": schematic_png,
                 "summary": (f"{board['rows']} × {board['cols']} holes · "
                             f"{len(board['wires'])} jumpers · {len(board['cuts'])} cuts"),
             }
-            self.schematic_action.setEnabled(False)
+            self.schematic_action.setEnabled(bool(schematic))
             self.return_project_button.setVisible(bool(self._top_svg))
             self._switch_board_side("top")
             self.log_line(f"[OPEN SOLVED] Read-only preview: {path}; no solver or audit invoked.")
@@ -1681,18 +1686,23 @@ class RouteMateWindow(QMainWindow):
     def _switch_board_side(self, side: str):
         """Switch cached SVG views without rerouting or changing component locks."""
         if self._opened_solved is not None:
-            if side == "schematic":
-                return
             opened = self._opened_solved
+            if side == "schematic" and not opened["schematic"]:
+                return
             self._board_side = side
             self.preview_stack.setCurrentWidget(self.top_view)
             self.board_fit_button.show()
             self.top_action.setChecked(side == "top")
             self.copper_action.setChecked(side == "copper")
-            self.schematic_action.setChecked(False)
+            self.schematic_action.setChecked(side == "schematic")
             self.board_project_label.setText(opened["name"] + " · " + opened["summary"])
             self.board_result_label.setText("Open Solved · read-only preview")
-            self.top_view.show_svg(opened[side])
+            if side == "schematic" and opened["schematic_png"]:
+                self.top_view.show_png(opened["schematic_png"])
+            elif side == "schematic":
+                self.top_view.show_svg(opened["schematic"], schematic=True)
+            else:
+                self.top_view.show_svg(opened[side])
             self.statusBar().showMessage("Open Solved — no optimisation or new verification.")
             return
         if side == "schematic" and not self._schematic_svg:
