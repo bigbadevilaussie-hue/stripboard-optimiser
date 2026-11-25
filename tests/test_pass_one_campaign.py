@@ -156,7 +156,7 @@ class CampaignStorageTests(unittest.TestCase):
             with (debug / "results.csv").open(newline="") as stream:
                 rows = list(csv.DictReader(stream))
             self.assertEqual(len(rows), 200)
-            self.assertEqual(rows[0]["seed"], "0001")
+            # as_completed() writes results in completion order, not seed order.
             self.assertEqual({r["seed"] for r in rows},
                              {f"{n:04d}" for n in range(1, 201)})
             state = json.loads((debug / "campaign.json").read_text())
