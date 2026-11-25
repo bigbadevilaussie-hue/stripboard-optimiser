@@ -1,5 +1,10 @@
 # Changelog
 
+### GUI 2.34 — Simplify title and toolbar
+- Window title is StripSolve only; permanent bottom-right status bar label is Rev 2.xx. Git revision remains available in Activity diagnostics.
+- Give Load JSON a persistent teal/green accent. View buttons remain neutral until an actual view is selected; no component-side highlight on the empty startup screen or dashboard.
+
+
 ### GUI 2.33 — Restore lock-review selection box
 - Restore the existing orange selection rectangle in web-style previews only when a component is explicitly selected for lock review. No contact warnings in board artwork, and no renderer rebuild needed.
 

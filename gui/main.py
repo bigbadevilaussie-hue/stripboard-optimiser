@@ -983,7 +983,7 @@ class RouteMateWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowFlag(Qt.WindowType.FramelessWindowHint, True)
-        self.setWindowTitle(f"StripSolve {GUI_VERSION} · rev {GUI_GIT_REVISION} — Pass Control")
+        self.setWindowTitle("StripSolve")
         self.resize(1560, 900)
         self.setMinimumSize(950, 600)
         self.project: dict[str, Any] | None = None
@@ -1041,6 +1041,9 @@ class RouteMateWindow(QMainWindow):
             QToolBar#stripSolveToolbar QToolButton:hover { background: #e8f7ff; border-color: #50b5dc; }
             QToolBar#stripSolveToolbar QToolButton:checked { background: #dceffc; border-color: #6aaddc; color: #1a5b92; }
             QToolBar#stripSolveToolbar QToolButton:disabled { background: #eef3f8; border-color: #d9e5ee; color: #90a4b5; }
+            QToolBar#stripSolveToolbar QToolButton#loadJsonButton:enabled { background: #d6f2eb; border-color: #69bba7; color: #09635c; }
+            QToolBar#stripSolveToolbar QToolButton#loadJsonButton:hover:enabled { background: #bfe9df; border-color: #168d95; color: #09635c; }
+            QToolBar#stripSolveToolbar QToolButton#loadJsonButton:pressed:enabled { background: #a4ded0; border-color: #168d95; }
         """)
         brand = QWidget()
         brand_row = QHBoxLayout(brand)
@@ -1059,6 +1062,7 @@ class RouteMateWindow(QMainWindow):
         self.load_action.setIcon(load_button_icon("load_json"))
         self.load_action.triggered.connect(self.load_json)
         toolbar.addAction(self.load_action)
+        toolbar.widgetForAction(self.load_action).setObjectName("loadJsonButton")
 
 
         self.stop_action = QAction("Stop Solve", self)
@@ -1087,7 +1091,7 @@ class RouteMateWindow(QMainWindow):
         self.top_action = QAction("Component side", self)
         self.top_action.setIcon(load_button_icon("component_side"))
         self.top_action.setCheckable(True)
-        self.top_action.setChecked(True)
+        self.top_action.setChecked(False)
         self.top_action.triggered.connect(lambda: self._switch_board_side("top"))
         toolbar.addAction(self.top_action)
         self.copper_action = QAction("Copper side (mirrored)", self)
@@ -1301,6 +1305,10 @@ class RouteMateWindow(QMainWindow):
             QStatusBar { background: #d7e9f7; color: #163f5a; font-size: 12px; font-weight: 650; }
         """)
         self.statusBar().setMinimumHeight(26)
+        self.revision_label = QLabel(f"Rev {GUI_VERSION}")
+        self.revision_label.setObjectName("guiRevisionLabel")
+        self.revision_label.setStyleSheet("color: #173d59; font-weight: 650; padding-right: 9px;")
+        self.statusBar().addPermanentWidget(self.revision_label)
         self.statusBar().showMessage("Ready. Load a project JSON to begin.")
         self.log_line(f"StripSolve {GUI_VERSION} — Q2 native Pass One")
         self.log_line(f"[GUI][REVISION] git={GUI_GIT_REVISION}")
@@ -1692,6 +1700,9 @@ class RouteMateWindow(QMainWindow):
         """Replace the full board preview with native Qt6 live charts."""
         self._clear_solved_preview()
         self.preview_stack.setCurrentWidget(self.dashboard)
+        self.top_action.setChecked(False)
+        self.copper_action.setChecked(False)
+        self.schematic_action.setChecked(False)
         self.board_fit_button.hide()
         project = self.project_path.stem.upper() if self.project_path else "STRIPSOLVE"
         running = ("RUNNING" in self.dashboard.state.text()
@@ -1730,6 +1741,13 @@ class RouteMateWindow(QMainWindow):
             self.statusBar().showMessage("Open Solved — no optimisation or new verification.")
             return
         if side == "schematic" and not self._schematic_svg:
+            return
+        # A view button is selected only when there is actual artwork to show.
+        if not (self._schematic_svg if side == "schematic" else
+                self._copper_svg if side == "copper" else self._top_svg):
+            self.top_action.setChecked(False)
+            self.copper_action.setChecked(False)
+            self.schematic_action.setChecked(False)
             return
         was_dashboard = self.preview_stack.currentWidget() is self.dashboard
         self._board_side = side
