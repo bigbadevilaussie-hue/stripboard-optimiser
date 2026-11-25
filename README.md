@@ -2,7 +2,7 @@
 
 **Release milestone:** Version 2.00 — Consolidation of Two Repositories (24 November 2026).
 
-**Consolidation designation:** `2.00` (no Git tag published) · **npm/package version:** `2.0.0` · **StripSolve GUI:** `2.14` (`gui/VERSION`).
+**Consolidation designation:** `2.00` (no Git tag published) · **npm/package version:** `2.0.0` · **StripSolve GUI:** `2.15` (`gui/VERSION`).
 
 **START HERE IF CONTINUING IN A NEW CHAT:** [Active handoff — WR Audio/Moto discovery, multipass plans and current GUI boundary](docs/ACTIVE_HANDOFF_2026-11-24.md). It records the native solver call chain, completed 5k/10k Audio results, unfinished work, reference WRs, and the **destructive rerun warning**.
 
