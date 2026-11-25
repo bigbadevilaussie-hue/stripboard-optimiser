@@ -163,5 +163,43 @@ class LiveScoreboardGuiTests(unittest.TestCase):
                 window.close()
 
 
+    def test_accepting_winner_prompt_displays_saved_svg_immediately(self):
+        valid_svg = (
+            '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20">'
+            '<rect width="20" height="20"/></svg>'
+        )
+        with tempfile.TemporaryDirectory() as temp:
+            winner = Path(temp) / "winner_seed_0007.json"
+            winner.write_text(json.dumps({
+                "board": {"rows": 24, "cols": 56}, "components": []
+            }), encoding="utf-8")
+            window = RouteMateWindow()
+            try:
+                window._top_svg = "old board"
+
+                def render(_project):
+                    window._copper_svg = valid_svg
+                    return valid_svg, "verified renderer"
+
+                result = {
+                    "winner_json": str(winner), "winner_seed": 7,
+                    "moves": 20000, "checked": 200, "qualified": 1,
+                    "errors": 0, "completed": True,
+                    "csv": str(Path(temp) / "results.csv"),
+                    "log": str(Path(temp) / "activity.log"),
+                }
+                with patch.object(window, "_render_component_side",
+                                  side_effect=render), \
+                     patch.object(QMessageBox, "question",
+                                  return_value=QMessageBox.StandardButton.Yes) as ask:
+                    window._pass_one_completed(result)
+                ask.assert_called_once()
+                self.assertEqual(window._top_svg, valid_svg)
+                self.assertEqual(window._copper_svg, valid_svg)
+                self.assertTrue(window.scoreboard.view_winner_button.isEnabled())
+            finally:
+                window.close()
+
+
 if __name__ == "__main__":
     unittest.main()
