@@ -1,6 +1,6 @@
 # ACTIVE HANDOFF — StripSolve (updated 25 Nov 2026)
 
-## Current release: StripSolve GUI 2.26 / Q2 (25 November 2026)
+## Current release: StripSolve GUI 2.38 / Q3 (25 November 2026)
 
 GUI 2.26: speed calibration remains a 100-decode timing-only measurement. The separate actual-JSON budget probe uses strict native solves and independent saved-board audits, targets 100 survivors per 2,000 seeds (5%), and compares 10k/20k only as needed. Compatible completed FULL history takes priority. See [budget probe](BUDGET_PROBE.md). Locked Edge mounts automatically select the Edge decoder in speed calibration, probe, Pass One and replay. No Slide search or strict-rule change.
 
@@ -10,27 +10,27 @@ GUI 2.26 gives Open/Save file-dialog navigation buttons a 22 px icon and dedicat
 
 GUI 2.26: the run-outcomes ring shows campaign completion (definitive PASS + FAIL divided by scheduled seeds). Qualification rate is displayed separately, to one decimal. Errors remain retryable, not completed seeds.
 
-GUI 2.26 uses plain-English quality and construction labels, displays the live audited pass rate to one decimal place (excluding errors and pending seeds), and separates elapsed time from estimated remaining time. The winner dialog displays actual verified metrics and freezes the campaign timer before the user decides whether to view the saved board. Q2 remains the internal scoring version; the formula and data formats are unchanged.
+GUI 2.26 uses plain-English quality and construction labels, displays the live audited pass rate to one decimal place (excluding errors and pending seeds), and separates elapsed time from estimated remaining time. The winner dialog displays actual verified metrics and freezes the campaign timer before the user decides whether to view the saved board. Q3 is the current scoring version; the CSV structure is unchanged.
 
 GUI 2.26: renderer-version popup windows removed entirely; revision stamps remain in Activity and CLI stderr. Seed count appears only above the progress bar, not inside the ETA text.
 
-The live construction score is Q2, with W = jumper count, C = cut count,
+The live construction score is Q3, with W = jumper count, C = cut count,
 L = total jumper span in mm (2.54 mm pitch), D = nonvertical jumper count,
 U = unplaced on-board component count, S = maximum simultaneous vertical
 hole-to-hole overlap. S = 0 for no jumpers and 1 for unstacked jumpers.
 Touching endpoints do not stack.
 
-`Q2 = round(max(0, 100 - 0.6*W - 0.4*C - 0.02*L - 10*D - 15*U - max(0,S-1)**2), 2)`
+`Q3 = round(max(0, 100 - 0.4*(0.6*W + 0.4*C + 0.02*L + 10*D + 15*U + max(0,S-1)**2)), 2)`
 
 Strict audit qualification and the native engine are unchanged. The GUI ranks
-only audited passes. Q2 uses the existing campaign paths, with schema 2,
-quality_version=Q2, and S and wire_length_mm in the CSV. Q1 campaigns cannot
+only audited passes. Q3 uses the existing campaign paths, with schema 2,
+quality_version=Q3, and S and wire_length_mm in the CSV. Q1/Q2 campaigns cannot
 resume or feed Pass Two; explicitly overwrite the selected old campaign to
 start fresh. Do not relabel old scores. Historical WR research JSONs and
 reports remain historical evidence. No score is a percent of theoretical
 optimum.
 
-The dashboard displays W/C/S/Q2, champion wire length in mm/inches, audited
+The dashboard displays W/C/S/Q3, champion wire length in mm/inches, audited
 outcomes, runtime and one progress/ETA control. No duplicated sidebar progress,
 project/workspace box, worker count or noisy quality/complexity chart. CPU
 allocation is max(1, available logical CPUs - 1); the 100-decode calibration
@@ -38,7 +38,7 @@ only estimates speed. CPU allocation is recorded in disk logs. On completion,
 save winner JSON and both SVGs before the themed trophy consent dialog.
 Pass Two is still an import-only stage.
 
-See [Q2 research](QUALITY_Q2_2026-11-25.md) for the 1,053-board comparison.
+See [Q3 calibration and archive comparison](QUALITY_Q3_2026-11-25.md) for the formula, research evidence and reproducible rescoring command. Target range 85–95 (default 90) is reserved for a future independently verified stopping policy in Pass Two/Grand Final; Pass One runs all selected seeds.
 
 **Historical 24 November snapshot follows; any older GUI status or Q formula below is superseded.**
 

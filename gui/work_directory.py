@@ -204,7 +204,7 @@ def read_pass_one(root: Path = WORK_ROOT, *, csv_path: Path | None = None) -> li
         reader = csv.DictReader(stream)
         fields = tuple(reader.fieldnames or ())
         if fields == CSV_FIELDS + ("status", "reason"):
-            raise ValueError("Q1 campaign obsolete; rerun Pass One using Q2")
+            raise ValueError(f"Q1/Q2 campaign obsolete; rerun Pass One using {QUALITY_VERSION}")
         if fields not in (CSV_FIELDS, CAMPAIGN_FIELDS):
             raise ValueError(f"Unexpected Pass One CSV columns: {reader.fieldnames!r}")
         if fields == CAMPAIGN_FIELDS:
@@ -213,7 +213,7 @@ def read_pass_one(root: Path = WORK_ROOT, *, csv_path: Path | None = None) -> li
                 raise ValueError(f"Missing campaign completion metadata: {manifest}")
             state = json.loads(manifest.read_text(encoding="utf-8"))
             if state.get("quality_version") != QUALITY_VERSION:
-                raise ValueError("Q1 campaign obsolete; rerun Pass One using Q2")
+                raise ValueError(f"Q1/Q2 campaign obsolete; rerun Pass One using {QUALITY_VERSION}")
             if state.get("state") != "COMPLETED":
                 raise ValueError(f"Pass One {path.parent.name} is {state.get('state', 'INCOMPLETE')}; resume it before Pass Two.")
         for number, row in enumerate(reader, 2):
@@ -248,7 +248,7 @@ def read_pass_one(root: Path = WORK_ROOT, *, csv_path: Path | None = None) -> li
             if fields == CAMPAIGN_FIELDS:
                 stack, length = int(row["s"]), float(row["wire_length_mm"])
                 if not 0 <= stack <= wires or not math.isfinite(length) or length < 0:
-                    raise ValueError(f"Invalid Q2 metrics at row {number}")
+                    raise ValueError(f"Invalid {QUALITY_VERSION} metrics at row {number}")
                 record.update(s=stack, wire_length_mm=length, quality_version=QUALITY_VERSION)
             rows.append(record)
     return rows
@@ -261,7 +261,7 @@ def prepare_pass_two(root: Path = WORK_ROOT, *,
     if not rows:
         raise ValueError("Pass One has no independently verified qualifying rows")
     if any(row.get("quality_version") != QUALITY_VERSION for row in rows):
-        raise ValueError("Q1 results cannot enter Pass Two; rerun Pass One using Q2")
+        raise ValueError(f"Q1/Q2 results cannot enter Pass Two; rerun Pass One using {QUALITY_VERSION}")
     folder = clear_started_pass(PASS_TWO, root)
     target = folder / "candidates.csv"
     with target.open("w", newline="", encoding="utf-8") as output:

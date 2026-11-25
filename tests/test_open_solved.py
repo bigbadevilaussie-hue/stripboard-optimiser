@@ -59,10 +59,10 @@ class OpenSolvedTests(unittest.TestCase):
                     self.assertTrue(window.checklist.isHidden())
                     self.assertFalse(window.open_solved_summary.isHidden())
                     self.assertIn("solved.json", window.open_solved_summary.text())
-                    self.assertIn("1W · 1C · S1 · Q98.49", window.open_solved_summary.text())
+                    self.assertIn("1W · 1C · S1 · Q99.40", window.open_solved_summary.text())
                     self.assertIn("25.40 mm", window.open_solved_summary.text())
                     self.assertEqual(window.board_result_label.text(),
-                                     "Open Solved · 1W · 1C · S1 · Q98.49")
+                                     "Open Solved · 1W · 1C · S1 · Q99.40")
                     schematic.assert_called_once_with(payload)
                     self.assertTrue(window.schematic_action.isEnabled())
                     window.copper_action.trigger()
@@ -71,7 +71,7 @@ class OpenSolvedTests(unittest.TestCase):
                     display_png.assert_called_once_with(b"solved png")
                     window.top_action.trigger()
                     self.assertEqual(window.board_result_label.text(),
-                                     "Open Solved · 1W · 1C · S1 · Q98.49")
+                                     "Open Solved · 1W · 1C · S1 · Q99.40")
                     self.assertEqual([call.args[0] for call in display.call_args_list],
                                      ["top", "top", "copper", "top"])
                     window.return_project_button.click()

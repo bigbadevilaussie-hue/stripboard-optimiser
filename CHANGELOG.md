@@ -1,5 +1,12 @@
 # Changelog
 
+### GUI 2.38 — Q3 construction-quality calibration
+- Scale all Q2 construction penalties to 40% of their previous values, before clipping/rounding. Preserve strict qualification, stack definition and relative penalty weights.
+- Version new campaigns as Q3; older Q1/Q2 campaigns remain on disk and must not be mixed into current ranking or resumed. Open Solved recalculates Q3 from the JSON.
+- Document future 85–95 target range (default 90); no early stop added to Pass One. Pass Two search remains unimplemented.
+- Add read-only archive rescoring script and Q3 formula regressions. Correct obsolete startup probe log wording.
+
+
 ### GUI 2.37 — Score any opened solved board
 - Calculate existing Q2 construction metrics directly from the loaded JSON in Open Solved. Display W/C/S/Q in the header and total jumper length in Overview. No solver, campaign history, or new electrical verification required.
 

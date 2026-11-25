@@ -386,8 +386,8 @@ class PassControlTests(unittest.TestCase):
                 writer.writeheader()
                 writer.writerow({"seed":"0002","cut":44,"w":29,
                                  "q":"78.24","time_taken":"3.200","s":1,"wire_length_mm":254,
-                                 "quality_version":"Q2","status":"PASS","reason":""})
-            (workspace / "pass 1" / "campaign.json").write_text('{"state":"COMPLETED","quality_version":"Q2"}')
+                                 "quality_version":"Q3","status":"PASS","reason":""})
+            (workspace / "pass 1" / "campaign.json").write_text('{"state":"COMPLETED","quality_version":"Q3"}')
             (workspace / "pass 2" / "old.txt").write_text("old")
             window = RouteMateWindow()
             try:
@@ -421,8 +421,8 @@ class PassControlTests(unittest.TestCase):
                     writer.writeheader()
                     writer.writerow({"seed": seed, "cut": 39, "w": 11,
                                      "q": "74.14", "time_taken": "1.030","s":1,"wire_length_mm":182.88,
-                                     "quality_version":"Q2","status":"PASS","reason":""})
-                (ws / "pass 1" / "campaign.json").write_text('{"state":"COMPLETED","quality_version":"Q2"}')
+                                     "quality_version":"Q3","status":"PASS","reason":""})
+                (ws / "pass 1" / "campaign.json").write_text('{"state":"COMPLETED","quality_version":"Q3"}')
             audio_ws = project_workspace(Path(td) / "audio.json", root)
             moto_ws = project_workspace(Path(td) / "moto.json", root)
             window = RouteMateWindow()
@@ -461,9 +461,9 @@ class PassControlTests(unittest.TestCase):
                     writer.writerow({
                         "seed": seed, "cut": 44, "w": 29, "q": "78.24",
                         "time_taken": "1.200", "status": "PASS", "reason": "",
-                        "s": 2, "wire_length_mm": 284.48, "quality_version": "Q2"
+                        "s": 2, "wire_length_mm": 284.48, "quality_version": "Q3"
                     })
-                (folder / "campaign.json").write_text('{"state": "COMPLETED", "quality_version": "Q2"}')
+                (folder / "campaign.json").write_text('{"state": "COMPLETED", "quality_version": "Q3"}')
             window = RouteMateWindow()
             try:
                 window.work_root = root
@@ -578,8 +578,8 @@ class PassControlTests(unittest.TestCase):
                 writer.writeheader()
                 writer.writerow({"seed": "0010", "cut": 4, "w": 3,
                                  "q": "91.20", "time_taken": "1.100","s":1,"wire_length_mm":25.4,
-                                 "quality_version":"Q2","status":"PASS","reason":""})
-            (workspace / "pass 1" / "campaign.json").write_text('{"state":"COMPLETED","quality_version":"Q2"}')
+                                 "quality_version":"Q3","status":"PASS","reason":""})
+            (workspace / "pass 1" / "campaign.json").write_text('{"state":"COMPLETED","quality_version":"Q3"}')
             previous = workspace / "pass 2" / "keep.txt"
             previous.write_text("PRESERVE")
             w = RouteMateWindow()

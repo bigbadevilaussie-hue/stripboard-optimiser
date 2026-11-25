@@ -1306,10 +1306,10 @@ class RouteMateWindow(QMainWindow):
         self.revision_label.setStyleSheet("color: #173d59; font-weight: 650; padding-right: 9px;")
         self.statusBar().addPermanentWidget(self.revision_label)
         self.statusBar().showMessage("Ready. Load a project JSON to begin.")
-        self.log_line(f"StripSolve {GUI_VERSION} — Q2 native Pass One")
+        self.log_line(f"StripSolve {GUI_VERSION} — {QUALITY_VERSION} native Pass One")
         self.log_line(f"[GUI][REVISION] git={GUI_GIT_REVISION}")
-        self.log_line("Workflow: import → input sanity → footprints → dimensions → locks → cuts → stacking → speed and qualification probe → Pass One GO.")
-        self.log_line("[SOLVER] Speed measures decoding; qualification probe runs actual audited seeds.")
+        self.log_line("Workflow: import → input sanity → footprints → dimensions → locks → cuts → stacking → speed and 100-point JSON audit → Pass One GO.")
+        self.log_line("[SOLVER] Preparation uses CPU allocation and 100 native decoder checks; no campaign solves before GO.")
         try:
             ensure_workspace_root(self.work_root)  # Work root only; legacy remains untouched
             self.log_line(f"[WORK] Project workspaces root: {self.work_root}")
@@ -1630,7 +1630,7 @@ class RouteMateWindow(QMainWindow):
             self._show_solved_overview()
             self._switch_board_side("top")
             self.log_line(f"[OPEN SOLVED] Read-only preview: {path}; no solver or audit invoked.")
-            self.log_line(f"[OPEN SOLVED][Q2] {quality_summary} · "
+            self.log_line(f"[OPEN SOLVED][{QUALITY_VERSION}] {quality_summary} · "
                           f"{metrics['wire_length_mm']:.2f} mm jumper length")
         except (OSError, ValueError, TypeError, KeyError, RuntimeError, subprocess.SubprocessError) as exc:
             self.log_line(f"[OPEN SOLVED][ERROR] {exc}")
@@ -2308,7 +2308,7 @@ class RouteMateWindow(QMainWindow):
         )
         self.log_line(
             f"[PASS1][{'RESUME' if resume else 'GO'}] "
-            f"{seeds:,} native seeds × {moves:,} moves; Q2; folder={folder}; "
+            f"{seeds:,} native seeds × {moves:,} moves; {QUALITY_VERSION}; folder={folder}; "
             f"{'existing PASS/FAIL rows preserved' if resume else 'selected budget only cleared'}."
         )
         worker = PassOneWorker(
@@ -2701,7 +2701,7 @@ class RouteMateWindow(QMainWindow):
                 source = dict(sources)[label]
             rows = read_pass_one(workspace, csv_path=source)
             if any(row.get("quality_version") != QUALITY_VERSION for row in rows):
-                raise ValueError("Q1 results are obsolete; rerun Pass One using Q2.")
+                raise ValueError(f"Older Q1/Q2 results are obsolete; rerun Pass One using {QUALITY_VERSION}.")
         except (OSError, ValueError, KeyError) as exc:
             self.log_line("[PASS2][INPUT ERROR] " + str(exc))
             QMessageBox.warning(self, "Pass Two needs project Pass One CSV", str(exc))

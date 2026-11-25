@@ -15,7 +15,7 @@ class PassOneContract(unittest.TestCase):
                            "wires": [{"from":{"row":1,"col":1},
                                       "to":{"row":2,"col":1}}]},
                  "components": [{"boardPos": {"row":1,"col":1}}]}
-        self.assertAlmostEqual(pass_one.quality100(saved), 98.95)
+        self.assertAlmostEqual(pass_one.quality100(saved), 99.58)
 
     def test_pass_one_csv_records_pass_and_fail_seeds(self):
         with tempfile.TemporaryDirectory() as td:
@@ -53,7 +53,7 @@ class PassOneContract(unittest.TestCase):
             self.assertEqual(by_seed["0001"], {
                 "seed": "0001", "cut": "44", "w": "29", "q": "78.24",
                 "time_taken": "3.200", "s": "2", "wire_length_mm": "284.48",
-                "quality_version": "Q2", "status": "PASS", "reason": "",
+                "quality_version": "Q3", "status": "PASS", "reason": "",
             })
             self.assertEqual(by_seed["0002"]["status"], "FAIL")
             self.assertIn("short circuit", by_seed["0002"]["reason"])

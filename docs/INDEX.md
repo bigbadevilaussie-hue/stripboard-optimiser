@@ -6,14 +6,15 @@
 
 - [Standalone macOS build and verification](STANDALONE_MACOS.md)
 
-- [Q2 construction-quality research and current contract](QUALITY_Q2_2026-11-25.md)
+- [Q3 construction-quality contract and archive rescoring](QUALITY_Q3_2026-11-25.md)
+- [Historical Q2 construction-quality research](QUALITY_Q2_2026-11-25.md)
 
 **New chat / current live work:** [ACTIVE HANDOFF — Audio + Moto WR sweep, multipass and GUI status (24 Nov 2026)](ACTIVE_HANDOFF_2026-11-24.md). This is the most current conversation handoff; older research notes below are dated historical evidence.
 
 1. [README](../README.md) — install, current architecture and commands
 2. [Project contract](../project.md) — accepted native pipeline and rules
 3. [Full repository audit, 24 Nov 2026](REPOSITORY_AUDIT_2026-11-24.md) — verified static findings, known gaps, target-Mac test matrix
-4. [Route-Mate GUI integration](../gui/README.md) — current native Pass One, Q2 dashboard and import-only Pass Two
+4. [Route-Mate GUI integration](../gui/README.md) — current native Pass One, Q3 dashboard and import-only Pass Two
 5. [Standalone renderers](../src/frontend/standalone-renderer/README.md) — Node SVG CLI usage
 6. [Headless solver](../src/frontend/README.md) — builds and strict CLI verification
 

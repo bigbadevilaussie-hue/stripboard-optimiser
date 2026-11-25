@@ -49,7 +49,7 @@ def _last_json(value: str):
 
 
 def quality100(saved: dict) -> float:
-    """Q2 construction score; distinct from the native strict quality."""
+    """Current construction score; distinct from the native strict quality."""
     return construction_metrics(saved)["q"]
 
 
@@ -189,7 +189,7 @@ def inspect_pass_one_campaign(project, moves, workers, drilled_only,
         raise ValueError("Cannot resume: campaign CSV is missing or unsafe")
     info = json.loads(metadata.read_text(encoding="utf-8"))
     if info.get("quality_version") != QUALITY_VERSION:
-        raise ValueError("Cannot resume: Q1 campaign obsolete; overwrite and start Q2")
+        raise ValueError(f"Cannot resume: Q1/Q2 campaign obsolete; overwrite and start {QUALITY_VERSION}")
     for key, value in expected.items():
         if info.get(key) != value:
             raise ValueError(f"Cannot resume: {key} differs from the saved campaign")
@@ -384,7 +384,7 @@ def run_pass_one(project, moves, workers, drilled_only, stacking_allowed,
                         if status == "PASS":
                             best = best_audited([*([best] if best else []), data])
                             log(f"[PASS1][PASS] seed={seed:04d} "
-                                f"{row['w']}W/{row['cut']}C/{row['s']}S Q2={row['q']:.2f} "
+                                f"{row['w']}W/{row['cut']}C/{row['s']}S {QUALITY_VERSION}={row['q']:.2f} "
                                 f"{seconds:.3f}s")
                         else:
                             log(f"[PASS1][{status}] seed={seed:04d} "
