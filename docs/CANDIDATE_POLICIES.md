@@ -2,6 +2,8 @@
 
 This is an **opt-in discovery interface** around the existing V5 C/TypeScript solver and saved-board auditor. It does not replace the annealer or relax the strict validator. It fixes the assumption that every native exit-2 result must be discarded before Pass Two.
 
+**26 November 2026 validation:** the owner reported that the Mac Python GUI test suite passed after the two GUI fixes, and that **all 7 headless Node solver suites passed**. This validates the checked-in regression paths, **not** a completed 5,000-seed Moto campaign, a proven optimum, or a production-ready diagonal PCB.
+
 ## Policies
 
 | Policy | What qualifies from the saved audit | Build-ready |
@@ -25,14 +27,16 @@ The auditor never exempts short circuits, incomplete nets (including GPS), unpla
 
 ## 5,000 seeds at 10k moves
 
-New controller: **scripts/run_candidate_hunt.py**. It uses native V5 and the saved auditor, not a second optimizer. It keeps every saved candidate JSON in gzip archives, writes every trial to CSV, resumes from a manifest, shows PASS lines only with actual diagonal and body-crossing counts, and tracks strict/diagonal/routing champions separately. Only the strict champion is build-ready.
+New controller: **scripts/run_candidate_hunt.py**. It uses native V5 and the saved auditor, not a second optimizer. It archives every produced candidate JSON in gzip form, writes each trial to CSV, resumes using a matching manifest, shows qualified candidates only in terminal output with actual diagonal and body-crossing counts, and tracks strict/diagonal/routing champions separately. Only the strict champion is build-ready.
 
-From the repository root (replace INPUT with the existing Moto prepared file):
+From the repository root, after pulling the updated `main` branch (use the existing Moto prepared input path):
 
     python3 -m py_compile scripts/run_candidate_hunt.py
     caffeinate -i python3 -u scripts/run_candidate_hunt.py --input "Work/moto--588c4c42a903/logs/moto_pass1_verified_input.json" --policy diagonal --seeds 5000 --moves 10000 --workers 2
 
-The default output folder is Work/candidate_hunt_diagonal_5000x10000. It never overwrites the earlier stopped ladder or earlier diagonal experiment. Run the same command again to resume completed seeds. ERROR seeds are retried; saved rejected candidates remain archived. If the script is interrupted, check results.csv for exactly what has completed.
+For a small live smoke test first, change `--seeds 5000` to `--seeds 10` and explicitly choose a fresh `--out Work/candidate_hunt_smoke_10x10000` so the full campaign remains untouched.
+
+The default full-run output folder is Work/candidate_hunt_diagonal_5000x10000. It never overwrites the earlier stopped ladder or earlier diagonal experiment. Run the same command again to resume completed seeds. ERROR seeds are retried; saved rejected candidates remain archived. If the script is interrupted, check results.csv for exactly what has completed.
 
 Champion JSON files are WR_strict.json, WR_diagonal_candidate.json and (in crossings policy) WR_routing_candidate.json. A higher Q3 never overrides build readiness. The native solver's generation and energy function are unchanged.
 
@@ -51,4 +55,6 @@ New candidatePolicy.test.js and candidateAuditCli.test.js run automatically unde
 
 ## Limits
 
-This changes **qualification**, not the C decoder/router's move distribution. Higher move budgets with the same seed are still independent restarts, not warm-start board repairs. It does not prove any historical WR candidate has been recovered. Target-Mac compilation and test-suite results are still required.
+This changes **qualification**, not the C decoder/router's move distribution. Higher move budgets with the same seed are still independent restarts, not warm-start board repairs. It does not prove any historical WR candidate has been recovered. The owner-reported Mac tests passed; a fresh live Moto candidate-campaign smoke run and its full candidate classifications have **not** yet been reported.
+
+The saved-board auditor is a separate invocation and re-evaluates the saved layout, but it **shares electrical and geometry helpers** with the solver CLI; it is not a completely independent second electrical implementation. Research candidates are never a manufacturing sign-off.
