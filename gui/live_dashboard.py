@@ -196,7 +196,7 @@ class SmoothPlot(QWidget):
             gradient.setColorAt(0, transparent)
             transparent.setAlpha(1)
             gradient.setColorAt(1, transparent)
-            painter.fillPath(shadow, gradient)
+            painter.fillPath(shadow, QBrush(gradient))
         painter.setPen(QPen(QColor(color), 2.6, Qt.PenStyle.SolidLine,
                             Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin))
         painter.drawPath(path)
