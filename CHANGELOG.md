@@ -1,5 +1,12 @@
 # Changelog
 
+### GUI 2.14 — StripSolve copper-trace artwork and splash correction (25 November 2026)
+- Replace improvised 10 toolbar SVGs with consistent Arctic Ice / copper-board / blue-teal routing designs, while preserving the existing QAction connections, 24px icon sizes and HiDPI scaling.
+- Commit the user's approved 1024px copper-circuit S application PNG; retain the SVG fallback for read-only or incomplete installs.
+- Redesign the skippable splash to feature the approved large app icon, readable StripSolve identity, honest Pass One/Pass Two capability labels and interface-only progress.
+- Versioned asset migration refreshes old generated toolbar icons once, preserves later custom SVG edits, and never replaces the approved app PNG with the vector fallback.
+- Add regression tests for artwork refresh, approved 1024px PNG and populated splash image. No native optimiser, CSV, workspaces, or seed-selection changes.
+
 ### GUI 2.12 — Prompt for Pass One immediately after successful move calibration (25 November 2026)
 - After a successful native 100-decode measurement, schedule the existing Pass One 10k/20k confirmation dialog once the calibration worker has finished. The user is no longer required to find the toolbar button.
 - No optimisation starts, and no Work folder is cleared, until the user ticks **Are you sure?** and explicitly presses **GO**. Cancel preserves all files and the toolbar remains available for later manual launch.
