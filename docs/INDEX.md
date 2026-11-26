@@ -30,6 +30,12 @@
 
 - [🧺 Seed 69 GUI calibration + optometrist board comparisons](NICKS_FANTASTIC_IDEAS_BASKET.md) — ideas only, **not implemented**.
 
+## Active Moto V1.40 / Pass Two research (26 Nov 2026)
+
+- [V1.40 frozen fixture](MOTO_V1_40_FIXTURE.md) — new hardware test problem; not historical Moto WR.
+- [Three-way WR wager — Claude, GPT Sister, ChatGPT](MOTO_V1_40_WR_WAGER_2026-11-26.md) — separate frozen 2,000 × 20k competition.
+- [V1.40 ladder forensics and MAME-style .sav / warm-start design](MOTO_V1_40_LADDER_AND_WARM_START_2026-11-26.md) — latest owner-reported 2,318/7,500 trial snapshot, board-lock and routing findings, experimental save/load proposal and verification gates. **Research only, no solver or GUI implementation.**
+
 ## Active WR experiment — Audio and Moto
 
 - [Live Moto Pass One: 871-seed regression and failure forensics (26 Nov 2026)](MOTO_PASS1_871_SEED_FORENSICS_2026-11-26.md) — verified log statistics, exact historical pass-ID match, near-miss repair research ideas only.
