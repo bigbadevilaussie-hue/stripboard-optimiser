@@ -3,6 +3,15 @@
 ## Current release: StripSolve GUI 2.39 / Q3 (25 November 2026)
 
 
+## 26 November 2026 — ACTIVE V1.40 LADDER AND SAVE-GAME RESEARCH
+
+Read [V1.40 ladder forensics and MAME-style warm-start design](MOTO_V1_40_LADDER_AND_WARM_START_2026-11-26.md) before continuing this work.
+
+- Owner's local standalone V1.40 ladder: 500 seeds per rung, 2k–30k in 2k steps, three workers, 7,500 planned trials. Last reported 2,318 completed, all FAIL, zero strict/diag passes and zero ERROR rows. 476 electrically complete, 334 otherwise valid routing-only near-misses. Latest report is partial 10k, not the final campaign. Do not interrupt or rebuild the active run.
+- Frozen [three-way wager](MOTO_V1_40_WR_WAGER_2026-11-26.md) is a separate 2,000 × 20k strict-only batch; Claude 78.56, GPT Sister 79.76, ChatGPT 80.72. No wager changes.
+- Confirmed standard non-Edge board-lock enforcement weakness; routing faults dominate the partial data. Replay matched seeds and old input controls before attributing a regression. No solver fix implemented.
+- Owner's new Pass Two concept: each strict survivor has a MAME-style `.sav` (winning genome plus verified board); LOAD → controlled reheat → audit → retain the better result. Warm-start research first, exact checkpoint later. Experimental hook, format, round-trip and regression gates documented in the new note. **Not implemented. GUI Pass Two remains import-only; no production solver/GUI changes.**
+
 ## 26 November 2026 — LATEST VERIFIED ENGINEERING STATUS
 
 - The owner reports the Mac Python GUI regression suite now passes after the fixes to the **Slide/EXPERIMENTAL** label and dashboard return-to-board fallback; the immediately preceding run had 2 failures among 129 Python tests.
