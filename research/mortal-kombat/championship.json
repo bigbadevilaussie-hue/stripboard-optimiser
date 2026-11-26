@@ -1,0 +1,13 @@
+{
+  "champion": "Dave",
+  "rounds": 50,
+  "dave_points": 234.0,
+  "steve_points": 216.0,
+  "dave_round_wins": 26,
+  "steve_round_wins": 16,
+  "draws": 8,
+  "dave_strict": 14,
+  "steve_strict": 11,
+  "dave_solve_seconds": 733.699,
+  "steve_solve_seconds": 740.1289999999999
+}

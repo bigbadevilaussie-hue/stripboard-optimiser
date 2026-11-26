@@ -1,0 +1,49 @@
+{
+  "seed": "1859",
+  "moves": 120000,
+  "status": "FAIL",
+  "native_strict": false,
+  "audit_strict": false,
+  "q3": 68.16,
+  "wires": 45,
+  "cuts": 61,
+  "stack": 3,
+  "wire_length_mm": 710.082958,
+  "diagonals": 1,
+  "body_crossings": 1,
+  "electrical_complete": true,
+  "native_exit": 2,
+  "audit_exit": 2,
+  "native_failures": "[\"NONVERTICAL_1\",\"SLANTED_1\",\"CROSSINGS_1\",\"SOLVER_ISSUES\"]",
+  "native_issues": "[\"2 wires could not be made straight and crossing-free\"]",
+  "audit_failures": "[\"NONVERTICAL_1\",\"BODY_CROSSINGS_1\"]",
+  "candidate_gz": "candidates/seed_1859.json.gz",
+  "native_json": "{\"id\":1,\"seed\":1859,\"ms\":7523,\"rate\":875.0806593356831,\"price\":1319.2340879114245,\"sig\":\"2848a32f91aa\",\"decoded\":{\"E\":2493.8,\"rows\":24,\"cols\":56,\"wires\":42,\"wireLen\":271,\"relays\":2,\"cuts\":57,\"bCuts\":0,\"starved\":1,\"starvedHard\":0,\"geoBad\":0,\"overlapBad\":0,\"connEdge\":256.9,\"lockOver\":0,\"spanBad\":0,\"hardSegs\":[]},\"quality\":0,\"rows\":24,\"cols\":56,\"area\":1344,\"wires\":45,\"offAxis\":1,\"crossings\":1,\"stacked\":4,\"cuts\":61,\"knife\":7,\"connOff\":10,\"connIn\":0,\"conflicts\":0,\"incomplete\":0,\"geo\":0,\"bodyOverhangWarnings\":[{\"component\":\"C7\",\"value\":\"470\u00b5F\",\"row\":0,\"col\":10}],\"issues\":[\"2 wires could not be made straight and crossing-free\"],\"cliVersion\":\"v1.60-cli-audit\",\"strictValid\":false,\"strictFailures\":[\"NONVERTICAL_1\",\"SLANTED_1\",\"CROSSINGS_1\",\"SOLVER_ISSUES\"],\"diagonalsActual\":1,\"slantedWires\":1,\"horizontalWires\":0,\"candidate\":{\"policy\":\"strict\",\"prequalified\":false,\"strictValid\":false,\"needsSavedAudit\":true,\"blockingFailures\":[\"NONVERTICAL_1\",\"SLANTED_1\",\"CROSSINGS_1\",\"SOLVER_ISSUES\"]}}",
+  "audit_json": "{\"valid\":false,\"failures\":[\"NONVERTICAL_1\",\"BODY_CROSSINGS_1\"],\"warnings\":[\"BODY_OVERHANG_C7\"],\"wires\":45,\"cuts\":61,\"stacked\":4,\"nonvertical\":1,\"crossings\":1,\"conflicts\":0,\"incomplete\":0,\"geometry\":0,\"wireLength\":279.56,\"unplaced\":[],\"candidate\":{\"policy\":\"strict\",\"status\":\"ROUTE_CANDIDATE\",\"qualified\":false,\"strictValid\":false,\"electricalComplete\":true,\"diagonals\":1,\"bodyCrossings\":1,\"hardFailures\":[],\"archiveOnly\":false,\"buildReady\":false}}",
+  "solve_wall_s": "7.698",
+  "audit_wall_s": "0.162",
+  "wall_s": "7.867",
+  "completed_utc": "2026-11-26T22:50:35.549608+00:00",
+  "fighter": "Steve",
+  "electrical_rank": [
+    0,
+    0,
+    0,
+    0
+  ],
+  "physical_rank": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    1,
+    1
+  ],
+  "quality_rank": [
+    0,
+    -68.16,
+    45,
+    61
+  ]
+}

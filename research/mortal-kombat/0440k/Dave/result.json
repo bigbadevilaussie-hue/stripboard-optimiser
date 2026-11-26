@@ -1,0 +1,49 @@
+{
+  "seed": "1216",
+  "moves": 440000,
+  "status": "STRICT_PASS",
+  "native_strict": true,
+  "audit_strict": true,
+  "q3": 78.66,
+  "wires": 36,
+  "cuts": 52,
+  "stack": 2,
+  "wire_length_mm": 497.84,
+  "diagonals": 0,
+  "body_crossings": 0,
+  "electrical_complete": true,
+  "native_exit": 0,
+  "audit_exit": 0,
+  "native_failures": "[]",
+  "native_issues": "[]",
+  "audit_failures": "[]",
+  "candidate_gz": "candidates/seed_1216.json.gz",
+  "native_json": "{\"id\":1,\"seed\":1216,\"ms\":25191,\"rate\":684.3999999999999,\"price\":1069.32,\"sig\":\"3b7a0abb6a98\",\"decoded\":{\"E\":1267.7,\"rows\":24,\"cols\":56,\"wires\":31,\"wireLen\":207,\"relays\":1,\"cuts\":47,\"bCuts\":2,\"starved\":0,\"starvedHard\":0,\"geoBad\":0,\"overlapBad\":0,\"connEdge\":148.5,\"lockOver\":0,\"spanBad\":0,\"hardSegs\":[]},\"quality\":0,\"rows\":24,\"cols\":56,\"area\":1344,\"wires\":36,\"offAxis\":0,\"crossings\":0,\"stacked\":3,\"cuts\":52,\"knife\":9,\"connOff\":5,\"connIn\":0,\"conflicts\":0,\"incomplete\":0,\"geo\":0,\"bodyOverhangWarnings\":[],\"issues\":[],\"cliVersion\":\"v1.60-cli-audit\",\"strictValid\":true,\"strictFailures\":[],\"diagonalsActual\":0,\"slantedWires\":0,\"horizontalWires\":0,\"candidate\":{\"policy\":\"strict\",\"prequalified\":true,\"strictValid\":true,\"needsSavedAudit\":true,\"blockingFailures\":[]}}",
+  "audit_json": "{\"valid\":true,\"failures\":[],\"warnings\":[],\"wires\":36,\"cuts\":52,\"stacked\":3,\"nonvertical\":0,\"crossings\":0,\"conflicts\":0,\"incomplete\":0,\"geometry\":0,\"wireLength\":196,\"unplaced\":[],\"candidate\":{\"policy\":\"strict\",\"status\":\"STRICT_PASS\",\"qualified\":true,\"strictValid\":true,\"electricalComplete\":true,\"diagonals\":0,\"bodyCrossings\":0,\"hardFailures\":[],\"archiveOnly\":false,\"buildReady\":true}}",
+  "solve_wall_s": "25.377",
+  "audit_wall_s": "0.159",
+  "wall_s": "25.543",
+  "completed_utc": "2026-11-26T23:15:35.019044+00:00",
+  "fighter": "Dave",
+  "electrical_rank": [
+    0,
+    0,
+    0,
+    0
+  ],
+  "physical_rank": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+  ],
+  "quality_rank": [
+    0,
+    -78.66,
+    36,
+    52
+  ]
+}

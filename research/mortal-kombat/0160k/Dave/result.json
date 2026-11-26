@@ -1,0 +1,49 @@
+{
+  "seed": "1216",
+  "moves": 160000,
+  "status": "FAIL",
+  "native_strict": false,
+  "audit_strict": false,
+  "q3": 68.36,
+  "wires": 38,
+  "cuts": 54,
+  "stack": 2,
+  "wire_length_mm": 684.641033,
+  "diagonals": 2,
+  "body_crossings": 3,
+  "electrical_complete": true,
+  "native_exit": 2,
+  "audit_exit": 2,
+  "native_failures": "[\"NONVERTICAL_2\",\"SLANTED_2\",\"CROSSINGS_3\",\"SOLVER_ISSUES\"]",
+  "native_issues": "[\"5 wires could not be made straight and crossing-free\"]",
+  "audit_failures": "[\"NONVERTICAL_2\",\"BODY_CROSSINGS_3\"]",
+  "candidate_gz": "candidates/seed_1216.json.gz",
+  "native_json": "{\"id\":1,\"seed\":1216,\"ms\":9188,\"rate\":1019.0311412225325,\"price\":1142.7574854963377,\"sig\":\"b23588fbb219\",\"decoded\":{\"E\":2121.7,\"rows\":24,\"cols\":56,\"wires\":33,\"wireLen\":192,\"relays\":0,\"cuts\":49,\"bCuts\":1,\"starved\":0,\"starvedHard\":0,\"geoBad\":0,\"overlapBad\":0,\"connEdge\":118.5,\"lockOver\":0,\"spanBad\":0,\"hardSegs\":[]},\"quality\":0,\"rows\":24,\"cols\":56,\"area\":1344,\"wires\":38,\"offAxis\":2,\"crossings\":3,\"stacked\":8,\"cuts\":54,\"knife\":8,\"connOff\":4,\"connIn\":0,\"conflicts\":0,\"incomplete\":0,\"geo\":0,\"bodyOverhangWarnings\":[],\"issues\":[\"5 wires could not be made straight and crossing-free\"],\"cliVersion\":\"v1.60-cli-audit\",\"strictValid\":false,\"strictFailures\":[\"NONVERTICAL_2\",\"SLANTED_2\",\"CROSSINGS_3\",\"SOLVER_ISSUES\"],\"diagonalsActual\":2,\"slantedWires\":2,\"horizontalWires\":0,\"candidate\":{\"policy\":\"strict\",\"prequalified\":false,\"strictValid\":false,\"needsSavedAudit\":true,\"blockingFailures\":[\"NONVERTICAL_2\",\"SLANTED_2\",\"CROSSINGS_3\",\"SOLVER_ISSUES\"]}}",
+  "audit_json": "{\"valid\":false,\"failures\":[\"NONVERTICAL_2\",\"BODY_CROSSINGS_3\"],\"warnings\":[],\"wires\":38,\"cuts\":54,\"stacked\":8,\"nonvertical\":2,\"crossings\":3,\"conflicts\":0,\"incomplete\":0,\"geometry\":0,\"wireLength\":269.544,\"unplaced\":[],\"candidate\":{\"policy\":\"strict\",\"status\":\"ROUTE_CANDIDATE\",\"qualified\":false,\"strictValid\":false,\"electricalComplete\":true,\"diagonals\":2,\"bodyCrossings\":3,\"hardFailures\":[],\"archiveOnly\":false,\"buildReady\":false}}",
+  "solve_wall_s": "9.365",
+  "audit_wall_s": "0.152",
+  "wall_s": "9.522",
+  "completed_utc": "2026-11-26T22:53:12.284730+00:00",
+  "fighter": "Dave",
+  "electrical_rank": [
+    0,
+    0,
+    0,
+    0
+  ],
+  "physical_rank": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    3,
+    2
+  ],
+  "quality_rank": [
+    0,
+    -68.36,
+    38,
+    54
+  ]
+}

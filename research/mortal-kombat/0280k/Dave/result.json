@@ -1,0 +1,49 @@
+{
+  "seed": "1216",
+  "moves": 280000,
+  "status": "FAIL",
+  "native_strict": false,
+  "audit_strict": false,
+  "q3": 73.82,
+  "wires": 37,
+  "cuts": 53,
+  "stack": 2,
+  "wire_length_mm": 552.200456,
+  "diagonals": 1,
+  "body_crossings": 0,
+  "electrical_complete": true,
+  "native_exit": 2,
+  "audit_exit": 2,
+  "native_failures": "[\"NONVERTICAL_1\",\"SLANTED_1\",\"SOLVER_ISSUES\"]",
+  "native_issues": "[\"1 wire could not be made straight and crossing-free\"]",
+  "audit_failures": "[\"NONVERTICAL_1\"]",
+  "candidate_gz": "candidates/seed_1216.json.gz",
+  "native_json": "{\"id\":1,\"seed\":1216,\"ms\":16387,\"rate\":789.6052627529741,\"price\":1000.1907017003964,\"sig\":\"c3fe281ab613\",\"decoded\":{\"E\":1554.4,\"rows\":24,\"cols\":56,\"wires\":30,\"wireLen\":188,\"relays\":1,\"cuts\":46,\"bCuts\":1,\"starved\":0,\"starvedHard\":0,\"geoBad\":0,\"overlapBad\":0,\"connEdge\":63.800000000000004,\"lockOver\":0,\"spanBad\":0,\"hardSegs\":[]},\"quality\":0,\"rows\":24,\"cols\":56,\"area\":1344,\"wires\":37,\"offAxis\":1,\"crossings\":0,\"stacked\":4,\"cuts\":53,\"knife\":10,\"connOff\":2,\"connIn\":0,\"conflicts\":0,\"incomplete\":0,\"geo\":0,\"bodyOverhangWarnings\":[],\"issues\":[\"1 wire could not be made straight and crossing-free\"],\"cliVersion\":\"v1.60-cli-audit\",\"strictValid\":false,\"strictFailures\":[\"NONVERTICAL_1\",\"SLANTED_1\",\"SOLVER_ISSUES\"],\"diagonalsActual\":1,\"slantedWires\":1,\"horizontalWires\":0,\"candidate\":{\"policy\":\"strict\",\"prequalified\":false,\"strictValid\":false,\"needsSavedAudit\":true,\"blockingFailures\":[\"NONVERTICAL_1\",\"SLANTED_1\",\"SOLVER_ISSUES\"]}}",
+  "audit_json": "{\"valid\":false,\"failures\":[\"NONVERTICAL_1\"],\"warnings\":[],\"wires\":37,\"cuts\":53,\"stacked\":4,\"nonvertical\":1,\"crossings\":0,\"conflicts\":0,\"incomplete\":0,\"geometry\":0,\"wireLength\":217.402,\"unplaced\":[],\"candidate\":{\"policy\":\"strict\",\"status\":\"DIAG_PASS\",\"qualified\":false,\"strictValid\":false,\"electricalComplete\":true,\"diagonals\":1,\"bodyCrossings\":0,\"hardFailures\":[],\"archiveOnly\":false,\"buildReady\":false}}",
+  "solve_wall_s": "16.539",
+  "audit_wall_s": "0.147",
+  "wall_s": "16.693",
+  "completed_utc": "2026-11-26T23:01:55.802064+00:00",
+  "fighter": "Dave",
+  "electrical_rank": [
+    0,
+    0,
+    0,
+    0
+  ],
+  "physical_rank": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    1
+  ],
+  "quality_rank": [
+    0,
+    -73.82,
+    37,
+    53
+  ]
+}

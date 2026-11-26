@@ -1,0 +1,49 @@
+{
+  "seed": "1216",
+  "moves": 270000,
+  "status": "STRICT_PASS",
+  "native_strict": true,
+  "audit_strict": true,
+  "q3": 77.04,
+  "wires": 35,
+  "cuts": 51,
+  "stack": 3,
+  "wire_length_mm": 599.44,
+  "diagonals": 0,
+  "body_crossings": 0,
+  "electrical_complete": true,
+  "native_exit": 0,
+  "audit_exit": 0,
+  "native_failures": "[]",
+  "native_issues": "[]",
+  "audit_failures": "[]",
+  "candidate_gz": "candidates/seed_1216.json.gz",
+  "native_json": "{\"id\":1,\"seed\":1216,\"ms\":16527,\"rate\":745.3999999999999,\"price\":963.91,\"sig\":\"0b745d94b5da\",\"decoded\":{\"E\":1288.7,\"rows\":24,\"cols\":56,\"wires\":32,\"wireLen\":233,\"relays\":1,\"cuts\":48,\"bCuts\":3,\"starved\":2,\"starvedHard\":0,\"geoBad\":0,\"overlapBad\":0,\"connEdge\":62.6,\"lockOver\":0,\"spanBad\":0,\"hardSegs\":[]},\"quality\":0,\"rows\":24,\"cols\":56,\"area\":1344,\"wires\":35,\"offAxis\":0,\"crossings\":0,\"stacked\":5,\"cuts\":51,\"knife\":6,\"connOff\":2,\"connIn\":0,\"conflicts\":0,\"incomplete\":0,\"geo\":0,\"bodyOverhangWarnings\":[{\"component\":\"C6\",\"value\":\"470\u00b5F\",\"row\":0,\"col\":12}],\"issues\":[],\"cliVersion\":\"v1.60-cli-audit\",\"strictValid\":true,\"strictFailures\":[],\"diagonalsActual\":0,\"slantedWires\":0,\"horizontalWires\":0,\"candidate\":{\"policy\":\"strict\",\"prequalified\":true,\"strictValid\":true,\"needsSavedAudit\":true,\"blockingFailures\":[]}}",
+  "audit_json": "{\"valid\":true,\"failures\":[],\"warnings\":[\"BODY_OVERHANG_C6\"],\"wires\":35,\"cuts\":51,\"stacked\":5,\"nonvertical\":0,\"crossings\":0,\"conflicts\":0,\"incomplete\":0,\"geometry\":0,\"wireLength\":236,\"unplaced\":[],\"candidate\":{\"policy\":\"strict\",\"status\":\"STRICT_PASS\",\"qualified\":true,\"strictValid\":true,\"electricalComplete\":true,\"diagonals\":0,\"bodyCrossings\":0,\"hardFailures\":[],\"archiveOnly\":false,\"buildReady\":true}}",
+  "solve_wall_s": "16.704",
+  "audit_wall_s": "0.169",
+  "wall_s": "16.880",
+  "completed_utc": "2026-11-26T23:01:09.018879+00:00",
+  "fighter": "Dave",
+  "electrical_rank": [
+    0,
+    0,
+    0,
+    0
+  ],
+  "physical_rank": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+  ],
+  "quality_rank": [
+    0,
+    -77.04,
+    35,
+    51
+  ]
+}

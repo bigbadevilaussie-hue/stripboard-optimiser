@@ -1,0 +1,49 @@
+{
+  "seed": "1216",
+  "moves": 120000,
+  "status": "STRICT_PASS",
+  "native_strict": true,
+  "audit_strict": true,
+  "q3": 78.68,
+  "wires": 36,
+  "cuts": 52,
+  "stack": 2,
+  "wire_length_mm": 495.3,
+  "diagonals": 0,
+  "body_crossings": 0,
+  "electrical_complete": true,
+  "native_exit": 0,
+  "audit_exit": 0,
+  "native_failures": "[]",
+  "native_issues": "[]",
+  "audit_failures": "[]",
+  "candidate_gz": "candidates/seed_1216.json.gz",
+  "native_json": "{\"id\":1,\"seed\":1216,\"ms\":7020,\"rate\":671.3999999999999,\"price\":1181.32,\"sig\":\"a4153190cd45\",\"decoded\":{\"E\":1311.6,\"rows\":24,\"cols\":56,\"wires\":28,\"wireLen\":171,\"relays\":1,\"cuts\":44,\"bCuts\":1,\"starved\":0,\"starvedHard\":0,\"geoBad\":0,\"overlapBad\":0,\"connEdge\":206.39999999999998,\"lockOver\":0,\"spanBad\":0,\"hardSegs\":[]},\"quality\":0,\"rows\":24,\"cols\":56,\"area\":1344,\"wires\":36,\"offAxis\":0,\"crossings\":0,\"stacked\":1,\"cuts\":52,\"knife\":11,\"connOff\":7,\"connIn\":0,\"conflicts\":0,\"incomplete\":0,\"geo\":0,\"bodyOverhangWarnings\":[],\"issues\":[],\"cliVersion\":\"v1.60-cli-audit\",\"strictValid\":true,\"strictFailures\":[],\"diagonalsActual\":0,\"slantedWires\":0,\"horizontalWires\":0,\"candidate\":{\"policy\":\"strict\",\"prequalified\":true,\"strictValid\":true,\"needsSavedAudit\":true,\"blockingFailures\":[]}}",
+  "audit_json": "{\"valid\":true,\"failures\":[],\"warnings\":[],\"wires\":36,\"cuts\":52,\"stacked\":1,\"nonvertical\":0,\"crossings\":0,\"conflicts\":0,\"incomplete\":0,\"geometry\":0,\"wireLength\":195,\"unplaced\":[],\"candidate\":{\"policy\":\"strict\",\"status\":\"STRICT_PASS\",\"qualified\":true,\"strictValid\":true,\"electricalComplete\":true,\"diagonals\":0,\"bodyCrossings\":0,\"hardFailures\":[],\"archiveOnly\":false,\"buildReady\":true}}",
+  "solve_wall_s": "7.189",
+  "audit_wall_s": "0.148",
+  "wall_s": "7.345",
+  "completed_utc": "2026-11-26T22:50:35.028142+00:00",
+  "fighter": "Dave",
+  "electrical_rank": [
+    0,
+    0,
+    0,
+    0
+  ],
+  "physical_rank": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+  ],
+  "quality_rank": [
+    0,
+    -78.68,
+    36,
+    52
+  ]
+}

@@ -1,0 +1,49 @@
+{
+  "seed": "1216",
+  "moves": 330000,
+  "status": "STRICT_PASS",
+  "native_strict": true,
+  "audit_strict": true,
+  "q3": 81.26,
+  "wires": 30,
+  "cuts": 46,
+  "stack": 2,
+  "wire_length_mm": 472.44,
+  "diagonals": 0,
+  "body_crossings": 0,
+  "electrical_complete": true,
+  "native_exit": 0,
+  "audit_exit": 0,
+  "native_failures": "[]",
+  "native_issues": "[]",
+  "audit_failures": "[]",
+  "candidate_gz": "candidates/seed_1216.json.gz",
+  "native_json": "{\"id\":1,\"seed\":1216,\"ms\":17369,\"rate\":668.3999999999999,\"price\":937.26,\"sig\":\"478ab0304318\",\"decoded\":{\"E\":1142,\"rows\":24,\"cols\":56,\"wires\":28,\"wireLen\":193,\"relays\":0,\"cuts\":44,\"bCuts\":2,\"starved\":0,\"starvedHard\":0,\"geoBad\":0,\"overlapBad\":0,\"connEdge\":102.5,\"lockOver\":0,\"spanBad\":0,\"hardSegs\":[]},\"quality\":0,\"rows\":24,\"cols\":56,\"area\":1344,\"wires\":30,\"offAxis\":0,\"crossings\":0,\"stacked\":2,\"cuts\":46,\"knife\":5,\"connOff\":4,\"connIn\":0,\"conflicts\":0,\"incomplete\":0,\"geo\":0,\"bodyOverhangWarnings\":[],\"issues\":[],\"cliVersion\":\"v1.60-cli-audit\",\"strictValid\":true,\"strictFailures\":[],\"diagonalsActual\":0,\"slantedWires\":0,\"horizontalWires\":0,\"candidate\":{\"policy\":\"strict\",\"prequalified\":true,\"strictValid\":true,\"needsSavedAudit\":true,\"blockingFailures\":[]}}",
+  "audit_json": "{\"valid\":true,\"failures\":[],\"warnings\":[],\"wires\":30,\"cuts\":46,\"stacked\":2,\"nonvertical\":0,\"crossings\":0,\"conflicts\":0,\"incomplete\":0,\"geometry\":0,\"wireLength\":186,\"unplaced\":[],\"candidate\":{\"policy\":\"strict\",\"status\":\"STRICT_PASS\",\"qualified\":true,\"strictValid\":true,\"electricalComplete\":true,\"diagonals\":0,\"bodyCrossings\":0,\"hardFailures\":[],\"archiveOnly\":false,\"buildReady\":true}}",
+  "solve_wall_s": "17.549",
+  "audit_wall_s": "0.154",
+  "wall_s": "17.710",
+  "completed_utc": "2026-11-26T23:05:54.148647+00:00",
+  "fighter": "Dave",
+  "electrical_rank": [
+    0,
+    0,
+    0,
+    0
+  ],
+  "physical_rank": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+  ],
+  "quality_rank": [
+    0,
+    -81.26,
+    30,
+    46
+  ]
+}

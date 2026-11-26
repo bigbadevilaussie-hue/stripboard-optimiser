@@ -1,0 +1,49 @@
+{
+  "seed": "1216",
+  "moves": 10000,
+  "status": "FAIL",
+  "native_strict": false,
+  "audit_strict": false,
+  "q3": 34.86,
+  "wires": 48,
+  "cuts": 64,
+  "stack": 2,
+  "wire_length_mm": 872.414399,
+  "diagonals": 9,
+  "body_crossings": 9,
+  "electrical_complete": true,
+  "native_exit": 2,
+  "audit_exit": 2,
+  "native_failures": "[\"NONVERTICAL_9\",\"SLANTED_9\",\"CROSSINGS_9\",\"SOLVER_ISSUES\"]",
+  "native_issues": "[\"18 wires could not be made straight and crossing-free\"]",
+  "audit_failures": "[\"NONVERTICAL_9\",\"BODY_CROSSINGS_9\"]",
+  "candidate_gz": "candidates/seed_1216.json.gz",
+  "native_json": "{\"id\":1,\"seed\":1216,\"ms\":2171,\"rate\":1737.8107076383296,\"price\":1583.9280943517772,\"sig\":\"7264b26cce84\",\"decoded\":{\"E\":5199.3,\"rows\":24,\"cols\":56,\"wires\":41,\"wireLen\":197,\"relays\":0,\"cuts\":57,\"bCuts\":1,\"starved\":3,\"starvedHard\":1,\"geoBad\":0,\"overlapBad\":0,\"connEdge\":416.49999999999994,\"lockOver\":0,\"spanBad\":0,\"hardSegs\":[]},\"quality\":0,\"rows\":24,\"cols\":56,\"area\":1344,\"wires\":48,\"offAxis\":9,\"crossings\":9,\"stacked\":6,\"cuts\":64,\"knife\":15,\"connOff\":15,\"connIn\":0,\"conflicts\":0,\"incomplete\":0,\"geo\":0,\"bodyOverhangWarnings\":[{\"component\":\"C1\",\"value\":\"1000\u00b5F\",\"row\":2,\"col\":39},{\"component\":\"C6\",\"value\":\"470\u00b5F\",\"row\":0,\"col\":28}],\"issues\":[\"18 wires could not be made straight and crossing-free\"],\"cliVersion\":\"v1.60-cli-audit\",\"strictValid\":false,\"strictFailures\":[\"NONVERTICAL_9\",\"SLANTED_9\",\"CROSSINGS_9\",\"SOLVER_ISSUES\"],\"diagonalsActual\":9,\"slantedWires\":9,\"horizontalWires\":0,\"candidate\":{\"policy\":\"strict\",\"prequalified\":false,\"strictValid\":false,\"needsSavedAudit\":true,\"blockingFailures\":[\"NONVERTICAL_9\",\"SLANTED_9\",\"CROSSINGS_9\",\"SOLVER_ISSUES\"]}}",
+  "audit_json": "{\"valid\":false,\"failures\":[\"NONVERTICAL_9\",\"BODY_CROSSINGS_9\"],\"warnings\":[\"BODY_OVERHANG_C1\",\"BODY_OVERHANG_C6\"],\"wires\":48,\"cuts\":64,\"stacked\":6,\"nonvertical\":9,\"crossings\":9,\"conflicts\":0,\"incomplete\":0,\"geometry\":0,\"wireLength\":343.47,\"unplaced\":[],\"candidate\":{\"policy\":\"strict\",\"status\":\"ROUTE_CANDIDATE\",\"qualified\":false,\"strictValid\":false,\"electricalComplete\":true,\"diagonals\":9,\"bodyCrossings\":9,\"hardFailures\":[],\"archiveOnly\":false,\"buildReady\":false}}",
+  "solve_wall_s": "10.863",
+  "audit_wall_s": "0.251",
+  "wall_s": "11.150",
+  "completed_utc": "2026-11-26T22:44:08.374057+00:00",
+  "fighter": "Dave",
+  "electrical_rank": [
+    0,
+    0,
+    0,
+    0
+  ],
+  "physical_rank": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    9,
+    9
+  ],
+  "quality_rank": [
+    0,
+    -34.86,
+    48,
+    64
+  ]
+}
