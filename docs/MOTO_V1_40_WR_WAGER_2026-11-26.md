@@ -59,3 +59,21 @@ Q3 for a strict complete board = round(max(0, 100 - 0.4 × (0.6W + 0.4C + 0.02L 
 - Winner: **TBD. Let the silicon decide.**
 
 No solver, GUI, fixture or campaign changes made for this note.
+
+## Third entrant — GPT Sister (26 November 2026)
+
+Entered at the user's invitation before any campaign results were supplied to this entrant. The original two predictions above remain untouched.
+
+| Predictor | Wires | Cuts | Wire length | Stack | Q3 wager | Long-term Q3 |
+|---|---:|---:|---:|---:|---:|---:|
+| GPT Sister (Moto-Mate) | 34 | 51 | 440 mm | 2 | **79.76** | 84.08 |
+
+Q3 = 100 − 0.4 × (20.4 + 20.4 + 8.8 + 1) = 79.76. Long-term forecast: 26W/44C/330 mm/S1 = 84.08; not part of the initial contest.
+
+Rationale: the increased module area constrains routing corridors, but the unlocked placement and nearly unchanged connection demand (88 → 91) should limit the damage. Forecast allows three extra wires, four extra cuts and longer wire runs relative to the historical 20k champion. This is a judgment-based estimate using the committed shared evidence, not a solver run or measured probability.
+
+### Agreed three-way adjudication
+
+The subsequent conversation agreed to use Claude's calculated 78.56, rather than the earlier rounded headline of 78.00, for the wager. Preserve the original headline as historical evidence. The frozen competition predictions are Claude 78.56, GPT Sister 79.76, and ChatGPT 80.72. Closest absolute error to the highest independently saved-audited STRICT_PASS Q3 in the first completed 2,000 × 20k batch wins. Ties share the result; no strict passes means no winner. No post-batch repair candidates or fixture changes qualify. Report all three absolute errors and the original Claude headline error separately. No predictions may be changed after results.
+
+Additional scoreboard entry: absolute error vs GPT Sister 79.76 — pending.
