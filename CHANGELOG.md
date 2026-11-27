@@ -1,5 +1,9 @@
 # Changelog
 
+### 27 November 2026 — Owner-verified iterative stack polish: Q86.80
+- Source 596f129 owner Mac run: 9/25 original strict boards improved, 2/7 overlapping witnesses improved further, 15 plateau-only, zero fallbacks/cap hits. Dave 1216/460k Q85.20→86.80 S3→1, Steve 1859/500k Q85.66→86.06 S2→1. No extra annealing or placement/cut/wire length changes. Both unstacked. New saved files and timings pending archival; no 2k record or production change.
+- Record exact cohort results and redirect next research to the earlier 2k evidence; GUI 2.39 unchanged.
+
 ### 27 November 2026 — Iterative strict stack-polish research
 - Stack-polish experiment: owner verified all seven witness boards with saved strict audit and Python Q3, pushed dd0c1d0; remote main-only and verification.json inspected. New isolated scripts/karl_stack_polish.js processes original 25 strict boards and seven independently re-audited witnesses as distinct cohorts (four witnesses derive from original strict boards; do not count as 32 independent placements). Deterministic greedy maximum-depth then overlapping edge-pair reduction, strict decreasing potential allows plateau steps, max64 relocations per board. Preserve same two strips, same rows, wire length/count, cuts, placements and netlist; forbid occupied/used holes and crossings; final strict and copper graph audit; keep incumbent unless Q3 strictly improves and both checks pass. Verify canonical input and witness hashes. No native search, no rebuild, no production changes. Actual extracted synthetic tests (three-to-one stack, obstacle, determinism, cap and touching endpoints) passed in AI tooling, JS syntax checked; target-Mac archive run pending. New outputs in fresh directory, no original changes. This is a research prototype, not exhaustive optimisation.
 - Handover and forensic documentation updated; GUI 2.39 unchanged.

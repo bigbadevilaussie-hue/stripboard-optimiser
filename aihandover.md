@@ -12,7 +12,7 @@ This section supersedes earlier dated handoffs. Historical results are evidence,
 - **MAIN ONLY.** No new branches or pull requests. No upstream reports, issues, comments or code submissions to Karl. Work within the owner's fork; research belongs in separate directories, not branches. Never force-push or discard local work.
 - **Revision control and documentation are part of every change.** Update this current checkpoint, CHANGELOG.md and affected current docs together with approved implementation/research changes. GUI/renderer/import changes bump gui/VERSION in the same commit; repository milestone VERSION and package version are separate. Do not increment a version just to imply progress. Report commit SHA, files, actual changes and validation status.
 - **Quality and physical validity first.** A locked 24×56 board means exactly 24×56. No widening the board or silently weakening strict rules to get a PASS. Preserve component locks, original netlist/definitions, legal geometry and electrical completeness. Human-buildable vertical wires; stacking and cut modes follow selected settings. Drilled cuts preferred by owner for human construction; specific research runs may explicitly allow knives. Q3 is construction quality, not electrical validity or percentage of optimum.
-- Prefer small reproducible counterexamples, deterministic replay, one-worker forensic tests, fewer moves and smaller boards over indiscriminate brute force. Target useful 2k-move layouts; Q86 at 2k remains a research goal; Q86.40 at 460k plus zero-anneal surgery is now owner-reported. No new wagers.
+- Prefer small reproducible counterexamples, deterministic replay, one-worker forensic tests, fewer moves and smaller boards over indiscriminate brute force. Target useful 2k-move layouts; Q86 at 2k remains a research goal; Q86.80 at 460k plus zero-anneal iterative polish is now owner-reported. No new wagers.
 - Owner prefers concise, paste-ready Mac Terminal commands starting with cd, actual Git commits, no repeated questions, clean Qt6 Arctic Ice + Colourburst UI, and useful emoji terminal feedback. Do not claim background work, completed runtime tests, or local filesystem access without evidence.
 - Preserve existing local files and experiment results. No destructive reruns or blanket git add/reset/clean/stash. No automatic launch of a new campaign; verify scope and provenance. Do not change Moto-Mate, Fan-Mate or OSA.
 
@@ -28,7 +28,7 @@ This section supersedes earlier dated handoffs. Historical results are evidence,
 | Documentation reconciliation | 28d8aa571979c8f2b17f936b0746f0f350331d04 |
 | Remote branch state | main only; all four former branches merged and deleted |
 | Last owner-reported tests | 26 Nov: Python GUI regression suite passed after two fixes; all 7 Node headless suites passed |
-| Outstanding validation | Post-consolidation production regressions, stack-polish archive replay and independent review of witness geometry, standalone Mac app qualification |
+| Outstanding validation | Post-consolidation production regressions, archive and independent re-audit of iterative-polish results, standalone Mac app qualification |
 
 Current code unchanged by branch consolidation or documentation reconciliation. Do not equate Git HEAD with a locally rebuilt executable. Owner's local cleanup reported a modified compiled renderer cli.js and untracked scripts, JSONs, test folders and workspaces; preserve them. No new tests were run by the AI for this handover. Current app launch/build state on the iMac is not independently verified.
 
@@ -106,11 +106,33 @@ Zero-based coordinates (row,col). Owner pasted all seven best detail records fro
 
 Next gate: preserve seven repaired files plus report and exact prepared input in research/karl-autopsy/20261127 (not a branch), verify with existing auditor and Q3, review file scope before committing. No further anneal needed. Then evaluate a bounded strict-incumbent-preserving stack-polish pass first, isolated from cut rescue; benchmark earlier/lower-move archived campaigns, no production changes until reviewed. Remote branch API still returns main only at df394ba; pasted older branch upload output is historical, not evidence of current branch.
 
-### Current next gate — iterative stack polish
+## 27 November — completed iterative stack polish: Q86.80, S1
 
-Stack-polish experiment: owner verified all seven witness boards with saved strict audit and Python Q3, pushed dd0c1d0; remote main-only and verification.json inspected. New isolated scripts/karl_stack_polish.js processes original 25 strict boards and seven independently re-audited witnesses as distinct cohorts (four witnesses derive from original strict boards; do not count as 32 independent placements). Deterministic greedy maximum-depth then overlapping edge-pair reduction, strict decreasing potential allows plateau steps, max64 relocations per board. Preserve same two strips, same rows, wire length/count, cuts, placements and netlist; forbid occupied/used holes and crossings; final strict and copper graph audit; keep incumbent unless Q3 strictly improves and both checks pass. Verify canonical input and witness hashes. No native search, no rebuild, no production changes. Actual extracted synthetic tests (three-to-one stack, obstacle, determinism, cap and touching endpoints) passed in AI tooling, JS syntax checked; target-Mac archive run pending. New outputs in fresh directory, no original changes. This is a research prototype, not exhaustive optimisation.
+Owner Mac terminal evidence: source 596f129, report ~/KARL_STACK_POLISH_20261127_105635/report.json. Prepared-input fingerprint and synthetic tests passed. 25 original strict layouts and seven previously verified witnesses processed, nine original improvements (36%), two witness improvements, 15 plateau-only attempts, zero final-audit fallbacks and zero move-cap hits. Witnesses overlap the original cohort; do not count 32 independent placements. No additional annealing, cut/placement changes, wire count or length changes. Retain strict incumbents when Q3 does not improve.
 
-Run `cd ~/Documents/stripboard-optimiser && git pull --ff-only && KARL_PYTHON=/opt/local/bin/python3.13 node scripts/karl_stack_polish.js "$HOME/KARL_STACK_POLISH_$(date +%Y%m%d_%H%M%S)"`.
+| Seed | Budget | Original Q3 | Polished Q3 | Stack depth |
+| --- | ---: | ---: | ---: | --- |
+| 1216 | 120k | 78.68 | 79.08 | 2→1 |
+| 1859 | 310k | 83.30 | 84.50 | 3→2 |
+| 1859 | 360k | 78.06 | 81.26 | 4→2 |
+| 1216 | 370k | 82.41 | 83.61 | 3→2 |
+| 1216 | 380k | 79.74 | 80.94 | 3→2 |
+| 1216 | 390k | 79.63 | 81.63 | 4→3 |
+| 1216 | 400k | 77.83 | 81.03 | 4→2 |
+| 1216 | 460k | 85.20 | **86.80** | 3→1 |
+| 1859 | 500k | 85.66 | **86.06** | 2→1 |
+
+1216/460k: 21W, 37C, 279.4mm unchanged; four relocations from original, three from Q86.40 witness, both achieve 86.80. 1859/500k: 22W, 38C, S1 after four relocations. Both unstacked under Q3 definition. New project record Q86.80, +0.40 over prior repaired Q86.40 and +1.14 over original Q85.66. The 400k witness improved 79.83→81.03, 460k witness 86.40→86.80. Results passed harness's saved strict auditor and separate graph; exact new witness files, per-board timings and Python Q3 recheck remain pending archival. No new production changes, no claimed 2k record.
+
+### Next gate
+
+Preserve 11 improved output JSONs (nine originals plus two overlapping witness variants), report and verification against the existing exact input in research/karl-autopsy/20261127. Record audit, Q3 and file hashes; inspect runtime summary. Stop repeatedly optimising these already high-budget seeds: S1 has no remaining stack penalty, so further gains require wire/cut/length improvement. Establish what the previous 2k paired A/C experiment actually produced from its local results CSVs and manifests. A strict-only polishing stage cannot rescue a failed 2k placement; if no strict passes, investigate failure categories and earlier placement/routing constraints first. No new seed campaign until evidence review. Production integration remains proposed; preserve native default and GUI 2.39.
+
+### Historical iterative stack-polish design (completed)
+
+Stack-polish experiment: owner verified all seven witness boards with saved strict audit and Python Q3, pushed dd0c1d0; remote main-only and verification.json inspected. New isolated scripts/karl_stack_polish.js processes original 25 strict boards and seven independently re-audited witnesses as distinct cohorts (four witnesses derive from original strict boards; do not count as 32 independent placements). Deterministic greedy maximum-depth then overlapping edge-pair reduction, strict decreasing potential allows plateau steps, max64 relocations per board. Preserve same two strips, same rows, wire length/count, cuts, placements and netlist; forbid occupied/used holes and crossings; final strict and copper graph audit; keep incumbent unless Q3 strictly improves and both checks pass. Verify canonical input and witness hashes. No native search, no rebuild, no production changes. Actual extracted synthetic tests (three-to-one stack, obstacle, determinism, cap and touching endpoints) passed in AI tooling, JS syntax checked; target-Mac archive run completed as recorded above. New outputs in fresh directory, no original changes. This is a research prototype, not exhaustive optimisation.
+
+The original iterative-polish command is historical; do not rerun just to recreate the same output.
 
 ### Historical witness preservation gate (completed)
 
