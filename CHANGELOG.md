@@ -1,5 +1,8 @@
 # Changelog
 
+### 27 November 2026 — Isolated GPS/MPU Edge orientation pair
+- Opt-in MOTOEX-only generated native decoder, exact fixture and baseline binary guards, transformed pin-line identification, initial GPS90 and rejection of forbidden rotation proposals. Manifest, saved rotation and runtime marker checks; default decoder unchanged. 100×10k paired experiment approved, static tests supplied, compile/runtime pending. No production/GUI changes.
+
 ### 27 November 2026 — Local sniff evidence confirmed
 - Read e6dd957 archived reports: 1247 verified saved hashes, zero reported diagnostic/invariant errors; no within-run duplicate layouts. GPS 0/180: 761/761 triple incomplete, 90/270: 0/486 triple; MPU 90/270: 110/110 triple, 0/180: 1/1137. All 348 electrically complete boards have proposed GPS/MPU orientations. 47 routing-only candidates, six single-wire offenders. Association, not causal proof; two-part orientation experiment and independent audits pending. Documentation only.
 

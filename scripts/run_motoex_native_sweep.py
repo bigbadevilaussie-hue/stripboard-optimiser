@@ -34,6 +34,8 @@ from run_motoex_native_edge_slide import (
     prepare_trial, slide_positions,
 )
 
+import build_motoex_orientation_pair as orientation_pair
+
 DEFAULT_OUT = Path.home() / "Desktop" / "motoex_native_sweep_200x25k_knife_stack"
 ROUTE_LIB = FRONTEND / "tests/solver/native/build/libv5route.so"
 NATIVE_ADDON = FRONTEND / "tests/solver/native/build/v5native.node"
@@ -183,7 +185,7 @@ def capture_one(args, master, seed, column, output, source_sha):
     stdout_path = job / "stdout.log"
     stderr_path = job / "stderr.log"
     env = os.environ.copy()
-    env["V5_NATIVE_LIB_DIR"] = str(EDGE_LIB)
+    env["V5_NATIVE_LIB_DIR"] = str(getattr(args, "decoder_dir", EDGE_LIB))
     env.pop("V5_NATIVE_ROUTE_LIB_DIR", None)
     env["STRIPBOARD_TIMING"] = "1"
     cmd = [
@@ -224,6 +226,8 @@ def capture_one(args, master, seed, column, output, source_sha):
         "stderrLog": str(stderr_path.relative_to(output)),
         "cmd": cmd, "errors": [], "diagnostics": {},
     }
+    if getattr(args, "orientation_pair", False) and orientation_pair.MARKER not in stderr:
+        entry["errors"].append("PAIR_INIT_MISSING")
     try:
         result = contract.cli_result(stdout)
         entry.update({
@@ -255,6 +259,8 @@ def capture_one(args, master, seed, column, output, source_sha):
         else:
             saved = json.loads(candidate.read_text(encoding="utf-8"))
             entry["errors"].extend(check_trial(master, prepared, saved, result, code))
+            if getattr(args, "orientation_pair", False) and not entry.get("unsolvedReason"):
+                entry["errors"].extend(orientation_pair.saved_errors(saved))
             entry["wireLength"] = wire_length(saved)
             entry["layoutSig"] = physical_layout_signature(saved)
         if code not in (0, 2):
@@ -322,7 +328,8 @@ def summarize(args, output, entries, source_hash, columns, started):
         "policy": {"drilledCutsOnly": False, "noWireStacking": False,
                    "strictElectricalGeometryAndVerticalWires": True,
                    "usbSlide": args.slide,
-                   "rotationDomain": False, "wirePolish": args.wire_polish,
+                   "rotationDomain": "GPS90/270_MPU0/180" if getattr(args, "orientation_pair", False) else False,
+                   "wirePolish": args.wire_polish,
                    "ranking": [args.rank, "cuts" if args.rank == "wires" else "wires",
                                "wireLength", "price"], "columns": columns},
         "durationWallS": round(time.perf_counter() - started, 2),
@@ -390,7 +397,13 @@ def run(args):
     usb, definition, overhang = contract.usb_source(original)
     columns = select_usb_columns(args, usb, definition)
     schedule = seed_schedule(args.seed_start, args.seeds, columns, args.seed_stride)
-    for needed in (EDGE_LIB / "libv5decode.so", ROUTE_LIB, NATIVE_ADDON,
+    args.decoder_dir = EDGE_LIB
+    pair_metadata = None
+    if args.orientation_pair:
+        if args.slide or columns != [47] or args.wire_polish:
+            raise ValueError("Orientation pair requires fixed USB col47, Slide and wire polish OFF")
+        args.decoder_dir, pair_metadata = orientation_pair.build(contract.MASTER)
+    for needed in (args.decoder_dir / "libv5decode.so", ROUTE_LIB, NATIVE_ADDON,
                    contract.CLI, FRONTEND / "tests/solver/out/components/stripboard/autoLayout5.js"):
         if not needed.is_file():
             raise ValueError("Build prerequisite missing: " + str(needed))
@@ -413,8 +426,9 @@ def run(args):
         "cooldownEvery": args.cooldown_every, "cooldownSeconds": args.cooldown_seconds,
         "drilled": False, "nostack": False, "drillDomain": False,
         "wirePolish": args.wire_polish, "rank": args.rank,
+        "orientationPair": pair_metadata,
         "binarySha256": {str(p.relative_to(ROOT)): sha256(p)
-                         for p in (EDGE_LIB / "libv5decode.so", ROUTE_LIB, NATIVE_ADDON)},
+                         for p in (args.decoder_dir / "libv5decode.so", ROUTE_LIB, NATIVE_ADDON)},
     }
     manifest_path = output / "manifest.json"
     if args.resume and not manifest_path.is_file() and any(output.iterdir()):
@@ -428,6 +442,8 @@ def run(args):
         for field in ("cooldownEvery", "cooldownSeconds"):
             if manifest[field] != previous.get(field, 0):
                 raise ValueError("Resume manifest mismatch in " + field)
+        if manifest["orientationPair"] != previous.get("orientationPair"):
+            raise ValueError("Resume manifest mismatch in orientationPair")
         if manifest["seedStride"] != previous.get("seedStride", 1):
             raise ValueError("Resume manifest mismatch in seedStride")
         manifest = previous
@@ -467,6 +483,8 @@ def run(args):
     log("🛡️ STRICT ELECTRICAL + GEOMETRY + VERTICAL + 24×56 | 🔪 DRILLED OFF (KNIVES OK) | 🧷 STACKS ON")
     log("🔬 independent result checks; timing + move histograms + finish trace; no early stop")
     log("💾 ALL strict passes -> solved/ | all rejected -> rejected/ | top 5 unique -> top5/")
+    if args.orientation_pair:
+        log("🧭 ORIENTATION PAIR | GPS 90/270 | MPU 0/180 | experimental native decoder")
     if entries:
         log("🔁 Resuming {} finished, {} remaining".format(len(entries), len(pending)))
 
@@ -500,6 +518,11 @@ def run(args):
                     item.get("knife", "?"), item.get("stacked", "?"),
                     (item.get("elapsedWallMs") or 0) / 1000,
                     len(entries), args.seeds, solved))
+
+            if args.orientation_pair and any(
+                any(str(err).startswith("PAIR_") for err in entries[seed].get("errors", []))
+                for seed, _ in batch):
+                raise ValueError("Orientation-pair contract failed; inspect saved per-seed diagnostics before continuing")
 
     summary = summarize(args, output, list(entries.values()), checksum, columns, started)
     log("🏆 TOP FIVE DISTINCT STRICT SOLVES (wires → cuts → length → price)")
@@ -537,6 +560,8 @@ def main():
                    help="idle seconds between fully drained batches; no final sleep")
     p.add_argument("--timeout", type=int, default=600)
     p.add_argument("--rank", choices=("wires", "cuts"), default="wires")
+    p.add_argument("--orientation-pair", action="store_true",
+                   help="isolated MOTOEX GPS/MPU-only rotation-domain experiment")
     p.add_argument("--wire-polish", type=bool_option, default=False, metavar="yes/no")
     p.add_argument("--out", type=Path, default=DEFAULT_OUT)
     p.add_argument("--resume", action="store_true")
