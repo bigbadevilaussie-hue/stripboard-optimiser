@@ -1,5 +1,8 @@
 # Changelog
 
+### 27 November 2026 — Reject already-patched orientation C
+- First Mac test exposed missing double-patch guard; add explicit marker/helper rejection and extend test. First-pass generated C unchanged. Rerun pending; no campaign executed.
+
 ### 27 November 2026 — Isolated GPS/MPU Edge orientation pair
 - Opt-in MOTOEX-only generated native decoder, exact fixture and baseline binary guards, transformed pin-line identification, initial GPS90 and rejection of forbidden rotation proposals. Manifest, saved rotation and runtime marker checks; default decoder unchanged. 100×10k paired experiment approved, static tests supplied, compile/runtime pending. No production/GUI changes.
 

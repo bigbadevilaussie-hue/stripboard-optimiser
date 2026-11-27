@@ -104,6 +104,10 @@ static int daveAllowed(i32 k, i32 rot) {
 
 
 def patched(source):
+    # Original anchors survive the insertion, so detect an already-patched
+    # source explicitly before attempting any replacements.
+    if MARKER in source or "daveIdentify" in source or "daveAllowed" in source:
+        raise ValueError("Decoder already contains the Dave orientation pair patch")
     def once(old,new):
         nonlocal source
         if source.count(old) != 1:

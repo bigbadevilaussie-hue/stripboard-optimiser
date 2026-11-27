@@ -9,8 +9,10 @@ class OrientationPairTests(unittest.TestCase):
         self.assertIn("gRot[daveGps] = 1;",changed)
         self.assertIn("if (!daveAllowed(k,gRot[k])) return 0;",changed)
         self.assertIn("DAVE_PAIR_READY",changed)
-        with self.assertRaises(ValueError):
+        with self.assertRaisesRegex(ValueError, "already contains"):
             patched(changed)
+        with self.assertRaisesRegex(ValueError, "already contains"):
+            patched(original + "\n/* DAVE_PAIR_READY */\n")
 
     def test_saved_masks(self):
         saved = {"components":[{"id":i,"rotation":angles[0],"boardPos":{"row":0,"col":0}}
