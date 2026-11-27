@@ -1,6 +1,7 @@
 """Pure config, scheduling and ranking regression tests; runs NO annealer."""
 import json
 import unittest
+from unittest.mock import patch
 from types import SimpleNamespace
 
 import run_motoex_native_sweep as sweep
@@ -91,6 +92,29 @@ class NativeSweepTests(unittest.TestCase):
         alternate_cut = json.loads(json.dumps(sample))
         alternate_cut["board"]["cuts"][0]["col"] = 2
         self.assertNotEqual(first, sweep.physical_layout_signature(alternate_cut))
+
+    def test_cooldown_drains_ten_seed_batches_before_sleep(self):
+        pending = sweep.seed_schedule(1, 23, [47])
+        logs = []
+        with patch.object(sweep.time, "sleep") as sleep:
+            batches = sweep.cooldown_batches(pending, 10, 30, logs.append)
+            self.assertEqual(next(batches), pending[:10])
+            sleep.assert_not_called()
+            self.assertEqual(next(batches), pending[10:20])
+            self.assertEqual(sleep.call_count, 1)
+            self.assertEqual(next(batches), pending[20:])
+            self.assertEqual(sleep.call_count, 2)
+            with self.assertRaises(StopIteration):
+                next(batches)
+            self.assertEqual(sleep.call_count, 2)
+            sleep.assert_called_with(30)
+
+    def test_cooldown_disabled_and_empty(self):
+        pending = sweep.seed_schedule(1, 11, [47])
+        with patch.object(sweep.time, "sleep") as sleep:
+            self.assertEqual(list(sweep.cooldown_batches(pending, 0, 0, lambda _: None)), [pending])
+            self.assertEqual(list(sweep.cooldown_batches([], 10, 30, lambda _: None)), [])
+            sleep.assert_not_called()
 
     def test_timing_and_missing_timing(self):
         sample = 'progress 1\ntiming {"solveMs":12.5,"totalMs":16.2,"cpuMs":15,"rssMb":42}\n'

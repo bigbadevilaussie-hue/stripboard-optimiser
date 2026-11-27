@@ -1,5 +1,12 @@
 # MOTOEX native Edge + Slide — implementation and iMac test
 
+## 27 November — MOTOEX fixed USB edge test with cooldown
+
+Owner calls the solver Dave now (historical Karl filenames retained). MOTOEX source test-fixtures/masters/moto/motoex.json: 45 components, 123 assignments, 10 off-board. Existing prepare_trial clears all non-USB locks/placements (including TVS), fixes 24×56 both locks, preserves USB row13 col47 rotation0 locked=true edge=true slide=false; two body rows overhang, both pins on-board. No master edit. Use native Edge build, not the separate Arm C orientation binary; knives and stacks allowed, drill-domain off, strict checks mandatory, historical wire-first ranking unchanged.
+
+Approved test scope: 100 seeds × 2k, three workers, 30 seconds after each fully completed batch of 10 new seeds, no final cooldown. New optional --cooldown-every/--cooldown-seconds flags in scripts/run_motoex_native_sweep.py; defaults zero preserve existing behavior. Only submit current batch, drain all futures and checkpoint all results before sleeping. Resume batches count new pending seeds in that invocation. Record cooldown configuration in manifest and summary, reject changed resume cooldown settings; legacy manifests default zero. Added mocked scheduling tests. Actual Mac run and tests pending; no production solver/GUI changes. Bum Mode not implemented, remains off.
+
+
 > **New separate fixed-column 200-seed quality sweep:** [200 × 25k, drills-only OFF, stacking allowed, Slide OFF](native-fixed-usb-200x25k-sweep.md). This tournament fixes USB at original (13,47) for all 200 seeds, archives every solved project and records timings, failure diagnostics and the top five. **Do not confuse it with the Edge+Slide column-search controller described below.** Sliding is a future explicit `--slide yes` option. As of 24 November 2026 this tournament script is committed but unexecuted on the Mac.
 
 

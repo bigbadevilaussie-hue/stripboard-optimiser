@@ -147,6 +147,20 @@ def seed_schedule(seed_start, count, columns):
     return [(seed, columns[index % len(columns)])
             for index, seed in enumerate(range(seed_start, seed_start + count))]
 
+def cooldown_batches(pending, every, seconds, log):
+    """Yield bounded batches; caller must drain each before requesting the next."""
+    if not pending:
+        return
+    size = every or len(pending)
+    for start in range(0, len(pending), size):
+        yield pending[start:start + size]
+        if start + size < len(pending) and seconds:
+            log("☕ SMOKO | {} seeds completed this session | {}s cooldown | all solver workers idle".format(
+                start + size, seconds))
+            time.sleep(seconds)
+            log("🏁 SMOKO OVER | resuming native sweep")
+
+
 def capture_one(args, master, seed, column, output, source_sha):
     """All per-seed files have disjoint paths: thread workers share no input."""
     tag = "seed_{:04d}_col_{:02d}".format(seed, column)
@@ -300,6 +314,7 @@ def summarize(args, output, entries, source_hash, columns, started):
                    "ranking": [args.rank, "cuts" if args.rank == "wires" else "wires",
                                "wireLength", "price"], "columns": columns},
         "durationWallS": round(time.perf_counter() - started, 2),
+        "cooldown": {"every": args.cooldown_every, "seconds": args.cooldown_seconds},
         "timing": timing,
         "failureHistogram": dict(errors.most_common()),
         "byColumn": by_column, "top5": top,
@@ -382,6 +397,7 @@ def run(args):
                 "overhangRows": overhang, "slide": args.slide, "selectedColumns": columns},
         "seeds": args.seeds, "seedStart": args.seed_start,
         "moves": args.moves, "workers": args.workers, "timeout": args.timeout,
+        "cooldownEvery": args.cooldown_every, "cooldownSeconds": args.cooldown_seconds,
         "drilled": False, "nostack": False, "drillDomain": False,
         "wirePolish": args.wire_polish, "rank": args.rank,
         "binarySha256": {str(p.relative_to(ROOT)): sha256(p)
@@ -395,6 +411,9 @@ def run(args):
         for field in ("sourceSha256", "seeds", "seedStart", "moves", "drilled",
                       "nostack", "drillDomain", "wirePolish", "rank", "usb", "binarySha256"):
             if manifest.get(field) != previous.get(field):
+                raise ValueError("Resume manifest mismatch in " + field)
+        for field in ("cooldownEvery", "cooldownSeconds"):
+            if manifest[field] != previous.get(field, 0):
                 raise ValueError("Resume manifest mismatch in " + field)
         manifest = previous
     else:
@@ -434,34 +453,35 @@ def run(args):
         log("🔁 Resuming {} finished, {} remaining".format(len(entries), len(pending)))
 
     with ThreadPoolExecutor(max_workers=args.workers) as pool:
-        futures = {pool.submit(capture_one, args, original, seed, col, output, checksum): (seed, col)
-                   for seed, col in pending}
-        for future in as_completed(futures):
-            seed, col = futures[future]
-            try:
-                item = future.result()
-            except Exception as exc:
-                # A bookkeeping failure is a failed attempt, not a fake pass.
-                item = {"seed": seed, "column": col, "sourceSha256": checksum,
-                        "strictPass": False, "exit": 127, "errors": ["SWEEP_WORKER_EXCEPTION: " + repr(exc)],
-                        "time": {}, "elapsedWallMs": None}
-            entries[seed] = item
-            with checkpoint.open("a", encoding="utf-8") as file:
-                file.write(jdump(item) + "\n")
-                file.flush()
-                os.fsync(file.fileno())
-            solved = sum(e.get("strictPass", False) for e in entries.values())
-            if item.get("strictPass"):
-                status = "✅ STRICT PASS"
-            elif item.get("unsolvedReason"):
-                status = "🛑 UNSOLVED " + str(item["unsolvedReason"])
-            else:
-                status = "❌ " + ",".join(item.get("strictFailures") or item.get("errors") or ["UNCLASSIFIED"])[:92]
-            log("{} | seed {:4d} USB col {:2d} | {}W/{}C knife={} stack={} | {:.2f}s | completed {}/{} | solved {}".format(
-                status, seed, col, item.get("wires", "?"), item.get("cuts", "?"),
-                item.get("knife", "?"), item.get("stacked", "?"),
-                (item.get("elapsedWallMs") or 0) / 1000,
-                len(entries), args.seeds, solved))
+        for batch in cooldown_batches(pending, args.cooldown_every, args.cooldown_seconds, log):
+            futures = {pool.submit(capture_one, args, original, seed, col, output, checksum): (seed, col)
+                       for seed, col in batch}
+            for future in as_completed(futures):
+                seed, col = futures[future]
+                try:
+                    item = future.result()
+                except Exception as exc:
+                    # A bookkeeping failure is a failed attempt, not a fake pass.
+                    item = {"seed": seed, "column": col, "sourceSha256": checksum,
+                            "strictPass": False, "exit": 127, "errors": ["SWEEP_WORKER_EXCEPTION: " + repr(exc)],
+                            "time": {}, "elapsedWallMs": None}
+                entries[seed] = item
+                with checkpoint.open("a", encoding="utf-8") as file:
+                    file.write(jdump(item) + "\n")
+                    file.flush()
+                    os.fsync(file.fileno())
+                solved = sum(e.get("strictPass", False) for e in entries.values())
+                if item.get("strictPass"):
+                    status = "✅ STRICT PASS"
+                elif item.get("unsolvedReason"):
+                    status = "🛑 UNSOLVED " + str(item["unsolvedReason"])
+                else:
+                    status = "❌ " + ",".join(item.get("strictFailures") or item.get("errors") or ["UNCLASSIFIED"])[:92]
+                log("{} | seed {:4d} USB col {:2d} | {}W/{}C knife={} stack={} | {:.2f}s | completed {}/{} | solved {}".format(
+                    status, seed, col, item.get("wires", "?"), item.get("cuts", "?"),
+                    item.get("knife", "?"), item.get("stacked", "?"),
+                    (item.get("elapsedWallMs") or 0) / 1000,
+                    len(entries), args.seeds, solved))
 
     summary = summarize(args, output, list(entries.values()), checksum, columns, started)
     log("🏆 TOP FIVE DISTINCT STRICT SOLVES (wires → cuts → length → price)")
@@ -491,6 +511,10 @@ def main():
     p.add_argument("--columns", default="all",
                    help="only with --slide yes: all legal columns or e.g. 25,41")
     p.add_argument("--workers", type=int, default=min(6, max(1, (os.cpu_count() or 4) // 2)))
+    p.add_argument("--cooldown-every", type=int, default=0,
+                   help="completed seeds per session batch; 0 disables cooldown")
+    p.add_argument("--cooldown-seconds", type=int, default=0,
+                   help="idle seconds between fully drained batches; no final sleep")
     p.add_argument("--timeout", type=int, default=600)
     p.add_argument("--rank", choices=("wires", "cuts"), default="wires")
     p.add_argument("--wire-polish", type=bool_option, default=False, metavar="yes/no")
@@ -499,6 +523,8 @@ def main():
     args = p.parse_args()
     if args.seeds < 1 or args.moves < 1 or args.workers < 1 or args.timeout < 1 or args.seed_start < 0:
         p.error("seeds/moves/workers/timeout must be positive and seed-start nonnegative")
+    if args.cooldown_every < 0 or args.cooldown_seconds < 0 or bool(args.cooldown_every) != bool(args.cooldown_seconds):
+        p.error("cooldown-every and cooldown-seconds must both be positive or both zero")
     try:
         return run(args)
     except (ValueError, OSError, AssertionError, subprocess.CalledProcessError) as error:

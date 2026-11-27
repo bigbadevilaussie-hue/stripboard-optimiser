@@ -1,5 +1,8 @@
 # Changelog
 
+### 27 November 2026 — MOTOEX sweep smoko batches
+- Optional cooldown flags drain completed seed batches before sleeping; no final sleep, default off. Manifest/summary record settings; resume uses new pending seeds and matching configuration. Added scheduling tests. Owner scope 100×2k, three workers, 10 seeds/30s, fixed USB Edge ON. Runtime pending; no solver or GUI change.
+
 ### 27 November 2026 — 2k partial campaign evidence and offender triage
 - A/C 1666 rows each, zero strict, electrical complete 199/989, routing-only 80/421. Incomplete campaign snapshot; no paired seed identity claim yet. Added read-only archived-board triage for actual distinct offender counts, audit and graph replay, missing data and candidate ranking. JS syntax checked, Mac runtime pending. No production changes; GUI 2.39 unchanged.
 
