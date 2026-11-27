@@ -115,3 +115,8 @@ cd ~/Documents/stripboard-optimiser && \
 ```
 
 This is the already completed baseline command, not a request to rerun it. Raw winner2.zip and final MOTO polish report/artifacts remain to be archived; exact source files must be preserved rather than reconstructed from narrative. GUI 2.39 and root version 2.00 unchanged. Main only.
+
+## 27 November — systematic high-ID seed sampling (requested, not yet run)
+
+Owner requests 100 evenly spaced IDs over conservative exact JavaScript seed-initialisation range, 10k moves per seed, 15s smoko. Keep three workers; use batches of ten (assumed cadence from earlier 100-seed tests), nine pauses. autoLayout5.ts multiplies (seed+1) by 0x9e3779b9 and 0x85ebca6b before >>>0; floor((2^53−1)/0x9e3779b9)−1 = 3,393,262 guarantees exact integer products, not a proof of a hard solver limit or unique layouts. Step=floor(3393262/100)=33932; seeds i*33932 for i=1..100, last3393200. Systematic ID sampling is not random or uniformly covering RNG states; even stride shares low bits. Optional --seed-stride default1, manifest and summary preserve stride, resume validates it (legacy default1) and rejects off-schedule checkpoint records. Runner now refuses IDs beyond conservative bound; native solver unchanged. Same 24×56 USB Edge fixed col47, strict knives/stacks allowed, drill-domain off. Added schedule/bound test; Mac execution pending. No GUI version bump.
+

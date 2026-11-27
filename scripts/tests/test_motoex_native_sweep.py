@@ -93,6 +93,23 @@ class NativeSweepTests(unittest.TestCase):
         alternate_cut["board"]["cuts"][0]["col"] = 2
         self.assertNotEqual(first, sweep.physical_layout_signature(alternate_cut))
 
+    def test_spread_seed_schedule_and_exact_bound(self):
+        self.assertEqual(sweep.MAX_EXACT_SEED, 3393262)
+        schedule = sweep.seed_schedule(33932, 100, [47], stride=33932)
+        self.assertEqual(len(schedule), 100)
+        self.assertEqual(schedule[0], (33932, 47))
+        self.assertEqual(schedule[-1], (3393200, 47))
+        self.assertEqual(len(set(seed for seed, _ in schedule)), 100)
+        self.assertTrue(all(b[0] - a[0] == 33932 for a, b in zip(schedule, schedule[1:])))
+        self.assertEqual(sweep.seed_schedule(10, 3, [25, 41], stride=5),
+                         [(10, 25), (15, 41), (20, 25)])
+        self.assertEqual(sweep.seed_schedule(sweep.MAX_EXACT_SEED, 1, [47]),
+                         [(sweep.MAX_EXACT_SEED, 47)])
+        for start, count, stride in [(1, 2, 0), (-1, 1, 1), (1, 0, 1),
+                                      (sweep.MAX_EXACT_SEED, 2, 1)]:
+            with self.assertRaises(ValueError):
+                sweep.seed_schedule(start, count, [47], stride)
+
     def test_cooldown_drains_ten_seed_batches_before_sleep(self):
         pending = sweep.seed_schedule(1, 23, [47])
         logs = []

@@ -142,10 +142,20 @@ def select_usb_columns(args, usb, definition):
         raise ValueError("--column must be a legal fixed USB anchor 0..50")
     return [fixed]
 
-def seed_schedule(seed_start, count, columns):
-    """One solver invocation per seed, never one per USB position."""
-    return [(seed, columns[index % len(columns)])
-            for index, seed in enumerate(range(seed_start, seed_start + count))]
+# Conservative exact-integer bound for both JS seed initialisation products
+# in autoLayout5.ts before >>> 0. This is not the full uint32 state space.
+MAX_EXACT_SEED = (2**53 - 1) // 0x9e3779b9 - 1
+
+
+def seed_schedule(seed_start, count, columns, stride=1):
+    """One invocation per seed; optional systematic sampling by integer stride."""
+    if seed_start < 0 or count < 1 or stride < 1:
+        raise ValueError("seed start must be nonnegative; count and stride positive")
+    last = seed_start + (count - 1) * stride
+    if last > MAX_EXACT_SEED:
+        raise ValueError("Last seed {} exceeds conservative exact JS seed bound {}".format(last, MAX_EXACT_SEED))
+    return [(seed_start + index * stride, columns[index % len(columns)])
+            for index in range(count)]
 
 def cooldown_batches(pending, every, seconds, log):
     """Yield bounded batches; caller must drain each before requesting the next."""
@@ -307,6 +317,8 @@ def summarize(args, output, entries, source_hash, columns, started):
         "completed": len(entries), "strictSolved": len(solved),
         "distinctSolvedSignatures": len(distinct), "rejected": len(entries) - len(solved),
         "movesPerSeed": args.moves, "totalMovesRequested": args.seeds * args.moves,
+        "seedStart": args.seed_start, "seedStride": args.seed_stride,
+        "seedLast": args.seed_start + (args.seeds - 1) * args.seed_stride,
         "policy": {"drilledCutsOnly": False, "noWireStacking": False,
                    "strictElectricalGeometryAndVerticalWires": True,
                    "usbSlide": args.slide,
@@ -377,6 +389,7 @@ def run(args):
     original = json.loads(source_bytes)
     usb, definition, overhang = contract.usb_source(original)
     columns = select_usb_columns(args, usb, definition)
+    schedule = seed_schedule(args.seed_start, args.seeds, columns, args.seed_stride)
     for needed in (EDGE_LIB / "libv5decode.so", ROUTE_LIB, NATIVE_ADDON,
                    contract.CLI, FRONTEND / "tests/solver/out/components/stripboard/autoLayout5.js"):
         if not needed.is_file():
@@ -395,7 +408,7 @@ def run(args):
                                           "lockedRows": True, "lockedCols": True},
         "usb": {"sourceColumn": usb["boardPos"]["col"], "row": usb["boardPos"]["row"],
                 "overhangRows": overhang, "slide": args.slide, "selectedColumns": columns},
-        "seeds": args.seeds, "seedStart": args.seed_start,
+        "seeds": args.seeds, "seedStart": args.seed_start, "seedStride": args.seed_stride,
         "moves": args.moves, "workers": args.workers, "timeout": args.timeout,
         "cooldownEvery": args.cooldown_every, "cooldownSeconds": args.cooldown_seconds,
         "drilled": False, "nostack": False, "drillDomain": False,
@@ -415,6 +428,8 @@ def run(args):
         for field in ("cooldownEvery", "cooldownSeconds"):
             if manifest[field] != previous.get(field, 0):
                 raise ValueError("Resume manifest mismatch in " + field)
+        if manifest["seedStride"] != previous.get("seedStride", 1):
+            raise ValueError("Resume manifest mismatch in seedStride")
         manifest = previous
     else:
         write_json(manifest_path, manifest)
@@ -440,12 +455,15 @@ def run(args):
 
     # Slide OFF: identical USB anchor for all seeds; Slide ON: one legal
     # anchor per seed, round-robin; never multiply total solver invocations.
-    schedule = seed_schedule(args.seed_start, args.seeds, columns)
+    expected = dict(schedule)
+    if any(seed not in expected or e.get("column") != expected[seed] for seed, e in entries.items()):
+        raise ValueError("Checkpoint contains seed/column outside requested schedule")
     pending = [(seed, col) for seed, col in schedule if seed not in entries]
     log("🏁 NATIVE SWEEP | {} TOTAL seeds × {} moves | {} workers | USB {}".format(
         args.seeds, args.moves, args.workers,
         "SLIDE ON across {} columns".format(len(columns)) if args.slide
         else "FIXED row 13 col {}".format(columns[0])))
+    log("🎲 SEED RANGE | first {} | last {} | stride {}".format(schedule[0][0], schedule[-1][0], args.seed_stride))
     log("🛡️ STRICT ELECTRICAL + GEOMETRY + VERTICAL + 24×56 | 🔪 DRILLED OFF (KNIVES OK) | 🧷 STACKS ON")
     log("🔬 independent result checks; timing + move histograms + finish trace; no early stop")
     log("💾 ALL strict passes -> solved/ | all rejected -> rejected/ | top 5 unique -> top5/")
@@ -503,6 +521,8 @@ def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--seeds", type=int, default=200)
     p.add_argument("--seed-start", type=int, default=1)
+    p.add_argument("--seed-stride", type=int, default=1,
+                   help="distance between seed IDs (default 1); conservative exact JS bound applies")
     p.add_argument("--moves", type=int, default=25000)
     p.add_argument("--slide", type=bool_option, default=False, metavar="yes/no",
                    help="USB sliding across columns is a SEPARATE sweep; default no (fixed)")
@@ -523,6 +543,8 @@ def main():
     args = p.parse_args()
     if args.seeds < 1 or args.moves < 1 or args.workers < 1 or args.timeout < 1 or args.seed_start < 0:
         p.error("seeds/moves/workers/timeout must be positive and seed-start nonnegative")
+    if args.seed_stride < 1 or args.seed_start + (args.seeds - 1) * args.seed_stride > MAX_EXACT_SEED:
+        p.error("seed stride must be positive and last seed <= {}".format(MAX_EXACT_SEED))
     if args.cooldown_every < 0 or args.cooldown_seconds < 0 or bool(args.cooldown_every) != bool(args.cooldown_seconds):
         p.error("cooldown-every and cooldown-seconds must both be positive or both zero")
     try:
