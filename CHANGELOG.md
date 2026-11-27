@@ -1,5 +1,8 @@
 # Changelog
 
+### 27 November 2026 — GPS/MPU controlled 10k experiment evidence
+- bfe25bf archived local reports: paired 100 seeds 22→69 electrically complete (55 gains,8 losses), GPS triple64→0, MPU7→0, strict0→0; 1→5 routing near misses. 96 saved hashes verified, masks obeyed. Routing remains unresolved. Record exact provenance and limitations, no production/GUI changes.
+
 ### 27 November 2026 — Reject already-patched orientation C
 - First Mac test exposed missing double-patch guard; add explicit marker/helper rejection and extend test. First-pass generated C unchanged. Rerun pending; no campaign executed.
 

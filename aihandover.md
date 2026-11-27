@@ -71,6 +71,28 @@ Owner approved 100 sequential seeds 1..100 at 10k, three workers, latest smoko c
 
 Owner Mac first test run: saved-mask test passed, double-patch guard test failed (1/2 passed); no compile or solve launched. Original C anchors survive insertions, so anchor counting did not detect repeated patching. Explicitly reject source containing the experiment marker or helper identifiers before modifying it; retain and extend regression test. Generated first-pass C remains unchanged. Mac rerun pending.
 
+## 27 November — completed controlled GPS/MPU orientation pair at 10k
+
+Owner final log: 0/100 strict, 84.95s wall, ~/DAVE_EDGE_GPS_MPU_10K_20261127_151448/report.md. Local sniff archived at bfe25bfb6e39e49e8f36797f792ccf9339e08004, research/dave-sniff/20261127-orientation-pair/{report.md,summary.json,seeds.csv}. Directly read summary and paired CSV slices (rows 2–101 baseline seeds 1–100, rows 1002–1101 experiment seeds 1–100). Compare matched seed IDs, not the entire 1000 baseline. Fixture, USB, board and solver settings match; route/addon fingerprints unchanged; decoder changed intentionally. Native compile and campaign completed on owner Mac, no independent rerun here. Experimental generated C SHA 55737e5c71f1dd86b5e2a1050f3c430f39d8f72b905d9f8d3d95b0b70d4fb569, decoder SHA 4d3390ee4eea1f9cfabed54a015f8558b5c1e034f930adf8d261837e34552ddb, original C SHA ef0370ae7db2a59cb89723a153834fdc4d6135e28ad0d2030d423f3587b993e5, Apple clang16 x86_64. All96 saved hashes verified, no reported invariant/diagnostic/read errors. GPS 82 at90 and14 at270; MPU 85 at0 and11 at180 (all within masks). No raw boards transferred. No independent electrical/body replay.
+
+| Paired metric (100 attempts each) | Original | Restricted |
+| --- | ---: | ---: |
+| Strict | 0 | 0 |
+| Saved / feasible | 96 | 96 |
+| Reported electrically complete | 22 | 69 |
+| Reported incomplete | 74 | 27 |
+| Contains GPS triple GND/net25/net29 | 64 | 0 |
+| Contains MPU triple GND/net10/net11 | 7 | 0 |
+| Exactly GPS triple | 45 | 0 |
+| Exactly MPU triple | 3 | 0 |
+| Geometry nonzero | 2 | 3 |
+| Near misses (1–3 distinct offending wires, electrical complete, geometry0, other sniffer gates) | 1 | 5 |
+| Median solve ms (all attempts) | 860.935 | 1036.33 |
+
+Paired electrical outcomes: 14 both complete,55 gains,8 losses,23 neither. +47 percentage points; 69/22=3.13636×; exact two-sided paired binomial/McNemar p=9.761673086614714e-10 under independent discordant-pair sign null (not proof of generalization to other fixtures). All 96 restricted saved boards still have crossing and nonvertical errors; remaining net failures mostly isolated (26 one-net, one two-net). Original unsolved11,54,74,84; experiment43,47,50,100. Distinct layouts96 each, no overlap between experiment and entire original1000. Electrical-complete subset means: crossing incidences11.5909→11.0435; crossing wires5.5→5.0870; nonvertical5.7273→5.5652; union offenders6.5455→6.6522; wires48.7273→50.0725; cuts64.7273→66.0725; raw Q3 45.9759→45.9278. Among14 complete in both, mean distinct offenders6.4286→6.3571 (median6 both). All-saved mean offenders6.1667→7.09375, crossing incidences9.65625→11.52083; avoid conflating changed composition with causal routing degradation. No demonstrated strict improvement.
+
+Near misses: baseline seed59 3 offenders 41W/57C rawQ61.35; restricted seed26 two offenders wires24,28 (one nonvertical, two crossing wires, four wire/body incidences) 47W/63C Q68.61; seed94 three offenders18,23,42 42/58 Q64.80; seed20 three8,9,21 48/64 Q59.49; seed21 three23,28,30 54/70 Q58.75; seed40 three24,36,45 60/76 Q51.39. No single-wire near misses in restricted cohort. Candidate Q3 descriptive only. Remaining bottleneck strict routing; recommend inspect fixed-placement rerouting/surgery on selected boards rather than immediately increase seeds or moves. No new run or code change authorized by this report. Keep isolated masks as research arm, not production default. 
+
 ### What is checked in vs what is verified
 
 | Item | Current checkpoint |
