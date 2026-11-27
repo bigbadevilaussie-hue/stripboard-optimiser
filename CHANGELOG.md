@@ -1,5 +1,8 @@
 # Changelog
 
+### 27 November 2026 — 2k partial campaign evidence and offender triage
+- A/C 1666 rows each, zero strict, electrical complete 199/989, routing-only 80/421. Incomplete campaign snapshot; no paired seed identity claim yet. Added read-only archived-board triage for actual distinct offender counts, audit and graph replay, missing data and candidate ranking. JS syntax checked, Mac runtime pending. No production changes; GUI 2.39 unchanged.
+
 ### 27 November 2026 — Owner-verified iterative stack polish: Q86.80
 - Source 596f129 owner Mac run: 9/25 original strict boards improved, 2/7 overlapping witnesses improved further, 15 plateau-only, zero fallbacks/cap hits. Dave 1216/460k Q85.20→86.80 S3→1, Steve 1859/500k Q85.66→86.06 S2→1. No extra annealing or placement/cut/wire length changes. Both unstacked. New saved files and timings pending archival; no 2k record or production change.
 - Record exact cohort results and redirect next research to the earlier 2k evidence; GUI 2.39 unchanged.
