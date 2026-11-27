@@ -90,10 +90,105 @@ function testGraph(){
   b.board.wires[0].to.col=1;
   if(physicalGraph(b,pins).complete)throw Error("Graph selftest: drilled endpoint");
 }
+// Bounded search of simple copper-group paths. An intermediate strip must
+// have distinct entry and departure solder holes. All proposed wires are
+// vertical and obstacle-free; the full audit still decides acceptance.
+function searchPaths(adj,source,target,maxHops=4,maxStates=20000,maxPaths=64){
+  const queue=[{g:source,groups:[source],edges:[]}], paths=[];
+  let cursor=0,expanded=0,truncated=false;
+  while(cursor<queue.length){
+    const state=queue[cursor++];expanded++;
+    if(state.edges.length>=maxHops)continue;
+    const arrival=state.edges.at(-1)?.to;
+    for(const edge of adj.get(state.g)||[]){
+      if(state.groups.includes(edge.g))continue;
+      if(arrival&&key(arrival)===key(edge.from))continue;
+      const edges=[...state.edges,edge];
+      if(edge.g===target){
+        paths.push(edges);
+        if(paths.length>=maxPaths)return {paths,expanded,queued:queue.length,truncated:true};
+      }else if(edges.length<maxHops){
+        if(queue.length>=maxStates){truncated=true;continue;}
+        queue.push({g:edge.g,groups:[...state.groups,edge.g],edges});
+      }
+    }
+  }
+  return {paths,expanded,queued:queue.length,truncated};
+}
+function testPaths(){
+  const p=(r,c)=>({row:r,col:c});
+  const adj=new Map([
+    [0,[{g:1,from:p(0,0),to:p(1,0)}]],
+    [1,[{g:2,from:p(1,0),to:p(2,0)},{g:2,from:p(1,1),to:p(2,1)}]],
+    [2,[{g:3,from:p(2,2),to:p(3,2)}]]
+  ]);
+  const x=searchPaths(adj,0,3);
+  if(x.paths.length!==1||x.paths[0].length!==3||x.paths[0][1].from.col!==1)throw Error("Multi-hop search selftest");
+  if(searchPaths(adj,0,3,2).paths.length)throw Error("Hop limit selftest");
+}
+// Connect the two copper components left by removing the offending wire.
+// Unlike the original repair, endpoint choices span EVERY existing strip
+// connected to either side. Transit groups must be completely pinless.
+// No component, cut, dimension, existing remaining wire or netlist is moved.
+function netWide(b,ctx,i){
+  const ws=b.board.wires,old=ws[i],rest=ws.filter((_,j)=>j!==i);
+  const ss=ctx.segments,parent=ss.map((_,i)=>i);
+  const root=i=>{while(parent[i]!==i){parent[i]=parent[parent[i]];i=parent[i];}return i;};
+  for(const w of rest){
+    const a=ctx.at(w.from),z=ctx.at(w.to);
+    if(a<0||z<0)throw Error("Wire endpoint has no copper segment");
+    parent[root(a)]=root(z);
+  }
+  const aa=ctx.at(old.from),zz=ctx.at(old.to);
+  if(aa<0||zz<0)return {reason:"missing original copper segment",paths:[]};
+  const a=root(aa),z=root(zz);
+  if(a===z)return {reason:"same connected group after removal",paths:[]};
+  const pinGroups=new Set(ctx.pins.map(p=>ctx.at(p)).filter(i=>i>=0).map(root));
+  const used=new Set(rest.flatMap(w=>[key(w.from),key(w.to)]));
+  const allow=g=>g===a||g===z||!pinGroups.has(g);
+  const byCol=Array.from({length:b.board.cols},()=>[]);
+  const holesByGroup=new Map(), groupStrips=new Map();
+  for(let i=0;i<ss.length;i++){
+    const g=root(i);if(!allow(g))continue;
+    groupStrips.set(g,(groupStrips.get(g)||0)+1);
+    const seg=ss[i];
+    for(let c=seg.startCol;c<=seg.endCol;c++){
+      const p={row:seg.row,col:c};
+      if(ctx.occupied.has(key(p))||used.has(key(p)))continue;
+      byCol[c].push({g,p});
+      holesByGroup.set(g,(holesByGroup.get(g)||0)+1);
+    }
+  }
+  const adj=new Map();
+  let pairChecks=0,blockedCrossing=0,cleanEdges=0,directEdges=0;
+  const add=(g,edge)=>{if(!adj.has(g))adj.set(g,[]);adj.get(g).push(edge);};
+  for(const col of byCol){
+    for(let j=0;j<col.length;j++)for(let k=j+1;k<col.length;k++){
+      const A=col[j],Z=col[k];
+      if(A.g===Z.g||A.p.row===Z.p.row)continue;
+      pairChecks++;
+      if(ctx.cross({from:A.p,to:Z.p})){blockedCrossing++;continue;}
+      const len=Math.abs(A.p.row-Z.p.row);
+      add(A.g,{g:Z.g,from:A.p,to:Z.p,len});
+      add(Z.g,{g:A.g,from:Z.p,to:A.p,len});
+      cleanEdges++;
+      if((A.g===a&&Z.g===z)||(A.g===z&&Z.g===a))directEdges++;
+    }
+  }
+  for(const edges of adj.values())edges.sort((x,y)=>x.len-y.len||x.from.col-y.from.col||x.to.row-y.to.row);
+  const found=searchPaths(adj,a,z);
+  return {source:a,target:z,sourceStrips:groupStrips.get(a)||0,targetStrips:groupStrips.get(z)||0,
+    sourceFree:holesByGroup.get(a)||0,targetFree:holesByGroup.get(z)||0,
+    groups:groupStrips.size,pairChecks,blockedCrossing,cleanEdges,directEdges,
+    sourceEdges:(adj.get(a)||[]).length,targetEdges:(adj.get(z)||[]).length,
+    ...found};
+}
+
 testGraph();
-console.log("✅ Copper graph synthetic checks passed");
+testPaths();
+console.log("✅ Copper graph and multi-hop synthetic checks passed");
 fs.mkdirSync(out);
-const results=[],counts={boards:0,strict:0,graphDisagreement:0,singleOffender:0,directRescue:0,relayRescue:0,strictImproved:0,skipped:0};
+const results=[],counts={boards:0,strict:0,graphDisagreement:0,singleOffender:0,directRescue:0,relayRescue:0,strictImproved:0,netWideRescue:0,skipped:0};
 function examine(b,info){
   if(b.board.rows!==24||b.board.cols!==56||b.board.pattern)return {...info,skipped:"not ordinary 24x56 strips"};
   const old=auditSavedStrict(b,input,false), ctx=context(b), graph=physicalGraph(b,ctx.pins), score=q3(b);
@@ -106,6 +201,7 @@ function examine(b,info){
   // Only alter wires. Existing placements, cuts, netlist, locks stay byte-equivalent as JSON.
   const ws=b.board.wires;
   const bad=ws.map((w,i)=>({i,d:Number(w.from.col!==w.to.col||w.from.row===w.to.row),x:ctx.cross(w)})).filter(x=>x.d||x.x);
+  result.offenders=bad.map(x=>({...x,wire:ws[x.i],strips:[ctx.segments[ctx.at(ws[x.i].from)],ctx.segments[ctx.at(ws[x.i].to)]]}));
   if(bad.reduce((n,x)=>n+x.x,0)!==old.crossings)throw Error("Crossing predicate mismatch");
   let best=null,bestScore=null;
   function offer(wires,method,detail){
@@ -130,6 +226,16 @@ function examine(b,info){
     offer(ws.filter((_,j)=>j!==i),"redundant_wire",{i,old:ws[i]});
     direct(i);
     if(!best)relay(i);
+    if(!best){
+      const {paths,...diagnostics}=netWide(b,ctx,i);
+      result.netWide={...diagnostics,paths:paths.length};
+      for(const route of paths){
+        const rest=ws.filter((_,j)=>j!==i);
+        const replacements=route.map((e,j)=>({...ws[i],from:e.from,to:e.to,...(j?{id:"autopsy-"+sha(JSON.stringify([info.seed,info.moves,i,route,j])).slice(0,16)}:{})}));
+        offer([...rest,...replacements],"net_wide_path",{i,old:ws[i],new:replacements});
+      }
+      console.log("🧬 Net-wide",info.seed,info.moves,JSON.stringify(result.netWide));
+    }
   }
   function endpoints(i){
     const oldWire=ws[i],a=ctx.at(oldWire.from),z=ctx.at(oldWire.to);
@@ -179,7 +285,7 @@ function examine(b,info){
     }
   }
   if(best){
-    if(old.valid)counts.strictImproved++;else if(result.method==="direct_endpoint")counts.directRescue++;else if(result.method==="one_empty_strip_relay")counts.relayRescue++;else counts.redundantRescue=(counts.redundantRescue||0)+1;
+    if(old.valid)counts.strictImproved++;else if(result.method==="direct_endpoint")counts.directRescue++;else if(result.method==="one_empty_strip_relay")counts.relayRescue++;else if(result.method==="net_wide_path")counts.netWideRescue++;else counts.redundantRescue=(counts.redundantRescue||0)+1;
     const f=info.moves+"_"+info.seed+"_"+result.method+".json";
     fs.writeFileSync(path.join(out,f),JSON.stringify(best,null,2)+"\n");
     result.repaired=f;

@@ -1,5 +1,9 @@
 # Changelog
 
+### 27 November 2026 — Net-wide fixed-placement routing investigation
+- Owner Mac six-board smoke (27 Nov, report KARL_AUTOPSY_SMOKE_20261127_102846): exact input fingerprint matched, graph self-test passed, 6/6 boards replayed, 2 strict reproduced, zero electrical graph disagreements, four single offending wires (490k crosses two bodies), zero rescues/improvements. Each rejected board reached only one audit trial (redundant offending-wire removal). Direct and one-empty-strip relay searches produced no audit candidates. This is a negative result for the restricted search, not proof of placement infeasibility. Follow-up net-wide search removes the same offending wire and considers all copper strips joined to either side, plus pinless transit groups, with unique new endpoint holes, no cuts/placement changes and at most four hops. Bounded at 20,000 queued states and 64 paths per board, reports truncation and blocked edges; not exhaustive. JS syntax and extracted graph/path self-tests pass; new Mac replay pending. No production change.
+- Updated handover and forensic documentation in the same main commit. GUI 2.39 unchanged.
+
 ### 27 November 2026 — Karl autopsy six-board smoke gate
 - Added run_karl_autopsy.py to identify exact prepared input by manifest hash and launch the six priority cases by default. Full archive requires explicit --all. Added input fingerprint verification, graph-disagreement quarantine and redundant offending-wire test to the JS harness.
 - JavaScript syntax and extracted actual graph self-test passed; Mac compiled-helper replay and rescue outcomes are unverified. No production/GUI changes; GUI 2.39 unchanged.
