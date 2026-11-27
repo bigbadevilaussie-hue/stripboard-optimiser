@@ -1,5 +1,8 @@
 # Changelog
 
+### 27 November 2026 — Seven witness deltas confirmed from owner report
+- Q86.40: w0 shifted from col1 to col3, rows0–8 unchanged; 21W/37C, S3→S2, 279.4mm unchanged. All four strict improvements are stack-only. Both cut rescues move an existing drilled cut col18→7 (rows23 and22); net-wide rescue shortens w23 by 15 holes. Exact details in forensic note. Report and saved JSONs remain local pending archive and independent validation. No code/version changes.
+
 ### 27 November 2026 — Completed Karl autopsy: project record Q86.40
 - Owner 100-board replay (research source 11ec46f): 25 original strict, three rescued (two cut slides, one net-wide), four strict improved, zero graph disagreements/skips. 28 usable when retaining strict incumbents, 23 eligible single-offender failures. Zero additional annealing. New project record seed1216/460k Q85.20→86.40, prior 85.66; Q86 at 2k not achieved.
 - Recorded seven witness outcomes, cut-search aggregates and static production comparison. Exact saved report/witness JSONs remain local and require inspection; no production or GUI changes. GUI 2.39 unchanged.

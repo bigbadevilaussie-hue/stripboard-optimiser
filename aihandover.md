@@ -81,13 +81,31 @@ Owner terminal evidence: ~/KARL_AUTOPSY_ALL_20261127_103543/report.json; researc
 | 1216 | 460k | 85.20 | **86.40** | direct_endpoint | strict improved; project record |
 | 1859 | 470k | 75.42 | 75.73 | net_wide_path | rescued |
 
-Previous project record 85.66 at seed1859/500k; new owner-reported record 86.40 at seed1216/460k plus deterministic surgery (+0.74 over prior record, +1.20 over its own original). Not Q86 at 2k. Original 460k board had 21W/37C/S3; direct endpoint method preserves W/C and vertical span, so +1.20 is consistent with S3→S2; exact repaired W/C/S and wire coordinates require inspection of saved JSON/report. No additional annealing or placement changes. Two cut rescues move one existing cut without changing kind/count. All accepted variants passed saved strict audit and separate copper graph; graph shares pin transforms and is not independent manufacturing certification.
+Previous project record 85.66 at seed1859/500k; new owner-reported record 86.40 at seed1216/460k plus deterministic surgery (+0.74 over prior record, +1.20 over its own original). Not Q86 at 2k. Original 460k board had 21W/37C/S3; direct endpoint method preserves W/C and vertical span, so +1.20 is consistent with S3→S2; owner report now confirms 21W/37C/S2, exact w0 coordinates below; saved files still require independent verification. No additional annealing or placement changes. Two cut rescues move one existing cut without changing kind/count. All accepted variants passed saved strict audit and separate copper graph; graph shares pin transforms and is not independent manufacturing certification.
 
 Full log aggregates: 22 cut-slide searches, 58,226 positions considered, 5,122 anchor-safe and graph-safe, 7 cut positions yielding paths, 10 candidate route audits accepted (two distinct boards), zero reported truncations or audit-cap hits. 23 net-wide searches, one rescue. Zero fixed two-strip direct rescues and zero isolated-relay rescues. This is a finished research replay, not a production fix.
 
+## Exact witness deltas — owner report inspection, 27 November
+
+Zero-based coordinates (row,col). Owner pasted all seven best detail records from the full replay. These are observed report deltas; actual repaired JSON files still local, not yet independently fetched or audited by AI.
+
+| Seed/budget | Wire | Before → after | W/C/S before → after | Length mm before → after |
+| --- | --- | --- | --- | --- |
+| 1216/120k | w10 | (10,40)-(19,40) → (10,42)-(19,42) | 36/52/2 → 36/52/1 | 495.30 → 495.30 |
+| 1216/350k | w12 | (4,27)-(23,27) → (2,8)-(23,8) | 30/46/2 → 30/46/2 | 383.54 → 388.62 |
+| 1216/360k | w4 | (7,22)-(22,22) → (7,8)-(22,8) | 33/49/2 → 33/49/2 | 474.98 → 474.98 |
+| 1216/390k | w13 | (17,20)-(19,20) → (17,21)-(19,21) | 27/43/4 → 27/43/3 | 426.72 → 426.72 |
+| 1216/400k | w7 | (5,15)-(13,15) → (5,17)-(13,17) | 29/45/4 → 29/45/3 | 551.18 → 551.18 |
+| 1216/460k | w0 | (0,1)-(8,1) → (0,3)-(8,3) | 21/37/3 → 21/37/2 | 279.40 → 279.40 |
+| 1859/470k | w23 | (4,19)-(23,19) → (4,18)-(0,18) | 39/55/3 → 39/55/3 | 601.98 → 563.88 |
+
+350k: drilled cut index36 at (23,18) moved to (23,7). 360k: drilled cut index37 at (22,18) moved to (22,7). Both 11-column relocations, same count/type. Existing autoFinish seven-nearest-candidate cap is a credible limitation, but actual legal candidate ranking and finish path still need verification. 350k also changes source attachment row. Net-wide 470k rescue shortens jumper by 15 holes (38.10mm). All four strict improvements are solely stack-depth reductions. New record Q86.40 = Q85.20 + 0.4*(4−1) = +1.20; two-hole sideways relocation, no additional length/cuts/placement changes. Original Q85.66 record surpassed.
+
+Next gate: preserve seven repaired files plus report and exact prepared input in research/karl-autopsy/20261127 (not a branch), verify with existing auditor and Q3, review file scope before committing. No further anneal needed. Then evaluate a bounded strict-incumbent-preserving stack-polish pass first, isolated from cut rescue; benchmark earlier/lower-move archived campaigns, no production changes until reviewed. Remote branch API still returns main only at df394ba; pasted older branch upload output is historical, not evidence of current branch.
+
 ### Next gate — preserve and inspect seven witnesses
 
-Do not rerun the 100-board archive just to obtain the same evidence. The original compressed boards are on main, but seven repaired JSONs and full report are still on the owner's Mac. Inspect exact before/after endpoints, cuts, Q3 and strict status; preserve report and witness artifacts before further experiments. Specifically identify the record's stack change, two cut offsets, and the net-wide rescue's new attachments.
+Do not rerun the 100-board archive just to obtain the same evidence. The original compressed boards are on main, but seven repaired JSONs and full report are still on the owner's Mac. Owner report endpoint and cut deltas inspected and recorded above. Preserve and independently audit actual witness JSONs and report before further experiments.
 
 Production comparison (static source verified): autoFinish.ts:168–216 restricts cut slides to the offending jumper's two endpoint rows, tries seven nearest positions per cut and caps full reroutes at 60; its acceptance uses fewer offending wires and non-increasing starved/shared-joint counts. layout2/finish.ts:573–591 repick accepts first valid alternative between the original strips; 669–673 only invokes repair for badWire (crossings or forbidden stacking), not legal-but-expensive stack depth. This suggests separate validity rescue and strict Q3 improvement opportunities. Exact causal reason each archived case was missed remains unverified until witness deltas and actual finish path are checked. Do not increase brute-force budget blindly; propose opt-in bounded deterministic finisher only after witness inspection, regression tests and measured runtime. Retain strict original incumbent; no production or GUI changes here.
 
