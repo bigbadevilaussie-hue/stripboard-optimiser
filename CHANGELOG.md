@@ -1,5 +1,8 @@
 # Changelog
 
+### 27 November 2026 — Local sniff evidence confirmed
+- Read e6dd957 archived reports: 1247 verified saved hashes, zero reported diagnostic/invariant errors; no within-run duplicate layouts. GPS 0/180: 761/761 triple incomplete, 90/270: 0/486 triple; MPU 90/270: 110/110 triple, 0/180: 1/1137. All 348 electrically complete boards have proposed GPS/MPU orientations. 47 routing-only candidates, six single-wire offenders. Association, not causal proof; two-part orientation experiment and independent audits pending. Documentation only.
+
 ### 27 November 2026 — Local 10k breadth forensic sniffer
 - Owner final logs: sequential 0/1000 in510.64s; systematic Safari 0/300 in207.84s. Add standalone read-only Python local comparison with compact reports, saved-hash and invariant checks, net/rotation/crossing histograms, distinct offenders and duplicate layout detection. Synthetic tests supplied, local execution pending. No production or GUI changes.
 

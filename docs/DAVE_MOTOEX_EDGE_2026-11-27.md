@@ -127,3 +127,29 @@ Owner final terminal results: sequential 1,000 × 10k, 0 strict, 510.64s, ~/DAVE
 
 Owner requests standalone Python local HDD processing, no large ZIP. New scripts/sniff_motoex_campaigns.py reads two completed campaign directories, validates seed schedule and saved hashes, measures Q3/S from saved JSON, compares lock/board/net/endpoint invariants against prepared inputs, counts placement/layout signatures and overlaps, aggregates incomplete-net combinations and component rotations, distinguishes distinct wire offenders from wire/body crossing records, ranks routing-only research candidates (1–3 distinct offending wires), records errors and manifest comparison. Reads only; no solver, Node, Qt, pip, board modifications or promotion of rejected layouts. Missing diagnostics not treated as zero. Electrical and body status remains CLI-reported; independent copper graph/body replay still outstanding. Unit tests supplied; Mac execution pending. Compact generated report.md/summary.json/seeds.csv to research/dave-sniff/20261127-10k/ (commit only those after local execution); raw campaign directories stay local. No production/GUI changes.
 
+
+## 27 November — completed local 10k forensic sniff: orientation evidence
+
+Owner Mac report archived in [research/dave-sniff/20261127-10k](../research/dave-sniff/20261127-10k/) at e6dd9578e022aa7f0875156e89cbb40c043f098a. Read report.md, summary.json, seeds.csv; standalone sniffer executed locally, no raw rejected boards transferred. Both campaigns' recorded fixture, binary hashes, board, USB and solver flags match each other and recorded 100k baseline fingerprints; all inspected prepared input raw hashes 0554804ce7ef1fb2c527d6adbbe7996085d00fd598b9781a842dae76c9176dce. 1000 consecutive / 300 spaced attempts, 40/13 unsolved, 960/287 saved hashes verified, 262/86 reported electrically complete, 698/201 incomplete, 1/0 conflicts, 29/10 zero crossing, 19/13 zero nonvertical. All inspected placements/layouts distinct within campaigns; one shared seed and layout across them. Zero recorded invariant, net/wire diagnostic mismatch or read/schema errors. This rules out duplicate layout saturation in these inspected samples, not all possible seed-distribution effects. No strict survivors. Counts are attempt-weighted and include the repeated seed once per campaign.
+
+Aggregated from summary.json rotation-by-net-pattern counters (not a new geometry/graph replay):
+
+| GPS rotation | Saved boards | Reported electrically complete | Contains GND/net25/net29 |
+| ---: | ---: | ---: | ---: |
+| 0 | 690 | 0 | 690 |
+| 90 | 300 | 211 | 0 |
+| 180 | 71 | 0 | 71 |
+| 270 | 186 | 137 | 0 |
+
+GPS horizontal 761/761 contain triple, vertical 0/486; 348/486 vertical electrically complete (71.6%). Exact GPS triple alone 561 (435+126), not all 761. All 348 complete boards have GPS 90/270.
+
+| MPU rotation | Saved boards | Reported electrically complete | Contains GND/net10/net11 |
+| ---: | ---: | ---: | ---: |
+| 0 | 909 | 273 | 0 |
+| 90 | 36 | 0 | 36 |
+| 180 | 228 | 75 | 1 |
+| 270 | 74 | 0 | 74 |
+
+All 110 MPU 90/270 contain triple, only one of 1137 MPU 0/180 contains triple. Exact MPU triple alone 33 (27+6). All 348 complete boards have MPU 0/180. These are final-state associations, not proof that orientation masks improve search; test counterfactual with fixed settings. Candidate narrow experimental masks: GPS 90/270, MPU 0/180. Validate fixture footprint/pin transforms first; do not apply historical seven-part Arm C restrictions blindly. Proposed paired 10k comparison on same seeds and native Edge build plus only validated two-part restrictions; no new campaign authorised by this note. Keep strict rules and no board growth.
+
+47 routing-only candidates from sniffer (34 sequential, 13 Safari): 6 with 1 distinct offending wire, 16 with 2, 25 with 3. One-offender seed IDs (one-based wire numbers) Safari 327991 wire6 44W/60C rawQ68.33; sequential 514 wire13 46/62 Q68.02, 902 wire13 48/64 Q67.50, 542 wire53 53/69 Q64.46, 949 wire10 56/72 Q62.44, 399 wire24 58/74 Q60.09. All six have one nonvertical; all except 542 also cross bodies. Seed542 no recorded crossing, clean slant repair test. Raw Q on rejected boards not strict or proof of repairability. Crossing records sum across campaigns: ESP32 1556, GPS 1297, MPU 970, M1 802, Switched Buck 719 (wire/body incidences, not unique jumpers). The sniffer validates endpoint indices and recorded diagnostics against raw board fields; cannot independently establish pin occupancy/body crossings/electrical completeness. Full independent replay and surgery pending. No production/GUI change.
