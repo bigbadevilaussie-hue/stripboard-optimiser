@@ -1,10 +1,14 @@
 # Stripboard Optimiser — Version 2.00 project contract
 
+## Repository change-control contract
+
+**Main only.** Never create branches or pull requests; never send bug reports, code or comments upstream to Karl. Keep research in directories within main. Every approved code/research change must update CHANGELOG.md and relevant current documentation in the same commit, identify affected version(s), and distinguish static review from executed tests. GUI or renderer/import integration changes must increment gui/VERSION in the same commit; research-only or documentation changes do not invent a GUI release. Preserve existing local work and historic data. See [27 November consolidation and forensic status](docs/KARL_FORENSICS_2026-11-27.md).
+
 ## Current release: StripSolve GUI 2.39 / Q3 (25 November 2026)
 
 Budget recommendation: [100-point JSON complexity sniff](docs/JSON_SNIFF.md). CPU allocation is separate; no native decodes or qualification trials run before GO.
 
-GUI 2.26: speed calibration remains a 100-decode timing-only measurement. The separate actual-JSON budget probe uses strict native solves and independent saved-board audits, targets 100 survivors per 2,000 seeds (5%), and compares 10k/20k only as needed. Compatible completed FULL history takes priority. See [budget probe](docs/BUDGET_PROBE.md). Locked Edge mounts automatically select the Edge decoder in speed calibration, probe, Pass One and replay. No Slide search or strict-rule change.
+Historical GUI 2.26 budget policy is superseded by the static 100-point JSON sniff in GUI 2.39. No native decodes or qualification searches before GO. Locked Edge decoder selection remains separate; no Slide search or strict-rule change.
 
 macOS standalone build: [build_mac_app.sh](build_mac_app.sh) adapts the Mac-tested Route-Mate packaging workflow to StripSolve, including the native V5 CLI, Node, SVG renderers, librsvg converter and approved artwork. See [STANDALONE_MACOS.md](docs/STANDALONE_MACOS.md). Packaged Work lives in `~/Library/Application Support/StripSolve/Work/`; source checkout Work is unchanged. The new StripSolve bundle is not yet Mac-verified.
 
@@ -36,9 +40,9 @@ See [Q3 calibration and archive comparison](docs/QUALITY_Q3_2026-11-25.md) for t
 
 **Earlier GUI integration milestones below are historical where they conflict with the current release.**
 
-**Milestone:** Consolidation of Two Repositories (24 November 2026). GUI version **2.26** is independently tracked in `gui/VERSION` (24 Nov 2026).
+**Milestone:** Consolidation of Two Repositories (24 November 2026). Current GUI version **2.39** is independently tracked in `gui/VERSION`.
 
-**Current live-work handoff:** [Audio/Moto 12k WR sweep, results, multipass plan and GUI boundaries](docs/ACTIVE_HANDOFF_2026-11-24.md). **Historic static audit:** [Repository integrity and integration audit](docs/REPOSITORY_AUDIT_2026-11-24.md). Historical handovers remain useful but their future-phase language may now be outdated.
+**Current live-work handoff:** [Current research results, multipass plan and GUI boundaries](docs/ACTIVE_HANDOFF_2026-11-24.md). **Historic static audit:** [Repository integrity and integration audit](docs/REPOSITORY_AUDIT_2026-11-24.md). Historical handovers remain useful but their future-phase language may now be outdated.
 
 The current `main` branch is version 2.00. This is a repository-structure and
 version milestone; it is not a claim of a new solver algorithm or independently

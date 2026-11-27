@@ -237,22 +237,21 @@ adapter exists yet.
 
 ## GUI version policy
 
-**GUI release: 2.04** (`gui/VERSION`). The Git repository's consolidated
-solver milestone remains **2.00** (`VERSION`). The window title and GUI
-Activity startup message read `gui/VERSION`, not the root file.
+**Current GUI release: 2.39** (`gui/VERSION`). The Git repository's consolidated
+solver milestone remains **2.00** (`VERSION`). The permanent GUI revision status label and Activity startup message use `gui/VERSION`, not the root file. The window title is StripSolve only.
 
 **Every change to the GUI or its rendering/import integration must bump
-`gui/VERSION` in the same commit** (2.05, 2.06, etc.) and document the
+`gui/VERSION` in the same commit** (next revision) and document the
 change in `CHANGELOG.md`. Changes only to the headless solver or tests do
 not require a GUI version bump.
 
-## Visible executable revisions (GUI 2.04)
+Research and documentation-only changes preserve the GUI release. See [27 November main-only consolidation](../docs/KARL_FORENSICS_2026-11-27.md).
+
+## Visible executable revisions (introduced in GUI 2.04; historical preflight context)
 
 - Native solver CLI (`src/frontend/tests/solver/v5Solve.js`) prints a **SOLVER**
   startup banner with the repository Git revision and CLI SHA-256 to **stderr**.
-  Its JSON stdout remains unchanged for strict-audit and batch scripts. The
-  desktop GUI's solver remains intentionally disconnected in this preflight
-  checkpoint; no dummy solver splash is presented as a real solve.
+  Its JSON stdout remains unchanged for strict-audit and batch scripts. The historical GUI 2.04 preflight was disconnected; current Pass One uses the native solver, while Pass Two remains import-only.
 - The compiled **RENDER** and **SCHEMATIC** CLIs each print their own banner
   showing Git revision and a fingerprint of the **actual compiled dist tree**.
   This helps identify stale builds instead of incorrectly labelling them as

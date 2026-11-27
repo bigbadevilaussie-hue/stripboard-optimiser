@@ -1,9 +1,15 @@
-# ACTIVE HANDOFF — StripSolve (updated 26 Nov 2026)
+# ACTIVE HANDOFF — StripSolve (updated 27 Nov 2026)
+
+## 27 November — latest verified repository and research status
+
+Read [Karl forensic checkpoint](KARL_FORENSICS_2026-11-27.md) first. Main-only rule enforced; all four former branches merged and deleted. 100 Mortal Kombat saved boards and both forensic scripts are in main. Championship finished 234–216 (1216 wins), 25 strict passes, best strict Q3 85.66 (1859 at 500k). No Q86 result. No production solver or GUI change; GUI 2.39 / Q3 remains current.
+
+Current research: fixed-placement wire surgery and independent copper-graph replay, one worker, no extra annealing or board growth. Script syntax checked, runtime replay not yet verified. Five source findings are documented with limits; do not claim fixes or measured gains. Earlier campaign snapshots below are historical, not instructions to resume old runs. No new branches, PRs or upstream reports. Local uncommitted files are preserved. No new test result after consolidation.
 
 ## Current release: StripSolve GUI 2.39 / Q3 (25 November 2026)
 
 
-## 26 November 2026 — ACTIVE V1.40 LADDER AND SAVE-GAME RESEARCH
+## 26 November 2026 — HISTORICAL V1.40 LADDER AND SAVE-GAME RESEARCH
 
 Read [V1.40 ladder forensics and MAME-style warm-start design](MOTO_V1_40_LADDER_AND_WARM_START_2026-11-26.md) before continuing this work.
 
@@ -12,7 +18,7 @@ Read [V1.40 ladder forensics and MAME-style warm-start design](MOTO_V1_40_LADDER
 - Confirmed standard non-Edge board-lock enforcement weakness; routing faults dominate the partial data. Replay matched seeds and old input controls before attributing a regression. No solver fix implemented.
 - Owner's new Pass Two concept: each strict survivor has a MAME-style `.sav` (winning genome plus verified board); LOAD → controlled reheat → audit → retain the better result. Warm-start research first, exact checkpoint later. Experimental hook, format, round-trip and regression gates documented in the new note. **Not implemented. GUI Pass Two remains import-only; no production solver/GUI changes.**
 
-## 26 November 2026 — LATEST VERIFIED ENGINEERING STATUS
+## 26 November 2026 — LAST REPORTED MAC REGRESSION STATUS
 
 - The owner reports the Mac Python GUI regression suite now passes after the fixes to the **Slide/EXPERIMENTAL** label and dashboard return-to-board fallback; the immediately preceding run had 2 failures among 129 Python tests.
 - The owner also reported **"All 7 suites passed"** from `src/frontend` after running `npm run test:headless`. This is owner-provided target-Mac evidence, not an assertion that a separate packaged app, full 5k-seed campaign, or new world record has passed.

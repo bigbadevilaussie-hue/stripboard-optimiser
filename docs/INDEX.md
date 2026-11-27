@@ -4,6 +4,8 @@
 
 ## Start here (current authority)
 
+- [27 November: main-only revision, completed Mortal Kombat, Karl forensic targets and runtime verification gates](KARL_FORENSICS_2026-11-27.md) — current research checkpoint; no production solver changes.
+
 - [Native V5 candidate modes, 5k/10k runner, strict audit boundary and Mac verification](CANDIDATE_POLICIES.md) — **implemented and merged into `main`**; opt-in research paths only; GUI Pass One remains strict and Pass Two search remains import-only.
 
 - [Actual-JSON search-budget probe](BUDGET_PROBE.md)
@@ -13,7 +15,7 @@
 - [Q3 construction-quality contract and archive rescoring](QUALITY_Q3_2026-11-25.md)
 - [Historical Q2 construction-quality research](QUALITY_Q2_2026-11-25.md)
 
-**New chat / current live work:** [ACTIVE HANDOFF — Audio + Moto WR sweep, candidate-policy changes and GUI status (updated 26 Nov 2026)](ACTIVE_HANDOFF_2026-11-24.md). Dated research notes below are historical evidence.
+**New chat / current live work:** [ACTIVE HANDOFF — Karl forensics, completed Moto research and GUI status (updated 27 Nov 2026)](ACTIVE_HANDOFF_2026-11-24.md). Dated research notes below are historical evidence.
 
 1. [README](../README.md) — install, current architecture and commands
 2. [Project contract](../project.md) — accepted native pipeline and rules
@@ -34,7 +36,7 @@
 
 - [V1.40 frozen fixture](MOTO_V1_40_FIXTURE.md) — new hardware test problem; not historical Moto WR.
 - [Three-way WR wager — Claude, GPT Sister, ChatGPT](MOTO_V1_40_WR_WAGER_2026-11-26.md) — separate frozen 2,000 × 20k competition.
-- [V1.40 ladder forensics and MAME-style .sav / warm-start design](MOTO_V1_40_LADDER_AND_WARM_START_2026-11-26.md) — latest owner-reported 2,318/7,500 trial snapshot, board-lock and routing findings, experimental save/load proposal and verification gates. **Research only, no solver or GUI implementation.**
+- [V1.40 ladder forensics and MAME-style .sav / warm-start design](MOTO_V1_40_LADDER_AND_WARM_START_2026-11-26.md) — historical owner-reported 2,318/7,500 trial snapshot, board-lock and routing findings, experimental save/load proposal and verification gates. **Research only, no solver or GUI implementation.**
 
 ## Active WR experiment — Audio and Moto
 

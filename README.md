@@ -4,13 +4,17 @@
 
 **Consolidation designation:** `2.00` (no Git tag published) · **npm/package version:** `2.0.0` · **StripSolve GUI:** `2.39` (`gui/VERSION`).
 
-**START HERE IF CONTINUING IN A NEW CHAT:** [Active handoff — latest native candidate-policy work, Moto research and GUI status](docs/ACTIVE_HANDOFF_2026-11-24.md). It records the native solver call chain, opt-in diagonal qualification, unfinished work, historical WR results and **destructive rerun warnings**.
+**START HERE IF CONTINUING IN A NEW CHAT:** [Active handoff — latest Karl forensic research, Moto results and GUI status](docs/ACTIVE_HANDOFF_2026-11-24.md). It records the native solver call chain, opt-in diagonal qualification, unfinished work, historical WR results and **destructive rerun warnings**.
 
 **Current engineering reference:** [Full repository audit (24 Nov 2026)](docs/REPOSITORY_AUDIT_2026-11-24.md) · [Documentation index](docs/INDEX.md) · [CHANGELOG.md](CHANGELOG.md).
 
 The audit records verified source checks and outstanding target-Mac tests; it does **not** claim the native solver or all tests passed on this machine.
 
 **26 November 2026 verification update:** The owner reports that the macOS GUI regression suite passed after the Slide-label and dashboard-return fixes, and that **all 7 headless Node solver suites passed**. This is a user-reported test outcome, separate from the older static audit; no new 5,000-seed Moto hunt or packaged standalone app verification is claimed.
+
+## Current research checkpoint — 27 November 2026
+
+**Main only.** All four former branches are merged and deleted; the 100 Mortal Kombat boards and forensic scripts are preserved. [Current revision, final championship results, source defects and verification gates](docs/KARL_FORENSICS_2026-11-27.md). Research additions only; no GUI version bump or production solver change. No upstream submissions.
 
 ## Native V5 experimental candidate modes (26 November 2026)
 
@@ -130,7 +134,7 @@ script paths**. It no longer contains a frontend application.
 
 ## Search budget probe
 
-GUI 2.26: speed calibration remains a 100-decode timing-only measurement. The separate actual-JSON budget probe uses strict native solves and independent saved-board audits, targets 100 survivors per 2,000 seeds (5%), and compares 10k/20k only as needed. Compatible completed FULL history takes priority. See [budget probe](docs/BUDGET_PROBE.md). Locked Edge mounts automatically select the Edge decoder in speed calibration, probe, Pass One and replay. No Slide search or strict-rule change.
+Historical GUI 2.26 budget policy (superseded by 2.39): the former speed and qualification probes are documented in [budget probe](docs/BUDGET_PROBE.md). Current GUI uses the static JSON complexity sniff before GO. Locked Edge decoder selection remains separate.
 
 ## macOS standalone application
 

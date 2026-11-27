@@ -1,5 +1,12 @@
 # Changelog
 
+### 27 November 2026 — Main-only consolidation and Karl forensics
+- Preserved all 100 Mortal Kombat candidate archives, result JSONs, scorecard and manifest; 50 rounds completed, Dave 234–216, 25 strict passes overall, best strict Q3 85.66.
+- Added research scripts karl_autopsy.js and sister_forensics.js; archived the obsolete topology worker without restoring active code. Full script runtime verification remains outstanding.
+- Merged all former branch histories into main (consolidation commit `84cdc23`); verified GitHub main-only after owner cleanup. Local uncommitted files preserved.
+- Documented static routing/eligibility defects and research gates; no solver fixes claimed, no new branches/PRs or upstream submissions. Repository 2.00, package 2.0.0 and GUI 2.39 unchanged under research-only version policy.
+- Updated README, documentation index, active handoff, project contract and GUI version-policy wording. See [forensic checkpoint](docs/KARL_FORENSICS_2026-11-27.md). No fresh post-consolidation build/test claimed.
+
 ### 26 November 2026 — Native V5 candidate policies and Mac regression verification
 - Added **opt-in** native CLI candidate prequalification and saved-board auditor qualification for `strict`, `diagonal`, `crossings` and `archive`, with unknown, electrical, netlist, locked-position and off-board failures remaining hard blockers. Strict results, existing exit codes and default GUI Pass One are unchanged.
 - Introduced `scripts/run_candidate_hunt.py`: standalone native-controller research campaigns with resumable CSV/manifest, saved JSON gzip archives, Q3 comparisons, and separate strict/diagonal/routing class champions. This does not implement C anneal repair/warm-start or the GUI Pass Two search.
