@@ -1,5 +1,8 @@
 # Changelog
 
+### 27 November 2026 — Local 10k breadth forensic sniffer
+- Owner final logs: sequential 0/1000 in510.64s; systematic Safari 0/300 in207.84s. Add standalone read-only Python local comparison with compact reports, saved-hash and invariant checks, net/rotation/crossing histograms, distinct offenders and duplicate layout detection. Synthetic tests supplied, local execution pending. No production or GUI changes.
+
 ### 27 November 2026 — Optional systematic seed stride
 - Native MOTOEX sweep supports --seed-stride (default1), conservative exact JS seed bound, manifest/summary and resume validation, schedule regression test. Requested 100 IDs spaced33932, 10k moves each, three workers, 15s pause per ten. Mac runtime pending; no solver or GUI changes.
 
