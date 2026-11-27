@@ -42,6 +42,8 @@ Priority archive cases: seed 1216 at 280k (Q73.82, NONVERTICAL_1), 350k (Q81.97,
 
 ## Research scripts and next gate
 
+**Smoke gate update:** run `scripts/run_karl_autopsy.py` with MacPorts Python from the checkout after pulling main. It locates the original prepared input by the manifest fingerprint and defaults to the four near-misses and two champions; `--all` requires separate explicit invocation after smoke review. The JS harness independently rechecks the fingerprint, skips electrical graph disagreements and attempts removing a redundant offending wire. JavaScript syntax and extracted graph self-test passed in AI tooling. Full Mac replay and rescue results remain unverified.
+
 - [scripts/karl_autopsy.js](../scripts/karl_autopsy.js), original commit 8e42c3f: fixed-placement/cut wire surgery, existing isolated relay strips, redundant jumper removal, stack reduction and a horizontal copper-graph replay. JavaScript syntax checked before commit only. Embedded synthetic graph self-test and full archive replay have **not been executed** on the Mac. The graph reuses repository pin transforms; not a fully independent physical verifier. Verify prepared-input provenance against manifest using the canonical Python fingerprint and confirm compiled helper compatibility before running. Preserve original archives; report results separately; one worker; no annealing or board growth.
 - [scripts/sister_forensics.js](../scripts/sister_forensics.js), original commit 628a3d1: independent graph/topology research, runtime validation pending.
 - [Historical legal-topology patch](../research/legacy-topology/README.md): archived obsolete desktop worker, not active GUI implementation.

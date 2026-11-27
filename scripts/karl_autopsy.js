@@ -1,10 +1,13 @@
 #!/usr/bin/env node
 "use strict";
 // Read-only research: no decoder, no annealing, no writes to original boards.
-// Usage: node /tmp/karl_autopsy.js REPO ARENA PREPARED_INPUT OUTPUT
+// Usage: node scripts/karl_autopsy.js REPO ARENA PREPARED_INPUT OUTPUT [--smoke]
 const fs=require("node:fs"), path=require("node:path"), zlib=require("node:zlib"), crypto=require("node:crypto");
-const [repo,arena,inputFile,out]=process.argv.slice(2).map(p=>path.resolve(p));
-if(!repo||!arena||!inputFile||!out) throw Error("Usage: node script REPO ARENA PREPARED_INPUT OUTPUT");
+const args=process.argv.slice(2);
+if(args.length<4||args.length>5||(args.length===5&&args[4]!=="--smoke")) throw Error("Usage: node script REPO ARENA PREPARED_INPUT OUTPUT [--smoke]");
+const [repo,arena,inputFile,out]=args.slice(0,4).map(p=>path.resolve(p));
+const smoke=args[4]==="--smoke";
+const selected=new Set(["1216:280000","1216:350000","1216:360000","1216:490000","1216:450000","1859:500000"]);
 if(fs.existsSync(out)) throw Error("Choose a new output directory");
 const base=path.join(repo,"src/frontend/tests/solver");
 const {auditSavedStrict}=require(path.join(base,"auditSavedStrict.js"));
@@ -13,7 +16,10 @@ const {expandOffBoard}=require(path.join(base,"out/components/stripboard/offBoar
 const {collectBoardPins,collectOccupiedHoles}=require(path.join(base,"out/components/stripboard/boardPins.js"));
 const read=p=>JSON.parse(fs.readFileSync(p,"utf8"));
 const input=read(inputFile), manifest=read(path.join(arena,"manifest.json"));
-const key=p=>p.row+","+p.col, clone=x=>JSON.parse(JSON.stringify(x));
+const key=p=>p.row+","+p.col;
+const fingerprint=require("node:child_process").execFileSync(process.env.KARL_PYTHON||"python3",["-c","import hashlib,json,sys; print(hashlib.sha256(json.dumps(json.load(open(sys.argv[1])),sort_keys=True,ensure_ascii=False).encode(\"utf-8\")).hexdigest())",inputFile],{encoding:"utf8"}).trim();
+if(fingerprint!==manifest.input) throw Error("Prepared input fingerprint mismatch: "+fingerprint);
+console.log("✅ Prepared input fingerprint verified:",fingerprint);
 const sha=x=>crypto.createHash("sha256").update(x).digest("hex");
 const q3=b=>{
   const ws=b.board.wires, cs=b.board.cuts, cover=new Map();
@@ -25,7 +31,7 @@ const q3=b=>{
       const k=r+","+w.from.col,n=(cover.get(k)||0)+1;cover.set(k,n);s=Math.max(s,n);
     }
   }
-  const u=b.components.filter(c=>!c.offBoard&&!c.boardExcluded&&!c.boardPos).length;
+  const u=b.components.filter(c=>!c.offBoard&&!c.boardExcluded&&(!c.boardPos||typeof c.boardPos!=="object"||Array.isArray(c.boardPos))).length;
   return {q:Math.round(Math.max(0,100-.4*(.6*ws.length+.4*cs.length+.02*len+10*d+15*u+Math.max(0,s-1)**2))*100)/100,w:ws.length,c:cs.length,s,len};
 };
 function context(b){
@@ -55,7 +61,7 @@ function physicalGraph(b,pins){
   const idx=p=>p.row*C+p.col;
   const root=i=>{while(parent[i]!==i){parent[i]=parent[parent[i]];i=parent[i];}return i;};
   const join=(a,z)=>{a=root(a);z=root(z);if(a!==z)parent[a]=z;};
-  for(const c of cuts){if(!inside(c)){bad.push("cut outside board");continue;}if(c.kind==="hole")dr.add(idx(c));else if(c.kind===undefined||c.kind==="between")kn.add(idx(c));else bad.push("unsupported cut kind");}
+  for(const c of cuts){if(!inside(c)){bad.push("cut outside board");continue;}if(c.kind==="hole")dr.add(idx(c));else if(c.kind==null||c.kind==="between"){if(c.col>=C-1)bad.push("knife outside copper");else kn.add(idx(c));}else bad.push("unsupported cut kind");}
   for(let r=0;r<R;r++)for(let c=0;c<C-1;c++){const i=r*C+c;if(!dr.has(i)&&!dr.has(i+1)&&!kn.has(i))join(i,i+1);}
   for(const w of wires){
     if(!inside(w.from)||!inside(w.to)){bad.push("wire outside board");continue;}
@@ -85,6 +91,7 @@ function testGraph(){
   if(physicalGraph(b,pins).complete)throw Error("Graph selftest: drilled endpoint");
 }
 testGraph();
+console.log("✅ Copper graph synthetic checks passed");
 fs.mkdirSync(out);
 const results=[],counts={boards:0,strict:0,graphDisagreement:0,singleOffender:0,directRescue:0,relayRescue:0,strictImproved:0,skipped:0};
 function examine(b,info){
@@ -95,6 +102,7 @@ function examine(b,info){
   counts.boards++;if(old.valid)counts.strict++;
   if(graph.complete!==(old.incomplete===0&&old.conflicts===0&&old.unplaced.length===0))counts.graphDisagreement++;
   const result={...info,audit:old,graph,score,trials:0,method:null,best:null};
+  if(graph.complete!==(old.incomplete===0&&old.conflicts===0&&old.unplaced.length===0)){result.skipped="electrical graph disagreement; manual investigation required";return result;}
   // Only alter wires. Existing placements, cuts, netlist, locks stay byte-equivalent as JSON.
   const ws=b.board.wires;
   const bad=ws.map((w,i)=>({i,d:Number(w.from.col!==w.to.col||w.from.row===w.to.row),x:ctx.cross(w)})).filter(x=>x.d||x.x);
@@ -119,6 +127,7 @@ function examine(b,info){
   }else if(graph.complete&&old.failures.length&&old.failures.every(x=>/^(NONVERTICAL|BODY_CROSSINGS)_\d+$/.test(x))&&bad.length===1){
     counts.singleOffender++;
     const i=bad[0].i;
+    offer(ws.filter((_,j)=>j!==i),"redundant_wire",{i,old:ws[i]});
     direct(i);
     if(!best)relay(i);
   }
@@ -170,7 +179,7 @@ function examine(b,info){
     }
   }
   if(best){
-    if(old.valid)counts.strictImproved++;else if(result.method==="direct_endpoint")counts.directRescue++;else counts.relayRescue++;
+    if(old.valid)counts.strictImproved++;else if(result.method==="direct_endpoint")counts.directRescue++;else if(result.method==="one_empty_strip_relay")counts.relayRescue++;else counts.redundantRescue=(counts.redundantRescue||0)+1;
     const f=info.moves+"_"+info.seed+"_"+result.method+".json";
     fs.writeFileSync(path.join(out,f),JSON.stringify(best,null,2)+"\n");
     result.repaired=f;
@@ -181,6 +190,7 @@ function examine(b,info){
 for(const moves of manifest.budgets){
   const folder=String(moves/1000).padStart(4,"0")+"k";
   for(const [name,seed] of Object.entries(manifest.fighters)){
+    if(smoke&&!selected.has(seed+":"+moves))continue;
     const dir=path.join(arena,folder,name),r=read(path.join(dir,"result.json"));
     if(Number(r.seed)!==seed||Number(r.moves)!==moves)throw Error("Archive identity mismatch");
     const info={seed,moves,status:r.status,q:Number(r.q3)};
@@ -193,5 +203,6 @@ for(const moves of manifest.budgets){
     console.log("🔬",seed,moves,result.audit?.valid?"STRICT":"RAW","trials",result.trials??0);
   }
 }
+if(smoke&&results.length!==selected.size)throw Error("Missing smoke cases");
 console.log(JSON.stringify(counts,null,2));
 console.log("Report:",path.join(out,"report.json"));

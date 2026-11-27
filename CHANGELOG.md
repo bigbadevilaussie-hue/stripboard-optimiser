@@ -1,5 +1,9 @@
 # Changelog
 
+### 27 November 2026 — Karl autopsy six-board smoke gate
+- Added run_karl_autopsy.py to identify exact prepared input by manifest hash and launch the six priority cases by default. Full archive requires explicit --all. Added input fingerprint verification, graph-disagreement quarantine and redundant offending-wire test to the JS harness.
+- JavaScript syntax and extracted actual graph self-test passed; Mac compiled-helper replay and rescue outcomes are unverified. No production/GUI changes; GUI 2.39 unchanged.
+
 ### 27 November 2026 — Canonical AI handover
 - Added root aihandover.md using Moto-Mate's checkpoint-first handover structure: owner rules, revisions, checked-in vs verified status, architecture, completed research, blockers and exact next steps.
 - Linked the canonical handover from README, project contract, documentation index and dated handoff. Future engineering commits update its current checkpoint with the changelog and affected docs.
