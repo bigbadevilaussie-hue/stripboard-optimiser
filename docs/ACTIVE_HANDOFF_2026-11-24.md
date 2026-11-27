@@ -4,9 +4,11 @@
 
 ## 27 November — latest verified repository and research status
 
-Read [Karl forensic checkpoint](KARL_FORENSICS_2026-11-27.md) first. Main-only rule enforced; all four former branches merged and deleted. 100 Mortal Kombat saved boards and both forensic scripts are in main. Championship finished 234–216 (1216 wins), 25 strict passes, best strict Q3 85.66 (1859 at 500k). No Q86 result. No production solver or GUI change; GUI 2.39 / Q3 remains current.
+**Full autopsy complete:** owner reports 100/100 replays, 25 original strict, three rescues, four strict improvements and zero electrical graph disagreements. Project record Q86.40 seed1216/460k plus deterministic surgery. See [canonical handover](../aihandover.md) for next evidence gate. No Q86 at 2k, no production patch.
 
-Current research: fixed-placement wire surgery and independent copper-graph replay, one worker, no extra annealing or board growth. Script syntax checked, runtime replay not yet verified. Five source findings are documented with limits; do not claim fixes or measured gains. Earlier campaign snapshots below are historical, not instructions to resume old runs. No new branches, PRs or upstream reports. Local uncommitted files are preserved. No new test result after consolidation.
+Read [Karl forensic checkpoint](KARL_FORENSICS_2026-11-27.md) first. Main-only rule enforced; all four former branches merged and deleted. 100 Mortal Kombat saved boards and both forensic scripts are in main. Championship finished 234–216 (1216 wins), 25 strict passes, best strict Q3 85.66 (1859 at 500k). No Q86 in the original championship before surgery. No production solver or GUI change; GUI 2.39 / Q3 remains current.
+
+Current research: fixed-placement wire surgery and independent copper-graph replay, one worker, no extra annealing or board growth. Initial source syntax checked; subsequent 100-board research replay completed as noted above. Five source findings are documented with limits; do not claim fixes or measured gains. Earlier campaign snapshots below are historical, not instructions to resume old runs. No new branches, PRs or upstream reports. Local uncommitted files are preserved. No new test result after consolidation.
 
 ## Current release: StripSolve GUI 2.39 / Q3 (25 November 2026)
 

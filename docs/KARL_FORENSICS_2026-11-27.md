@@ -40,7 +40,32 @@ Source locations are under src/frontend/components/stripboard/. Do not describe 
 
 Priority archive cases: seed 1216 at 280k (Q73.82, NONVERTICAL_1), 350k (Q81.97, BODY_CROSSINGS_1), 360k (Q80.04, BODY_CROSSINGS_1), 490k (Q79.76, BODY_CROSSINGS_2). Archived audit records report zero conflicts, incomplete nets, geometry violations and unplaced components for these cases.
 
-## Research scripts and next gate
+## 27 November — completed 100-board autopsy, Q86.40 project record
+
+Owner terminal evidence: ~/KARL_AUTOPSY_ALL_20261127_103543/report.json; research implementation 11ec46f, replay launched after documentation commit f630793. Exact prepared-input fingerprint matched; graph/path/cut-partition synthetic tests passed. All 100 archived boards replayed; 25 original strict, 23 eligible single-offender failures, zero graph disagreements/skips. Three distinct failures rescued, four original strict layouts improved, no additional annealing. Retaining originals or strict improvements gives 28/100 usable (25% → 28%, +3 percentage points, +12% relative); 3/23 eligible failures rescued (13.0%), 4/25 strict improved (16%). This selected two-seed budget ladder is not a random-seed benchmark.
+
+| Seed | Budget | Original Q3 | New strict Q3 | Method | Outcome |
+| --- | ---: | ---: | ---: | --- | --- |
+| 1216 | 120k | 78.68 | 79.08 | direct_endpoint | strict improved |
+| 1216 | 350k | 81.97 | 81.93 | cut_slide_path | rescued |
+| 1216 | 360k | 80.04 | 80.04 | cut_slide_path | rescued |
+| 1216 | 390k | 79.63 | 81.63 | direct_endpoint | strict improved |
+| 1216 | 400k | 77.83 | 79.83 | direct_endpoint | strict improved |
+| 1216 | 460k | 85.20 | **86.40** | direct_endpoint | strict improved; project record |
+| 1859 | 470k | 75.42 | 75.73 | net_wide_path | rescued |
+
+Previous project record 85.66 at seed1859/500k; new owner-reported record 86.40 at seed1216/460k plus deterministic surgery (+0.74 over prior record, +1.20 over its own original). Not Q86 at 2k. Original 460k board had 21W/37C/S3; direct endpoint method preserves W/C and vertical span, so +1.20 is consistent with S3→S2; exact repaired W/C/S and wire coordinates require inspection of saved JSON/report. No additional annealing or placement changes. Two cut rescues move one existing cut without changing kind/count. All accepted variants passed saved strict audit and separate copper graph; graph shares pin transforms and is not independent manufacturing certification.
+
+Full log aggregates: 22 cut-slide searches, 58,226 positions considered, 5,122 anchor-safe and graph-safe, 7 cut positions yielding paths, 10 candidate route audits accepted (two distinct boards), zero reported truncations or audit-cap hits. 23 net-wide searches, one rescue. Zero fixed two-strip direct rescues and zero isolated-relay rescues. This is a finished research replay, not a production fix.
+
+### Next gate — preserve and inspect seven witnesses
+
+Do not rerun the 100-board archive just to obtain the same evidence. The original compressed boards are on main, but seven repaired JSONs and full report are still on the owner's Mac. Inspect exact before/after endpoints, cuts, Q3 and strict status; preserve report and witness artifacts before further experiments. Specifically identify the record's stack change, two cut offsets, and the net-wide rescue's new attachments.
+
+Production comparison (static source verified): autoFinish.ts:168–216 restricts cut slides to the offending jumper's two endpoint rows, tries seven nearest positions per cut and caps full reroutes at 60; its acceptance uses fewer offending wires and non-increasing starved/shared-joint counts. layout2/finish.ts:573–591 repick accepts first valid alternative between the original strips; 669–673 only invokes repair for badWire (crossings or forbidden stacking), not legal-but-expensive stack depth. This suggests separate validity rescue and strict Q3 improvement opportunities. Exact causal reason each archived case was missed remains unverified until witness deltas and actual finish path are checked. Do not increase brute-force budget blindly; propose opt-in bounded deterministic finisher only after witness inspection, regression tests and measured runtime. Retain strict original incumbent; no production or GUI changes here.
+
+## Earlier smoke evidence (historical)
+
 
 ### 27 November — OWNER MAC PASS: single-cut surgery (source 11ec46f)
 
@@ -64,11 +89,11 @@ Owner Mac net-wide smoke (report KARL_AUTOPSY_SMOKE_20261127_103201): 6/6 replay
 
 Owner Mac six-board smoke (27 Nov, report KARL_AUTOPSY_SMOKE_20261127_102846): exact input fingerprint matched, graph self-test passed, 6/6 boards replayed, 2 strict reproduced, zero electrical graph disagreements, four single offending wires (490k crosses two bodies), zero rescues/improvements. Each rejected board reached only one audit trial (redundant offending-wire removal). Direct and one-empty-strip relay searches produced no audit candidates. This is a negative result for the restricted search, not proof of placement infeasibility. Follow-up net-wide search removes the same offending wire and considers all copper strips joined to either side, plus pinless transit groups, with unique new endpoint holes, no cuts/placement changes and at most four hops. Bounded at 20,000 queued states and 64 paths per board, reports truncation and blocked edges; not exhaustive. JS syntax and extracted graph/path self-tests pass; net-wide Mac replay completed as recorded above. No production change.
 
-**Smoke gate update:** run `scripts/run_karl_autopsy.py` with MacPorts Python from the checkout after pulling main. It locates the original prepared input by the manifest fingerprint and defaults to the four near-misses and two champions; `--all` requires separate explicit invocation after smoke review. The JS harness independently rechecks the fingerprint, skips electrical graph disagreements and attempts removing a redundant offending wire. JavaScript syntax and extracted graph self-test passed in AI tooling. Initial six-board Mac smoke completed as recorded above; full 100-board replay remains pending; cut-slide smoke now has two rescues as recorded above.
+**Smoke gate update:** run `scripts/run_karl_autopsy.py` with MacPorts Python from the checkout after pulling main. It locates the original prepared input by the manifest fingerprint and defaults to the four near-misses and two champions; `--all` requires separate explicit invocation after smoke review. The JS harness independently rechecks the fingerprint, skips electrical graph disagreements and attempts removing a redundant offending wire. JavaScript syntax and extracted graph self-test passed in AI tooling. Initial six-board Mac smoke completed as recorded above; full 100-board replay completed as recorded above; cut-slide smoke now has two rescues as recorded above.
 
-- [scripts/karl_autopsy.js](../scripts/karl_autopsy.js), original commit 8e42c3f: fixed-placement/cut wire surgery, existing isolated relay strips, redundant jumper removal, stack reduction and a horizontal copper-graph replay. Original JavaScript syntax checked before commit. Current harness synthetic tests and six-board replay have passed on the Mac; full archive replay remains pending. The graph reuses repository pin transforms; not a fully independent physical verifier. Verify prepared-input provenance against manifest using the canonical Python fingerprint and confirm compiled helper compatibility before running. Preserve original archives; report results separately; one worker; no annealing or board growth.
+- [scripts/karl_autopsy.js](../scripts/karl_autopsy.js), original commit 8e42c3f: fixed-placement/cut wire surgery, existing isolated relay strips, redundant jumper removal, stack reduction and a horizontal copper-graph replay. Original JavaScript syntax checked before commit. Current harness synthetic tests and six-board replay have passed on the Mac; full archive replay completed as recorded above. The graph reuses repository pin transforms; not a fully independent physical verifier. Verify prepared-input provenance against manifest using the canonical Python fingerprint and confirm compiled helper compatibility before running. Preserve original archives; report results separately; one worker; no annealing or board growth.
 - [scripts/sister_forensics.js](../scripts/sister_forensics.js), original commit 628a3d1: independent graph/topology research, runtime validation pending.
 - [Historical legal-topology patch](../research/legacy-topology/README.md): archived obsolete desktop worker, not active GUI implementation.
 - Candidate policy source already matched main byte-for-byte at merge; newer main documentation retained.
 
-The immediate objective is a reproducible strict rescue from a failed placement with no additional annealing, no part/cut changes and no larger board. Only a verified rescue is evidence of a missed router opportunity. The eventual 2k strict Q86 goal remains a research target, not a result. GUI Pass Two is still import-only. Production tests were last owner-reported passing on 26 November; no post-consolidation rebuild or regression run reported.
+The fixed-placement rescue objective has been demonstrated on three archived failures; two require one relocated cut. Only a verified rescue is evidence of a missed router opportunity. The eventual 2k strict Q86 goal remains a research target, not a result. GUI Pass Two is still import-only. Production tests were last owner-reported passing on 26 November; no post-consolidation rebuild or regression run reported.

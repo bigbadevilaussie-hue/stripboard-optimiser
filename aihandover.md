@@ -9,7 +9,7 @@ This section supersedes earlier dated handoffs. Historical results are evidence,
 - **MAIN ONLY.** No new branches or pull requests. No upstream reports, issues, comments or code submissions to Karl. Work within the owner's fork; research belongs in separate directories, not branches. Never force-push or discard local work.
 - **Revision control and documentation are part of every change.** Update this current checkpoint, CHANGELOG.md and affected current docs together with approved implementation/research changes. GUI/renderer/import changes bump gui/VERSION in the same commit; repository milestone VERSION and package version are separate. Do not increment a version just to imply progress. Report commit SHA, files, actual changes and validation status.
 - **Quality and physical validity first.** A locked 24×56 board means exactly 24×56. No widening the board or silently weakening strict rules to get a PASS. Preserve component locks, original netlist/definitions, legal geometry and electrical completeness. Human-buildable vertical wires; stacking and cut modes follow selected settings. Drilled cuts preferred by owner for human construction; specific research runs may explicitly allow knives. Q3 is construction quality, not electrical validity or percentage of optimum.
-- Prefer small reproducible counterexamples, deterministic replay, one-worker forensic tests, fewer moves and smaller boards over indiscriminate brute force. Target useful 2k-move layouts; Q86 strict is a research goal, not an achieved result. No new wagers.
+- Prefer small reproducible counterexamples, deterministic replay, one-worker forensic tests, fewer moves and smaller boards over indiscriminate brute force. Target useful 2k-move layouts; Q86 at 2k remains a research goal; Q86.40 at 460k plus zero-anneal surgery is now owner-reported. No new wagers.
 - Owner prefers concise, paste-ready Mac Terminal commands starting with cd, actual Git commits, no repeated questions, clean Qt6 Arctic Ice + Colourburst UI, and useful emoji terminal feedback. Do not claim background work, completed runtime tests, or local filesystem access without evidence.
 - Preserve existing local files and experiment results. No destructive reruns or blanket git add/reset/clean/stash. No automatic launch of a new campaign; verify scope and provenance. Do not change Moto-Mate, Fan-Mate or OSA.
 
@@ -25,7 +25,7 @@ This section supersedes earlier dated handoffs. Historical results are evidence,
 | Documentation reconciliation | 28d8aa571979c8f2b17f936b0746f0f350331d04 |
 | Remote branch state | main only; all four former branches merged and deleted |
 | Last owner-reported tests | 26 Nov: Python GUI regression suite passed after two fixes; all 7 Node headless suites passed |
-| Outstanding validation | Post-consolidation regression run, forensic harness execution, standalone Mac app qualification |
+| Outstanding validation | Post-consolidation production regressions, independent inspection of seven repaired witness JSONs, standalone Mac app qualification |
 
 Current code unchanged by branch consolidation or documentation reconciliation. Do not equate Git HEAD with a locally rebuilt executable. Owner's local cleanup reported a modified compiled renderer cli.js and untracked scripts, JSONs, test folders and workspaces; preserve them. No new tests were run by the AI for this handover. Current app launch/build state on the iMac is not independently verified.
 
@@ -54,7 +54,7 @@ Latest completed evidence in [research/mortal-kombat](research/mortal-kombat/): 
 | Dave / Sub-Zero | 1216 | 234 | 26 | 14/50 | 85.58 at 450k, 23W/39C/S1 |
 | Steve / Scorpion | 1859 | 216 | 16 | 11/50 | 85.66 at 500k, 22W/38C/S2 |
 
-8 draws; 25 strict, 75 failed. Championship points differ from strict qualification. Neither reached Q86. Manifest input and decoder hashes are preserved; do not substitute a different prepared input or call the experimental decoder production. Results are from two selected seeds, not an unbiased benchmark. Larger budgets use fresh cooling schedules, not progressive warm starts.
+8 draws; 25 strict, 75 failed. Championship points differ from strict qualification. Neither original championship board reached Q86; subsequent surgery reached 86.40. Manifest input and decoder hashes are preserved; do not substitute a different prepared input or call the experimental decoder production. Results are from two selected seeds, not an unbiased benchmark. Larger budgets use fresh cooling schedules, not progressive warm starts.
 
 Earlier Arm C orientation-domain work, owner logs: baseline Arm A 23/2000 strict at 100k vs Arm C 55/2000, paired overlap 1. Rotation mask changes were fixture-specific, experimental, not production; no claim of general proof or 2k success. Local later 117-seed ladder stopped at 500k; owner directed no further extension. Those earlier reports and local archives must be checked before quoting further statistics. Do not assume every local artifact is in Git.
 
@@ -67,40 +67,31 @@ Static source targets, not fixed or runtime-confirmed bugs:
 
 [Detailed findings and limitations](docs/KARL_FORENSICS_2026-11-27.md). Priority boards seed1216 at 280k (one nonvertical), 350k/360k (one crossing each), 490k (two crossings). All four archived audits report zero conflicts, incomplete, geometry and unplaced.
 
-### Immediate next gate (not a running task)
+## 27 November — completed 100-board autopsy, Q86.40 project record
 
-### 27 November — OWNER MAC PASS: single-cut surgery (source 11ec46f)
+Owner terminal evidence: ~/KARL_AUTOPSY_ALL_20261127_103543/report.json; research implementation 11ec46f, replay launched after documentation commit f630793. Exact prepared-input fingerprint matched; graph/path/cut-partition synthetic tests passed. All 100 archived boards replayed; 25 original strict, 23 eligible single-offender failures, zero graph disagreements/skips. Three distinct failures rescued, four original strict layouts improved, no additional annealing. Retaining originals or strict improvements gives 28/100 usable (25% → 28%, +3 percentage points, +12% relative); 3/23 eligible failures rescued (13.0%), 4/25 strict improved (16%). This selected two-seed budget ladder is not a random-seed benchmark.
 
-Report: ~/KARL_AUTOPSY_SMOKE_20261127_103416/report.json. Owner pasted complete terminal summary; saved witness JSON and report details have not yet been independently inspected. Prepared input fingerprint matched the manifest; all synthetic graph/path/cut-partition tests passed. Six boards replayed, two original strict champions reproduced, zero electrical graph disagreements, four single-offender near-misses. Two distinct rejected boards were rescued; ten accepted candidate variants across those two boards. No champion improvement.
+| Seed | Budget | Original Q3 | New strict Q3 | Method | Outcome |
+| --- | ---: | ---: | ---: | --- | --- |
+| 1216 | 120k | 78.68 | 79.08 | direct_endpoint | strict improved |
+| 1216 | 350k | 81.97 | 81.93 | cut_slide_path | rescued |
+| 1216 | 360k | 80.04 | 80.04 | cut_slide_path | rescued |
+| 1216 | 390k | 79.63 | 81.63 | direct_endpoint | strict improved |
+| 1216 | 400k | 77.83 | 79.83 | direct_endpoint | strict improved |
+| 1216 | 460k | 85.20 | **86.40** | direct_endpoint | strict improved; project record |
+| 1859 | 470k | 75.42 | 75.73 | net_wide_path | rescued |
 
-| Seed 1216 budget | Cut positions considered | Anchor/graph-safe | Candidate audits for cut routes | Accepted cut routes | Best rescued strict Q3 |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| 280k | 2803 | 183 | 0 | 0 | — |
-| 350k | 2444 | 246 | 3 | 3 | 81.93 (raw original 81.97) |
-| 360k | 2590 | 204 | 7 | 7 | 80.04 (raw original 80.04) |
-| 490k | 2644 | 196 | 0 | 0 | — |
+Previous project record 85.66 at seed1859/500k; new owner-reported record 86.40 at seed1216/460k plus deterministic surgery (+0.74 over prior record, +1.20 over its own original). Not Q86 at 2k. Original 460k board had 21W/37C/S3; direct endpoint method preserves W/C and vertical span, so +1.20 is consistent with S3→S2; exact repaired W/C/S and wire coordinates require inspection of saved JSON/report. No additional annealing or placement changes. Two cut rescues move one existing cut without changing kind/count. All accepted variants passed saved strict audit and separate copper graph; graph shares pin transforms and is not independent manufacturing certification.
 
-All cut searches report zero truncation and no audit-cap hit. Each rescue changes one existing cut position, not cut count/kind, plus replacement jumper(s); original component placement, 24×56 dimensions, original netlist/locks and remaining wires preserved by harness construction. Both saved strict audit and separate copper graph accepted the results. The graph still shares pin transforms. Exact cut displacement and replacement wire details require reading the saved report. No Q86 or WR improvement. Two of four selected failures rescued; 2/6 original strict to 4/6 if rescued variants retained. This is a concrete missed finishing opportunity, not proof of a particular production function defect or a population-wide doubling of strict pass rate.
+Full log aggregates: 22 cut-slide searches, 58,226 positions considered, 5,122 anchor-safe and graph-safe, 7 cut positions yielding paths, 10 candidate route audits accepted (two distinct boards), zero reported truncations or audit-cap hits. 23 net-wide searches, one rescue. Zero fixed two-strip direct rescues and zero isolated-relay rescues. This is a finished research replay, not a production fix.
 
-Next: freeze the current research algorithm and replay the complete 100-board Mortal Kombat archive, one process, zero annealing, no rebuild, fresh output directory. Compare original strict 25/100 against strict survivors plus unique newly rescued boards; separately report eligible single-offender denominator, cut-route variants, champion improvement, graph disagreements and bounded-search truncation. The 100 boards are selected seeds 1216 and 1859 over budgets 10k–500k, not an independent random seed campaign. Inspect both saved witness deltas, then compare the missed cut positions with the existing autoFinish.ts cut-slide and finish.ts repair logic before proposing a production patch. No production code or GUI revision change.
+### Next gate — preserve and inspect seven witnesses
 
-Owner command: `cd ~/Documents/stripboard-optimiser && git pull --ff-only && /opt/local/bin/python3.13 scripts/run_karl_autopsy.py --all`. Preserve smoke reports and original archives.
+Do not rerun the 100-board archive just to obtain the same evidence. The original compressed boards are on main, but seven repaired JSONs and full report are still on the owner's Mac. Inspect exact before/after endpoints, cuts, Q3 and strict status; preserve report and witness artifacts before further experiments. Specifically identify the record's stack change, two cut offsets, and the net-wide rescue's new attachments.
 
+Production comparison (static source verified): autoFinish.ts:168–216 restricts cut slides to the offending jumper's two endpoint rows, tries seven nearest positions per cut and caps full reroutes at 60; its acceptance uses fewer offending wires and non-increasing starved/shared-joint counts. layout2/finish.ts:573–591 repick accepts first valid alternative between the original strips; 669–673 only invokes repair for badWire (crossings or forbidden stacking), not legal-but-expensive stack depth. This suggests separate validity rescue and strict Q3 improvement opportunities. Exact causal reason each archived case was missed remains unverified until witness deltas and actual finish path are checked. Do not increase brute-force budget blindly; propose opt-in bounded deterministic finisher only after witness inspection, regression tests and measured runtime. Retain strict original incumbent; no production or GUI changes here.
 
-**Earlier net-wide result and cut-slide design (superseded by successful smoke above):** Owner Mac net-wide smoke (report KARL_AUTOPSY_SMOKE_20261127_103201): 6/6 replay, two strict, zero graph disagreements, zero rescues or improvements. Seed1216 280k source/target free holes 52/68, zero eligible cross-group column pairs; 350k 27/19, all 9 pairs blocked by bodies; 360k 9/14, 1/1 blocked; 490k 1/33, 1/1 blocked. All had zero clean edges and no search truncation. This disproves only the tested endpoint/relay search under existing cuts, occupied-hole restrictions and no shared solder holes, not arbitrary fixed-placement routability. Next gate: single existing cut slide, preserving kind/count, all component pin and existing wire-anchor copper partitions, original locks/netlist, remaining wires and 24×56 dimensions. Enumerate every candidate single-cut column, prioritize shortest displacement; require independent graph before rerouting and both audits after rerouting. Four-hop bounded search (5,000 queued states and eight paths per cut), 256 candidate audits per board, explicit truncation/cap reporting. JS syntax and extracted graph/path/cut-partition tests passed; owner runtime completed as recorded above. No production or GUI change.
-
-Six-board cut-slide result reviewed; full archive replay is the proposed next owner run.
-
-**Latest owner evidence and next experiment:** Owner Mac six-board smoke (27 Nov, report KARL_AUTOPSY_SMOKE_20261127_102846): exact input fingerprint matched, graph self-test passed, 6/6 boards replayed, 2 strict reproduced, zero electrical graph disagreements, four single offending wires (490k crosses two bodies), zero rescues/improvements. Each rejected board reached only one audit trial (redundant offending-wire removal). Direct and one-empty-strip relay searches produced no audit candidates. This is a negative result for the restricted search, not proof of placement infeasibility. Follow-up net-wide search removes the same offending wire and considers all copper strips joined to either side, plus pinless transit groups, with unique new endpoint holes, no cuts/placement changes and at most four hops. Bounded at 20,000 queued states and 64 paths per board, reports truncation and blocked edges; not exhaustive. JS syntax and extracted graph/path self-tests pass; net-wide Mac replay completed as recorded above. No production change.
-
-Run the same six-case launcher after pulling main; do not start --all until reviewed.
-
-**27 Nov smoke launcher:** `scripts/run_karl_autopsy.py` locates the exact prepared input by the canonical manifest SHA-256 and runs six cases (four seed1216 near-misses and two strict champions). The JS script rechecks the hash, runs graph self-tests, and skips graph disagreements. JavaScript syntax and the extracted graph self-test passed in AI tooling; initial Mac smoke is now complete; see latest owner evidence above. Run `cd ~/Documents/stripboard-optimiser && git pull --ff-only && /opt/local/bin/python3.13 scripts/run_karl_autopsy.py`. Smoke reviewed; `--all` is now the next proposed experiment. No rebuild or annealing required; existing compiled audit helpers must be available.
-
-- Audit scripts/karl_autopsy.js before use: original commit 8e42c3f, syntax checked only. Fingerprint now enforced in launcher and JS; verify saved JSON shapes, helper compatibility, Q3 reproduction and baseline audit replay. Run the embedded synthetic graph test and small archive smoke case before full replay. Initial owner smoke output recorded above; net-wide replay completed; cut-slide smoke completed with two rescues; full replay pending.
-- Goal: reproduce a strict rescue from an archived failed placement using existing copper and legal vertical wires, preserving every component position, cut and dimension. Audit original and repaired candidate; compare independent copper graph and Q3. Save before/after boards and evidence separately. Zero annealing, no board growth. Test direct endpoint relocation, isolated relay strips and redundant jumper/stack improvement. Do not claim a rescue until observed.
-- scripts/sister_forensics.js (628a3d1) remains experimental, runtime validation pending. [Legacy topology worker](research/legacy-topology/README.md) archived only; do not restore obsolete production desktop code.
-- Next after evidence: synthetic lock/scoring/routing counterexamples, cut surgery, exact small-board oracle and measured local-repair performance. Compound rotate+relocate and accepted-genome archive/warm-start are research proposals, not deployed. Preserve incumbent and strict rules in any experiment.
+Earlier smoke stages and their historical commands are recorded in [forensic report](docs/KARL_FORENSICS_2026-11-27.md). Sister forensic script runtime remains pending; genome save/load is still proposed, GUI Pass Two import-only.
 
 ### Mac directory and command contract
 

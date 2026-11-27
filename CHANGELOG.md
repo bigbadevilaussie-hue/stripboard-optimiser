@@ -1,5 +1,9 @@
 # Changelog
 
+### 27 November 2026 — Completed Karl autopsy: project record Q86.40
+- Owner 100-board replay (research source 11ec46f): 25 original strict, three rescued (two cut slides, one net-wide), four strict improved, zero graph disagreements/skips. 28 usable when retaining strict incumbents, 23 eligible single-offender failures. Zero additional annealing. New project record seed1216/460k Q85.20→86.40, prior 85.66; Q86 at 2k not achieved.
+- Recorded seven witness outcomes, cut-search aggregates and static production comparison. Exact saved report/witness JSONs remain local and require inspection; no production or GUI changes. GUI 2.39 unchanged.
+
 ### 27 November 2026 — Owner-verified cut-slide smoke: two strict rescues
 - Source 11ec46f: seed1216 at 350k and 360k repaired using one existing cut relocation plus jumper replacement, Q3 81.93 and 80.04. Two distinct boards, ten accepted route variants, zero annealing, unchanged 24×56 placements and cut count/kind. Six archive replays, zero graph disagreements. Neither champion improved; 280k/490k not rescued. Owner terminal evidence; exact saved witness files not yet independently inspected.
 - Smoke review complete; next gate is full 100-board replay using unchanged research code and --all, followed by production cut-slide comparison. Updated handover and detailed results; no GUI/solver changes.

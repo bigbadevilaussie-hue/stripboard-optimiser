@@ -14,7 +14,7 @@ The audit records verified source checks and outstanding target-Mac tests; it do
 
 ## Current research checkpoint — 27 November 2026
 
-**Main only.** All four former branches are merged and deleted; the 100 Mortal Kombat boards and forensic scripts are preserved. [Current revision, final championship results, source defects and verification gates](docs/KARL_FORENSICS_2026-11-27.md). Research additions only; no GUI version bump or production solver change. No upstream submissions.
+**Main only.** All four former branches are merged and deleted; the 100 Mortal Kombat boards and forensic scripts are preserved. [Current revision, final championship results, source defects and verification gates](docs/KARL_FORENSICS_2026-11-27.md). Research additions only; no GUI version bump or production solver change. No upstream submissions. Owner 100-board autopsy: three strict rescues, four improvements, zero graph disagreements; project record Q86.40 (seed1216/460k plus zero additional annealing). See [aihandover.md](aihandover.md) for witness inspection and validation limits.
 
 ## Native V5 experimental candidate modes (26 November 2026)
 
