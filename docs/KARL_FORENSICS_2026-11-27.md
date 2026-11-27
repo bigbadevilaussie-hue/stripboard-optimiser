@@ -1,5 +1,8 @@
 # 27 November 2026 — main-only consolidation and Karl forensic research
 
+**27 November — Seven autopsy witnesses archived and re-audited: 7/7 STRICT PASS, Q3 scores reproduced, project record Q86.40. See `research/karl-autopsy/20261127/verification.json`. No production changes.**
+
+
 ## Revision and scope
 
 - Repository milestone: 2.00 (root VERSION); headless package: 2.0.0; StripSolve GUI: 2.39; construction score: Q3.

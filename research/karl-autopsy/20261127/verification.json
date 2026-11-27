@@ -1,0 +1,187 @@
+{
+  "input_sha256": "0eee8b94847ebf622c4b2b0d580644f8456bb079a159617c0c72b65f76d09313",
+  "verified": [
+    {
+      "file": "120000_1216_direct_endpoint.json",
+      "sha256": "f85f15322e00f579d2ee00e3b3830a88007777970c6c5913dc7f205aea96b21c",
+      "score": {
+        "w": 36,
+        "cut": 52,
+        "s": 1,
+        "wire_length_mm": 495.3,
+        "q": 79.08
+      },
+      "audit": {
+        "valid": true,
+        "failures": [],
+        "warnings": [],
+        "wires": 36,
+        "cuts": 52,
+        "stacked": 0,
+        "nonvertical": 0,
+        "crossings": 0,
+        "conflicts": 0,
+        "incomplete": 0,
+        "geometry": 0,
+        "wireLength": 195,
+        "unplaced": []
+      }
+    },
+    {
+      "file": "350000_1216_cut_slide_path.json",
+      "sha256": "b54c11be802e83e1404987a327c8ef78d1425dadf95d49719a19eea4c6011ca3",
+      "score": {
+        "w": 30,
+        "cut": 46,
+        "s": 2,
+        "wire_length_mm": 388.62,
+        "q": 81.93
+      },
+      "audit": {
+        "valid": true,
+        "failures": [],
+        "warnings": [],
+        "wires": 30,
+        "cuts": 46,
+        "stacked": 3,
+        "nonvertical": 0,
+        "crossings": 0,
+        "conflicts": 0,
+        "incomplete": 0,
+        "geometry": 0,
+        "wireLength": 153,
+        "unplaced": []
+      }
+    },
+    {
+      "file": "360000_1216_cut_slide_path.json",
+      "sha256": "13430204c9c6d4d75c80ed95d4cad151912baa1c58f69f0cba20eaaea0f7a9b4",
+      "score": {
+        "w": 33,
+        "cut": 49,
+        "s": 2,
+        "wire_length_mm": 474.98,
+        "q": 80.04
+      },
+      "audit": {
+        "valid": true,
+        "failures": [],
+        "warnings": [],
+        "wires": 33,
+        "cuts": 49,
+        "stacked": 5,
+        "nonvertical": 0,
+        "crossings": 0,
+        "conflicts": 0,
+        "incomplete": 0,
+        "geometry": 0,
+        "wireLength": 187,
+        "unplaced": []
+      }
+    },
+    {
+      "file": "390000_1216_direct_endpoint.json",
+      "sha256": "e52b785dff7401c29b76030a4ba9b7eec382369868e1b26906f84791f6054e4d",
+      "score": {
+        "w": 27,
+        "cut": 43,
+        "s": 3,
+        "wire_length_mm": 426.72,
+        "q": 81.63
+      },
+      "audit": {
+        "valid": true,
+        "failures": [],
+        "warnings": [],
+        "wires": 27,
+        "cuts": 43,
+        "stacked": 10,
+        "nonvertical": 0,
+        "crossings": 0,
+        "conflicts": 0,
+        "incomplete": 0,
+        "geometry": 0,
+        "wireLength": 168,
+        "unplaced": []
+      }
+    },
+    {
+      "file": "400000_1216_direct_endpoint.json",
+      "sha256": "81eb7b82d46b16e6929c48c9adeace64bf996457a79cca4037a967fc4e0e384b",
+      "score": {
+        "w": 29,
+        "cut": 45,
+        "s": 3,
+        "wire_length_mm": 551.18,
+        "q": 79.83
+      },
+      "audit": {
+        "valid": true,
+        "failures": [],
+        "warnings": [],
+        "wires": 29,
+        "cuts": 45,
+        "stacked": 10,
+        "nonvertical": 0,
+        "crossings": 0,
+        "conflicts": 0,
+        "incomplete": 0,
+        "geometry": 0,
+        "wireLength": 217,
+        "unplaced": []
+      }
+    },
+    {
+      "file": "460000_1216_direct_endpoint.json",
+      "sha256": "e544f6c89470b60f3e21e42b4361606347a5f3440827c3bd8746c1c3653e0e9c",
+      "score": {
+        "w": 21,
+        "cut": 37,
+        "s": 2,
+        "wire_length_mm": 279.4,
+        "q": 86.4
+      },
+      "audit": {
+        "valid": true,
+        "failures": [],
+        "warnings": [],
+        "wires": 21,
+        "cuts": 37,
+        "stacked": 3,
+        "nonvertical": 0,
+        "crossings": 0,
+        "conflicts": 0,
+        "incomplete": 0,
+        "geometry": 0,
+        "wireLength": 110,
+        "unplaced": []
+      }
+    },
+    {
+      "file": "470000_1859_net_wide_path.json",
+      "sha256": "9a8cbb35c7840ce45c6545920fac5575c1a64a8095b61e71c9605bd6c6adfcca",
+      "score": {
+        "w": 39,
+        "cut": 55,
+        "s": 3,
+        "wire_length_mm": 563.88,
+        "q": 75.73
+      },
+      "audit": {
+        "valid": true,
+        "failures": [],
+        "warnings": [],
+        "wires": 39,
+        "cuts": 55,
+        "stacked": 7,
+        "nonvertical": 0,
+        "crossings": 0,
+        "conflicts": 0,
+        "incomplete": 0,
+        "geometry": 0,
+        "wireLength": 222,
+        "unplaced": []
+      }
+    }
+  ]
+}

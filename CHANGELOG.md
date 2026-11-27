@@ -1,5 +1,8 @@
 # Changelog
 
+**27 November — Seven autopsy witnesses archived and re-audited: 7/7 STRICT PASS, Q3 scores reproduced, project record Q86.40. See `research/karl-autopsy/20261127/verification.json`. No production changes.**
+
+
 ### 27 November 2026 — Seven witness deltas confirmed from owner report
 - Q86.40: w0 shifted from col1 to col3, rows0–8 unchanged; 21W/37C, S3→S2, 279.4mm unchanged. All four strict improvements are stack-only. Both cut rescues move an existing drilled cut col18→7 (rows23 and22); net-wide rescue shortens w23 by 15 holes. Exact details in forensic note. Report and saved JSONs remain local pending archive and independent validation. No code/version changes.
 
