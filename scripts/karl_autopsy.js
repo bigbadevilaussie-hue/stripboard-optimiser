@@ -130,7 +130,7 @@ function testPaths(){
 // Unlike the original repair, endpoint choices span EVERY existing strip
 // connected to either side. Transit groups must be completely pinless.
 // No component, cut, dimension, existing remaining wire or netlist is moved.
-function netWide(b,ctx,i){
+function netWide(b,ctx,i,limits={}){
   const ws=b.board.wires,old=ws[i],rest=ws.filter((_,j)=>j!==i);
   const ss=ctx.segments,parent=ss.map((_,i)=>i);
   const root=i=>{while(parent[i]!==i){parent[i]=parent[parent[i]];i=parent[i];}return i;};
@@ -176,19 +176,37 @@ function netWide(b,ctx,i){
     }
   }
   for(const edges of adj.values())edges.sort((x,y)=>x.len-y.len||x.from.col-y.from.col||x.to.row-y.to.row);
-  const found=searchPaths(adj,a,z);
+  const found=searchPaths(adj,a,z,limits.hops??4,limits.states??20000,limits.paths??64);
   return {source:a,target:z,sourceStrips:groupStrips.get(a)||0,targetStrips:groupStrips.get(z)||0,
     sourceFree:holesByGroup.get(a)||0,targetFree:holesByGroup.get(z)||0,
-    groups:groupStrips.size,pairChecks,blockedCrossing,cleanEdges,directEdges,
+    groups:groupStrips.size,groupsWithFree:holesByGroup.size,sourceCols:byCol.flatMap((hs,c)=>hs.some(h=>h.g===a)?[c]:[]),targetCols:byCol.flatMap((hs,c)=>hs.some(h=>h.g===z)?[c]:[]),pairChecks,blockedCrossing,cleanEdges,directEdges,
     sourceEdges:(adj.get(a)||[]).length,targetEdges:(adj.get(z)||[]).length,
     ...found};
 }
 
+// Preserve the partition of all anchored holes on a horizontal strip.
+// A drilled hole may never land on an anchor. Empty copper can change
+// ownership, but no two pin/wire anchors may gain or lose a copper link.
+function anchorPartition(cuts,cols){
+  if(cuts.some(c=>c.kind==="hole"&&cols.includes(c.col)))return null;
+  const boundaries=cuts.flatMap(c=>c.kind==="hole"?[c.col,c.col+1]:[c.col+1]);
+  return cols.slice(1).map((col,j)=>boundaries.some(x=>cols[j]<x&&x<=col)?"1":"0").join("");
+}
+function testCutPartition(){
+  const cut=(col,kind="between")=>({row:0,col,kind});
+  const anchors=[1,5,8];
+  if(anchorPartition([cut(2)],anchors)!==anchorPartition([cut(4)],anchors))throw Error("Cut slide anchor preservation");
+  if(anchorPartition([cut(2)],anchors)===anchorPartition([cut(6)],anchors))throw Error("Cut slide crossing anchor");
+  if(anchorPartition([cut(5,"hole")],anchors)!==null)throw Error("Cut slide drilled anchor");
+  if(anchorPartition([cut(3,"hole")],anchors)!==anchorPartition([cut(2,"hole")],anchors))throw Error("Drilled slide preservation");
+}
+
 testGraph();
 testPaths();
-console.log("✅ Copper graph and multi-hop synthetic checks passed");
+testCutPartition();
+console.log("✅ Copper graph, multi-hop and cut partition synthetic checks passed");
 fs.mkdirSync(out);
-const results=[],counts={boards:0,strict:0,graphDisagreement:0,singleOffender:0,directRescue:0,relayRescue:0,strictImproved:0,netWideRescue:0,skipped:0};
+const results=[],counts={boards:0,strict:0,graphDisagreement:0,singleOffender:0,directRescue:0,relayRescue:0,strictImproved:0,netWideRescue:0,cutSlideRescue:0,skipped:0};
 function examine(b,info){
   if(b.board.rows!==24||b.board.cols!==56||b.board.pattern)return {...info,skipped:"not ordinary 24x56 strips"};
   const old=auditSavedStrict(b,input,false), ctx=context(b), graph=physicalGraph(b,ctx.pins), score=q3(b);
@@ -198,14 +216,14 @@ function examine(b,info){
   if(graph.complete!==(old.incomplete===0&&old.conflicts===0&&old.unplaced.length===0))counts.graphDisagreement++;
   const result={...info,audit:old,graph,score,trials:0,method:null,best:null};
   if(graph.complete!==(old.incomplete===0&&old.conflicts===0&&old.unplaced.length===0)){result.skipped="electrical graph disagreement; manual investigation required";return result;}
-  // Only alter wires. Existing placements, cuts, netlist, locks stay byte-equivalent as JSON.
+  // Keep placements, netlist and locks fixed. Last resort moves one existing cut without changing its kind or count.
   const ws=b.board.wires;
   const bad=ws.map((w,i)=>({i,d:Number(w.from.col!==w.to.col||w.from.row===w.to.row),x:ctx.cross(w)})).filter(x=>x.d||x.x);
   result.offenders=bad.map(x=>({...x,wire:ws[x.i],strips:[ctx.segments[ctx.at(ws[x.i].from)],ctx.segments[ctx.at(ws[x.i].to)]]}));
   if(bad.reduce((n,x)=>n+x.x,0)!==old.crossings)throw Error("Crossing predicate mismatch");
   let best=null,bestScore=null;
-  function offer(wires,method,detail){
-    const candidate={...b,board:{...b.board,wires}};
+  function offer(wires,method,detail,cuts=b.board.cuts){
+    const candidate={...b,board:{...b.board,wires,cuts}};
     result.trials++;
     const a=auditSavedStrict(candidate,input,false);
     if(!a.valid||!physicalGraph(candidate,ctx.pins).complete)return false;
@@ -236,6 +254,50 @@ function examine(b,info){
       }
       console.log("🧬 Net-wide",info.seed,info.moves,JSON.stringify(result.netWide));
     }
+    if(!best)cutSlide(i);
+  }
+  function cutSlide(i){
+    const anchors=[...ctx.pins,...ws.flatMap(w=>[w.from,w.to])];
+    const original=b.board.cuts;
+    const stats={positions:0,anchorSafe:0,graphSafe:0,routeCandidates:0,withPath:0,accepted:0,searchTruncated:0,auditCapHit:false};
+    const jobs=[];
+    for(let j=0;j<original.length;j++){
+      const cut=original[j],row=cut.row;
+      const cols=[...new Set(anchors.filter(p=>p.row===row).map(p=>p.col))].sort((a,z)=>a-z);
+      const rowCuts=original.filter(c=>c.row===row),signature=anchorPartition(rowCuts,cols);
+      if(signature===null)continue;
+      const max=cut.kind==="hole"?b.board.cols-1:b.board.cols-2;
+      for(let col=0;col<=max;col++){
+        if(col===cut.col||original.some((c,k)=>k!==j&&c.row===row&&c.col===col))continue;
+        stats.positions++;
+        const replacement={...cut,col};
+        const cuts=original.map((c,k)=>k===j?replacement:c);
+        if(anchorPartition(cuts.filter(c=>c.row===row),cols)!==signature)continue;
+        stats.anchorSafe++;
+        jobs.push({j,cut,replacement,cuts,delta:Math.abs(cut.col-col)});
+      }
+    }
+    jobs.sort((x,y)=>x.delta-y.delta||x.j-y.j||x.replacement.col-y.replacement.col);
+    for(const job of jobs){
+      if(stats.routeCandidates>=256){stats.auditCapHit=true;break;}
+      const shifted={...b,board:{...b.board,cuts:job.cuts}};
+      if(!physicalGraph(shifted,ctx.pins).complete)continue;
+      stats.graphSafe++;
+      const changedCtx=context(shifted);
+      const route=netWide(shifted,changedCtx,i,{hops:4,states:5000,paths:8});
+      if(route.truncated)stats.searchTruncated++;
+      if(!route.paths.length)continue;
+      stats.withPath++;
+      for(const pathEdges of route.paths){
+        if(stats.routeCandidates>=256){stats.auditCapHit=true;break;}
+        stats.routeCandidates++;
+        const rest=ws.filter((_,j)=>j!==i);
+        const replacements=pathEdges.map((e,j)=>({...ws[i],from:e.from,to:e.to,...(j?{id:"autopsy-"+sha(JSON.stringify([info.seed,info.moves,job.j,job.replacement,pathEdges,j])).slice(0,16)}:{})}));
+        if(offer([...rest,...replacements],"cut_slide_path",{i,old:ws[i],new:replacements,cutIndex:job.j,oldCut:job.cut,newCut:job.replacement},job.cuts))stats.accepted++;
+      }
+    }
+    result.cutSlide=stats;
+    console.log("🔪 Cut slide",info.seed,info.moves,JSON.stringify(stats));
   }
   function endpoints(i){
     const oldWire=ws[i],a=ctx.at(oldWire.from),z=ctx.at(oldWire.to);
@@ -285,7 +347,7 @@ function examine(b,info){
     }
   }
   if(best){
-    if(old.valid)counts.strictImproved++;else if(result.method==="direct_endpoint")counts.directRescue++;else if(result.method==="one_empty_strip_relay")counts.relayRescue++;else if(result.method==="net_wide_path")counts.netWideRescue++;else counts.redundantRescue=(counts.redundantRescue||0)+1;
+    if(old.valid)counts.strictImproved++;else if(result.method==="direct_endpoint")counts.directRescue++;else if(result.method==="one_empty_strip_relay")counts.relayRescue++;else if(result.method==="net_wide_path")counts.netWideRescue++;else if(result.method==="cut_slide_path")counts.cutSlideRescue++;else counts.redundantRescue=(counts.redundantRescue||0)+1;
     const f=info.moves+"_"+info.seed+"_"+result.method+".json";
     fs.writeFileSync(path.join(out,f),JSON.stringify(best,null,2)+"\n");
     result.repaired=f;
