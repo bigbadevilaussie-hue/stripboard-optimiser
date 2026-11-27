@@ -1,6 +1,6 @@
 # StripSolve — AI Handover
 
-**27 November — Seven autopsy witnesses archived and re-audited: 7/7 STRICT PASS, Q3 scores reproduced, project record Q86.40. See `research/karl-autopsy/20261127/verification.json`. No production changes.**
+**27 November — MOTOEX Edge baseline completed: 8/100 strict at 100k, seed97 Q81.92. MOTO Q86.80 independently reproduced by Claude; final raw archive/full replay pending. See [Dave's evidence and verification checkpoint](docs/DAVE_MOTOEX_EDGE_2026-11-27.md). No production changes.**
 
 
 ## CURRENT CHECKPOINT — 2026-11-27 (read this first)
@@ -20,7 +20,11 @@ This section supersedes earlier dated handoffs. Historical results are evidence,
 
 Owner calls the solver Dave now (historical Karl filenames retained). MOTOEX source test-fixtures/masters/moto/motoex.json: 45 components, 123 assignments, 10 off-board. Existing prepare_trial clears all non-USB locks/placements (including TVS), fixes 24×56 both locks, preserves USB row13 col47 rotation0 locked=true edge=true slide=false; two body rows overhang, both pins on-board. No master edit. Use native Edge build, not the separate Arm C orientation binary; knives and stacks allowed, drill-domain off, strict checks mandatory, historical wire-first ranking unchanged.
 
-Approved test scope: 100 seeds × 2k, three workers, 30 seconds after each fully completed batch of 10 new seeds, no final cooldown. New optional --cooldown-every/--cooldown-seconds flags in scripts/run_motoex_native_sweep.py; defaults zero preserve existing behavior. Only submit current batch, drain all futures and checkpoint all results before sleeping. Resume batches count new pending seeds in that invocation. Record cooldown configuration in manifest and summary, reject changed resume cooldown settings; legacy manifests default zero. Added mocked scheduling tests. Actual Mac run and tests pending; no production solver/GUI changes. Bum Mode not implemented, remains off.
+Approved test scope: 100 seeds × 2k, three workers, 30 seconds after each fully completed batch of 10 new seeds, no final cooldown. New optional --cooldown-every/--cooldown-seconds flags in scripts/run_motoex_native_sweep.py; defaults zero preserve existing behavior. Only submit current batch, drain all futures and checkpoint all results before sleeping. Resume batches count new pending seeds in that invocation. Record cooldown configuration in manifest and summary, reject changed resume cooldown settings; legacy manifests default zero. Added mocked scheduling tests. Mac 8/8 tests passed and 2k/10k/50k/100k ladder completed (see latest checkpoint); no production solver/GUI changes. Bum Mode not implemented, remains off.
+
+### Latest completed MOTOEX and Claude checkpoint
+
+Read [full evidence and exact fingerprints](docs/DAVE_MOTOEX_EDGE_2026-11-27.md). Same 100 sequential seeds, fixed USB row13 col47 Edge ON Slide OFF, locked 24×56, knives/stacks allowed, drill-domain OFF, three workers, nine 30s idle pauses. 2k/10k/50k 0/100 each; 100k 8/100 strict (10,16,51,60,66,71,79,97), 60 electrically complete, all 100 reported geometry=0, wall565.42s including270s cooldown. Owner Mac eight unit tests passed. winner2.zip directly inspected: all eight raw hashes and dimension/lock/net/endpoint invariants match; Q3 recalculated, seed97 29W45C, 6 knives, S2,439.42mm Q81.92, theoretical S1 ceiling82.32. Seed60 C1 body-overhang warning requires fit review. No full independent electrical/body replay yet. 37 exactly-three incomplete: 32 GPS GND/net25/net29, five MPU GND/net10/net11; diagnosis not causal proof. Candidate offenders 18,21,26,62 need rejected JSONs. Proposed next paired Edge+orientation-domain test, not launched. MOTO Q86.80 separate: Claude independently reproduced three states and all64 report-state Q values, 11 improvements, W/C/L fixed. Final JSON named original_1216_460000.json is polished, not original; rename on archival, record full representation-specific hashes. Final raw artifacts and independent repo-based replay pending. No new campaign or solver edits.
 
 ### What is checked in vs what is verified
 

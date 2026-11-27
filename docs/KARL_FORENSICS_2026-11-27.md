@@ -1,6 +1,6 @@
 # 27 November 2026 — main-only consolidation and Karl forensic research
 
-**27 November — Seven autopsy witnesses archived and re-audited: 7/7 STRICT PASS, Q3 scores reproduced, project record Q86.40. See `research/karl-autopsy/20261127/verification.json`. No production changes.**
+**Latest: [Dave's MOTOEX Edge ladder and Claude Q86.80 verification](DAVE_MOTOEX_EDGE_2026-11-27.md). Q86.80 arithmetic independently reproduced; raw final archive and full replay outstanding. MOTOEX separate baseline 8/100 strict, Q81.92.**
 
 
 ## Revision and scope

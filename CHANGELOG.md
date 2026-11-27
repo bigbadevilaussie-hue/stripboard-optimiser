@@ -1,5 +1,9 @@
 # Changelog
 
+### 27 November 2026 — Completed Dave MOTOEX Edge ladder and Claude verification
+- Mac scheduling tests 8/8. 100 seeds each at 2k/10k/50k zero strict, 100k eight strict; 24×56 fixed USB Edge, no orientation domain. Recompute all eight Q3 values and SHA256/lock/endpoint invariants from winner2.zip; champion seed97 Q81.92, seed60 C1 overhang warning. GPS triple32 and MPU triple5; exact paired comparison and timing/cooldown provenance recorded. Full electrical/body replay and raw archive pending.
+- Claude independently reproduces MOTO 1216/460k Q85.20→86.40→86.80 and all64 report-state scores; no W/C/L changes. Clarify polished filename, hash representation and remaining verification. See [full checkpoint](docs/DAVE_MOTOEX_EDGE_2026-11-27.md). Documentation only, no version bump.
+
 ### 27 November 2026 — MOTOEX sweep smoko batches
 - Optional cooldown flags drain completed seed batches before sleeping; no final sleep, default off. Manifest/summary record settings; resume uses new pending seeds and matching configuration. Added scheduling tests. Owner scope 100×2k, three workers, 10 seeds/30s, fixed USB Edge ON. Runtime pending; no solver or GUI change.
 
