@@ -2,6 +2,8 @@
 
 ## Repository change-control contract
 
+Every AI session starts with [aihandover.md](aihandover.md). Update its current checkpoint in the same commit as approved engineering changes; record verified versus staged state and exact next steps. Historical notes do not override current source or owner rules.
+
 **Main only.** Never create branches or pull requests; never send bug reports, code or comments upstream to Karl. Keep research in directories within main. Every approved code/research change must update CHANGELOG.md and relevant current documentation in the same commit, identify affected version(s), and distinguish static review from executed tests. GUI or renderer/import integration changes must increment gui/VERSION in the same commit; research-only or documentation changes do not invent a GUI release. Preserve existing local work and historic data. See [27 November consolidation and forensic status](docs/KARL_FORENSICS_2026-11-27.md).
 
 ## Current release: StripSolve GUI 2.39 / Q3 (25 November 2026)

@@ -1,5 +1,10 @@
 # Changelog
 
+### 27 November 2026 — Canonical AI handover
+- Added root aihandover.md using Moto-Mate's checkpoint-first handover structure: owner rules, revisions, checked-in vs verified status, architecture, completed research, blockers and exact next steps.
+- Linked the canonical handover from README, project contract, documentation index and dated handoff. Future engineering commits update its current checkpoint with the changelog and affected docs.
+- Documentation only; repository 2.00, package 2.0.0 and GUI 2.39 unchanged. No runtime tests or production changes.
+
 ### 27 November 2026 — Main-only consolidation and Karl forensics
 - Preserved all 100 Mortal Kombat candidate archives, result JSONs, scorecard and manifest; 50 rounds completed, Dave 234–216, 25 strict passes overall, best strict Q3 85.66.
 - Added research scripts karl_autopsy.js and sister_forensics.js; archived the obsolete topology worker without restoring active code. Full script runtime verification remains outstanding.

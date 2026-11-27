@@ -4,7 +4,7 @@
 
 **Consolidation designation:** `2.00` (no Git tag published) · **npm/package version:** `2.0.0` · **StripSolve GUI:** `2.39` (`gui/VERSION`).
 
-**START HERE IF CONTINUING IN A NEW CHAT:** [Active handoff — latest Karl forensic research, Moto results and GUI status](docs/ACTIVE_HANDOFF_2026-11-24.md). It records the native solver call chain, opt-in diagonal qualification, unfinished work, historical WR results and **destructive rerun warnings**.
+**START HERE IF CONTINUING IN A NEW CHAT:** [aihandover.md](aihandover.md) — mandatory current checkpoint, owner rules, revisions, architecture, research evidence and next actions. The [dated handoff](docs/ACTIVE_HANDOFF_2026-11-24.md) retains historical context.
 
 **Current engineering reference:** [Full repository audit (24 Nov 2026)](docs/REPOSITORY_AUDIT_2026-11-24.md) · [Documentation index](docs/INDEX.md) · [CHANGELOG.md](CHANGELOG.md).
 

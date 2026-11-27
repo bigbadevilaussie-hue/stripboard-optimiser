@@ -1,5 +1,7 @@
 # ACTIVE HANDOFF — StripSolve (updated 27 Nov 2026)
 
+**Current AI entry point:** [../aihandover.md](../aihandover.md). This dated file retains historical evidence; follow the root handover for current status and next actions.
+
 ## 27 November — latest verified repository and research status
 
 Read [Karl forensic checkpoint](KARL_FORENSICS_2026-11-27.md) first. Main-only rule enforced; all four former branches merged and deleted. 100 Mortal Kombat saved boards and both forensic scripts are in main. Championship finished 234–216 (1216 wins), 25 strict passes, best strict Q3 85.66 (1859 at 500k). No Q86 result. No production solver or GUI change; GUI 2.39 / Q3 remains current.

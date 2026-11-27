@@ -4,6 +4,8 @@
 
 ## Start here (current authority)
 
+- **[aihandover.md](../aihandover.md)** — mandatory first read; canonical current checkpoint and owner rules.
+
 - [27 November: main-only revision, completed Mortal Kombat, Karl forensic targets and runtime verification gates](KARL_FORENSICS_2026-11-27.md) — current research checkpoint; no production solver changes.
 
 - [Native V5 candidate modes, 5k/10k runner, strict audit boundary and Mac verification](CANDIDATE_POLICIES.md) — **implemented and merged into `main`**; opt-in research paths only; GUI Pass One remains strict and Pass Two search remains import-only.
