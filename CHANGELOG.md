@@ -1,5 +1,8 @@
 # Changelog
 
+### 28 November 2026 — One-cut relocation research
+- Conflict search archive e0c6ad0: seeds26/94 fixed-cut graph infeasible,20/21/40 capped. Add bounded same-row one-cut slide and conflict reroute for26/94, pin partition/cut type/count preserved, strict final audit. 32 pure synthetic checks executed; Mac replay pending. No production changes.
+
 ### 28 November 2026 — Conflict-based fixed-cut feasibility research
 - V2 archive 3311c93: 0/5 strict, three heuristic path exhaustions and two state caps. Add opt-in neutral-strip conflict branching with complete single-net reachability and no hop/path caps; distinguish graph infeasibility from state cap. 24 pure assertions including 96 exhaustive-assignment comparisons executed here, Mac replay pending. No production changes.
 

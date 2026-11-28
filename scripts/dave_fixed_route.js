@@ -501,6 +501,109 @@ function testConflictRoute(){
   return 7;
 }
 
+function cutPartition(cuts,cols){
+  if(cuts.some(c=>c.kind==="hole"&&cols.includes(c.col)))return null;
+  const boundaries=cuts.flatMap(c=>c.kind==="hole"?[c.col,c.col+1]:[c.col+1]);
+  return cols.slice(1).map((col,i)=>boundaries.some(x=>cols[i]<x&&x<=col)?"1":"0").join("");
+}
+
+function cutVariants(board,pins){
+  const variants=[];
+  for(let i=0;i<board.cuts.length;i++){
+    const cut=board.cuts[i],row=cut.row;
+    const cols=[...new Set(pins.filter(p=>p.row===row).map(p=>p.col))].sort((a,b)=>a-b);
+    const partition=cutPartition(board.cuts.filter(c=>c.row===row),cols);
+    if(partition===null)throw Error("Original drilled pin");
+    const max=cut.kind==="hole"?board.cols-1:board.cols-2;
+    for(let col=0;col<=max;col++){
+      if(col===cut.col||board.cuts.some((c,j)=>j!==i&&c.row===row&&c.col===col))continue;
+      const replacement={...cut,col},cuts=board.cuts.map((c,j)=>j===i?replacement:c);
+      if(cutPartition(cuts.filter(c=>c.row===row),cols)!==partition)continue;
+      variants.push({i,old:cut,replacement,cuts,delta:Math.abs(col-cut.col)});
+    }
+  }
+  return variants.sort((a,b)=>a.delta-b.delta||a.i-b.i||a.replacement.col-b.replacement.col);
+}
+
+function physicalEdges(board,ctx){
+  // ctx is constructed without cuts, so old drill locations are not
+  // permanently excluded. Candidate drills are filtered separately.
+  const edges=[];
+  for(let col=0;col<board.cols;col++){
+    const free=[];
+    for(let row=0;row<board.rows;row++){
+      if(!ctx.occupied.has(row+","+col))free.push({row,col});
+    }
+    for(let i=0;i<free.length;i++)for(let j=i+1;j<free.length;j++){
+      const from=free[i],to=free[j];
+      if(!ctx.cross({from,to}))edges.push({from,to,len:to.row-from.row});
+    }
+  }
+  return edges.sort((a,b)=>a.len-b.len||a.from.col-b.from.col||a.from.row-b.from.row);
+}
+
+function edgesForCuts(edges,cuts){
+  const drilled=new Set(cuts.filter(c=>c.kind==="hole").map(c=>c.row+","+c.col));
+  return edges.filter(e=>!drilled.has(e.from.row+","+e.from.col)&&!drilled.has(e.to.row+","+e.to.col));
+}
+
+function cutSlideRoute(board,ctx,edges,limits={}){
+  const probeCap=limits.probes??512,deepCap=limits.deep??32,stateCap=limits.states??4096;
+  const variants=cutVariants(board,ctx.pins),successful=[],pending=[];
+  const stats={eligible:variants.length,probes:0,probeCap:false,deep:0,deepCap:false,
+    immediate:0,provenInfeasible:0,capped:0,states:0,routeCalls:0};
+  const trials=[];
+  function run(v,cap,phase){
+    const changed={...board,cuts:v.cuts};
+    const route=conflictRoute(changed,ctx,edgesForCuts(edges,v.cuts),{states:cap});
+    const detail={cutIndex:v.i,old:v.old,replacement:v.replacement,delta:v.delta,phase,
+      status:route.wires?"ROUTED":route.stats.exhausted?"GRAPH_INFEASIBLE":"SEARCH_CAP",
+      states:route.stats.states,bestConflictPairs:route.stats.bestConflictPairs,routeCalls:route.stats.routeCalls};
+    trials.push(detail);stats.states+=route.stats.states;stats.routeCalls+=route.stats.routeCalls;
+    if(route.wires)successful.push({v,wires:route.wires});
+    else if(route.stats.exhausted)stats.provenInfeasible++;
+    return route;
+  }
+  for(const v of variants.slice(0,probeCap)){
+    stats.probes++;
+    const result=run(v,1,"probe");
+    if(result.wires)stats.immediate++;
+    else if(result.stats.stateCap)pending.push({v,conflicts:result.stats.bestConflictPairs??Infinity});
+  }
+  stats.probeCap=stats.probes<variants.length;
+  pending.sort((a,b)=>a.conflicts-b.conflicts||a.v.delta-b.v.delta||a.v.i-b.v.i||a.v.replacement.col-b.v.replacement.col);
+  for(const {v} of pending.slice(0,deepCap)){
+    stats.deep++;
+    const result=run(v,stateCap,"deep");
+    if(result.stats.stateCap)stats.capped++;
+  }
+  stats.deepCap=stats.deep<pending.length;
+  return {successful,stats,trials};
+}
+
+function testCutSlideRoute(){
+  const p=(row,col)=>({row,col}),pin=(row,col,netKey)=>({row,col,netKey});
+  const board={rows:5,cols:5,cuts:[{row:4,col:3,kind:"between"}]};
+  const ctx={pins:[pin(0,0,"A"),pin(1,0,"A"),pin(2,0,"B"),pin(3,0,"B")],
+    occupied:new Set(["0,0","1,0","2,0","3,0"]),cross:()=>false};
+  const edge=(a,b,col)=>({from:p(a,col),to:p(b,col),len:b-a});
+  const edges=[edge(0,4,1),edge(1,4,1),edge(2,4,2),edge(3,4,2)];
+  if(!conflictRoute(board,ctx,edges).stats.exhausted)throw Error("Original relay competition");
+  const out=cutSlideRoute(board,ctx,edges,{probes:10,deep:10,states:128});
+  if(!out.successful.some(x=>x.v.replacement.col===1&&copper({...board,cuts:x.v.cuts},ctx.pins,x.wires).complete))
+    throw Error("One cut slide creates separate relays");
+  if(cutPartition([{col:1,kind:"between"}],[0,4])!==cutPartition([{col:2,kind:"between"}],[0,4]))
+    throw Error("Pin partition preservation");
+  if(cutPartition([{col:1,kind:"between"}],[0,2,4])===cutPartition([{col:2,kind:"between"}],[0,2,4]))
+    throw Error("Pin partition change");
+  if(cutPartition([{col:2,kind:"hole"}],[0,2,4])!==null)throw Error("Drilled pin rejection");
+  if(edgesForCuts(edges,[{row:4,col:1,kind:"hole"}]).length!==2)throw Error("Candidate drilled endpoints");
+  if(physicalEdges(board,ctx).some(e=>ctx.occupied.has(e.from.row+","+e.from.col)||ctx.occupied.has(e.to.row+","+e.to.col)))
+    throw Error("Occupied endpoints");
+  if(!cutSlideRoute(board,ctx,edges,{probes:0,deep:0}).stats.probeCap)throw Error("Probe cap");
+  return 8;
+}
+
 function selfTest(){
   const assert=(ok,msg)=>{if(!ok)throw Error("SELFTEST "+msg)};
   const p=(row,col)=>({row,col}), pin=(r,c,n)=>({...p(r,c),netKey:n});
@@ -527,7 +630,7 @@ function selfTest(){
   return 8;
 }
 
-console.log("✅",selfTest()+testReachability()+testGroupRoute()+testConflictRoute(),"synthetic routing assertions passed");
+console.log("✅",selfTest()+testReachability()+testGroupRoute()+testConflictRoute()+testCutSlideRoute(),"synthetic routing assertions passed");
 if(process.argv.length===3&&process.argv[2]==="--self-test")process.exit(0);
 
 const fs=require("node:fs"),path=require("node:path"),crypto=require("node:crypto");
@@ -576,7 +679,7 @@ function context(b){
 function graphReport(g){
   return {complete:g.complete,bad:g.bad,shorts:g.shorts,split:g.split.map(([net,groups])=>({net,groups:groups.size}))};
 }
-function inspectBoard(saved,input,info,diagnose=false,groupMode=false,conflictMode=false){
+function inspectBoard(saved,input,info,diagnose=false,groupMode=false,conflictMode=false,cutMode=false){
   const started=performance.now(),before=auditSavedStrict(saved,input,false),ctx=context(saved);
   const board=saved.board;
   if(board.rows!==24||board.cols!==56||board.pattern)throw Error("Unsupported board");
@@ -608,6 +711,31 @@ function inspectBoard(saved,input,info,diagnose=false,groupMode=false,conflictMo
     console.log("🔬",info.seed,"| unreachable nets (reserved / reusable / full ripup)",
       ...Object.values(row.reachability).map(x=>x.unreachableNets));
     return {row};
+  }
+  if(cutMode){
+    const bareCtx=context({...saved,board:{...board,cuts:[]}});
+    const superset=physicalEdges(board,bareCtx);
+    const slide=cutSlideRoute(board,bareCtx,superset);
+    row.cutSlide={stats:slide.stats,trials:slide.trials,audits:[]};
+    let best=null,bestQ=null;
+    for(const {v,wires:rawWires} of slide.successful){
+      const wires=rawWires.map((w,i)=>({...w,id:"dave-cut-"+sha(JSON.stringify([info.seed,v.i,v.replacement,i,w])).slice(0,20)}));
+      const candidate={...saved,board:{...board,cuts:v.cuts,wires}};
+      const audit=auditSavedStrict(candidate,input,false),q=q3(candidate),cc=context(candidate);
+      const finalGraph=copper(candidate.board,cc.pins,wires);
+      const freeEnds=wires.every(w=>[w.from,w.to].every(p=>!cc.occupied.has(key(p))));
+      const clean=wires.every(w=>w.from.col===w.to.col&&w.from.row!==w.to.row&&!cc.cross(w));
+      const uniqueIds=new Set(wires.map(w=>w.id)).size===wires.length;
+      const accepted=audit.valid&&finalGraph.complete&&freeEnds&&clean&&uniqueIds;
+      row.cutSlide.audits.push({cutIndex:v.i,old:v.old,replacement:v.replacement,audit,graph:graphReport(finalGraph),freeEnds,clean,uniqueIds,accepted,score:q});
+      if(accepted&&(!bestQ||q.q>bestQ.q||(q.q===bestQ.q&&q.w<bestQ.w))){
+        best=candidate;bestQ=q;row.after=q;row.method="single_cut_slide";row.cutChange={index:v.i,old:v.old,replacement:v.replacement};
+      }
+    }
+    row.status=best?"STRICT_RESCUE":slide.successful.length?"AUDIT_REJECT":"NO_REPAIR";
+    row.wall_ms=performance.now()-started;
+    console.log("🔪",info.seed,"| probes",slide.stats.probes,"/",slide.stats.eligible,"| deep",slide.stats.deep,"| routed",slide.successful.length,"| accepted",row.cutSlide.audits.filter(x=>x.accepted).length);
+    return {row,best};
   }
   let best=null,bestQ=null;
   for(const [name,initial] of (conflictMode?[["conflict_ripup",[]]]:groupMode?[["group_ripup",[]]]:[["retain_clean",good],["ripup_all",[]]])){
@@ -645,7 +773,8 @@ function main(){
   const diagnose=extra.length===1&&extra[0]==="--diagnose";
   const groupMode=extra.length===1&&extra[0]==="--group-route";
   const conflictMode=extra.length===1&&extra[0]==="--conflict-route";
-  if(!runArg||!outArg||(extra.length&&!diagnose&&!groupMode&&!conflictMode))throw Error("Usage: node scripts/dave_fixed_route.js CAMPAIGN NEW_REPORT_DIR [--diagnose|--group-route|--conflict-route]");
+  const cutMode=extra.length===1&&extra[0]==="--cut-slide";
+  if(!runArg||!outArg||(extra.length&&!diagnose&&!groupMode&&!conflictMode&&!cutMode))throw Error("Usage: node scripts/dave_fixed_route.js CAMPAIGN NEW_REPORT_DIR [--diagnose|--group-route|--conflict-route|--cut-slide]");
   const root=path.resolve(runArg),out=path.resolve(outArg);
   if(out===root||out.startsWith(root+path.sep)||fs.existsSync(out))throw Error("Choose new output outside campaign");
   const archive=read(path.join(repo,"research/dave-sniff/20261127-orientation-pair/summary.json")).campaigns[1];
@@ -656,7 +785,7 @@ function main(){
   const results=JSON.parse(resultsRaw).results,bySeed=new Map(results.map(e=>[e.seed,e]));
   const chosen=archive.near_misses;
   if(chosen.length!==5||JSON.stringify(chosen.map(x=>x.seed))!==JSON.stringify([26,94,20,21,40]))throw Error("Unexpected research cohort");
-  const work=chosen.map(info=>{
+  const work=(cutMode?chosen.filter(x=>[26,94].includes(x.seed)):chosen).map(info=>{
     const entry=bySeed.get(info.seed);
     if(!entry||entry.strictPass||entry.savedJson!==info.saved||entry.savedSha256!==info.sha256)throw Error("Seed identity mismatch");
     const raw=fs.readFileSync(path.join(root,entry.savedJson)),inputRaw=fs.readFileSync(path.join(root,entry.input));
@@ -665,14 +794,14 @@ function main(){
   });
   fs.mkdirSync(out,{recursive:true});
   const report={sourceCampaign:root,sourceResultsSha256:sha(resultsRaw),sourceManifest:manifest,
-    scriptSha256:sha(fs.readFileSync(__filename)),policy:{...(conflictMode?{states:4096,endpointReuse:true,neutralRelayConflictSearch:true}:groupMode?{states:512,branches:16,endpointReuse:true,groupForwardCheck:true}:{states:128,hops:4,paths:8,queue:1200}),placementsFixed:true,cutsFixed:true,annealMoves:0,diagnoseOnly:diagnose,groupMode,conflictMode},results:[]};
+    scriptSha256:sha(fs.readFileSync(__filename)),policy:{...(cutMode?{probes:512,deep:32,states:4096,endpointReuse:true,singleCutSameRowAndKind:true,pinPartitionPreserved:true}:conflictMode?{states:4096,endpointReuse:true,neutralRelayConflictSearch:true}:groupMode?{states:512,branches:16,endpointReuse:true,groupForwardCheck:true}:{states:128,hops:4,paths:8,queue:1200}),placementsFixed:true,cutsFixed:!cutMode,annealMoves:0,diagnoseOnly:diagnose,groupMode,conflictMode,cutMode},results:[]};
   const save=()=>{
     fs.writeFileSync(path.join(out,"report.tmp"),JSON.stringify(report,null,2)+"\n");
     fs.renameSync(path.join(out,"report.tmp"),path.join(out,"report.json"));
   };
   for(const item of work){
     console.log("🦈",item.info.seed,"|",item.info.offenders,"offending wires");
-    const {row,best}=inspectBoard(item.saved,item.input,item.info,diagnose,groupMode,conflictMode);
+    const {row,best}=inspectBoard(item.saved,item.input,item.info,diagnose,groupMode,conflictMode,cutMode);
     if(best){
       row.saved="strict_seed_"+row.seed+".json";
       const raw=JSON.stringify(best,null,2)+"\n";
@@ -690,7 +819,7 @@ function main(){
     fs.writeFileSync(path.join(out,"report.md"),lines.join("\n")+"\n");
     console.log("🏁 Reachability diagnosis complete |",out);return;
   }
-  const lines=["# Dave fixed-placement routing experiment","","Zero annealing; fixed components and cuts. Repair search bounded. GRAPH_INFEASIBLE means the fixed-cut legal-edge model exhausted all relay-conflict assignments, not universal physical impossibility. SEARCH_CAP or NO_REPAIR is inconclusive.","",
+  const lines=["# Dave fixed-placement routing experiment","",cutMode?"Zero annealing; fixed components; at most one existing cut moved on its row, preserving cut kind/count and component pin partitions. Bounded probes and routing; NO_REPAIR is inconclusive.":"Zero annealing; fixed components and cuts. Repair search bounded. GRAPH_INFEASIBLE means the fixed-cut legal-edge model exhausted all relay-conflict assignments, not universal physical impossibility. SEARCH_CAP or NO_REPAIR is inconclusive.","",
       "| Seed | Result | Before Q3 | After Q3 | Method |","|---:|---|---:|---:|---|",
       ...report.results.map(x=>[x.seed,x.status,x.beforeQ.q,x.after?.q??"—",x.method??"—"].join(" | ")).map(s=>"| "+s+" |"),
       "","Strict rescues: "+count+"/"+work.length,"","Full independent copper graph and saved-board audit results in report.json."];
