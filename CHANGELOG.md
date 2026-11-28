@@ -1,5 +1,8 @@
 # Changelog
 
+### 28 November 2026 — Close single-board rescue research; 10k candidate yield
+- Archive 2a103b7: all 1,321 eligible single-cut variants scanned, zero rescues, 1,319 graph-infeasible and two capped. Owner directs fixed 10k strict-candidate yield as sole objective; stop individual-board rescue experiments and higher-budget annealing. Documentation only.
+
 ### 28 November 2026 — Complete single-cut variant coverage
 - 4a5f514: 0/2 rescues, only45/732 and51/589 variants proven infeasible. Add --cut-slide-all, no shortlist, per-variant cap and exact accounting. 35 pure assertions passed here; Mac replay pending. No production changes.
 
