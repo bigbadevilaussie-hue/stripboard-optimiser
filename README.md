@@ -2,7 +2,7 @@
 
 **Release milestone:** Version 2.00 — Consolidation of Two Repositories (24 November 2026).
 
-**Consolidation designation:** `2.00` (no Git tag published) · **npm/package version:** `2.0.0` · **StripSolve GUI:** `2.39` (`gui/VERSION`).
+**Consolidation designation:** `2.00` (no Git tag published) · **npm/package version:** `2.0.0` · **StripSolve GUI:** `2.41` (`gui/VERSION`).
 
 **START HERE IF CONTINUING IN A NEW CHAT:** [aihandover.md](aihandover.md) — mandatory current checkpoint, owner rules, revisions, architecture, research evidence and next actions. The [dated handoff](docs/ACTIVE_HANDOFF_2026-11-24.md) retains historical context.
 
@@ -26,7 +26,7 @@ The solver CLI and saved-board auditor now support opt-in `--candidate-policy st
 native stripboard solver. It is the successor brand to the original Route-Mate
 GUI; the GitHub repository path and historical donor docs retain their names.
 
-## Current release: StripSolve GUI 2.39 / Q3 (25 November 2026)
+## Current release: StripSolve GUI 2.41 / Q3 (25 November 2026)
 
 Budget recommendation: [100-point JSON complexity sniff](docs/JSON_SNIFF.md). CPU allocation is separate; no native decodes or qualification trials run before GO.
 
@@ -134,7 +134,7 @@ script paths**. It no longer contains a frontend application.
 
 ## Search budget probe
 
-Historical GUI 2.26 budget policy (superseded by 2.39): the former speed and qualification probes are documented in [budget probe](docs/BUDGET_PROBE.md). Current GUI uses the static JSON complexity sniff before GO. Locked Edge decoder selection remains separate.
+Historical GUI 2.26 budget policy (superseded by 2.39): the former speed and qualification probes are documented in [budget probe](docs/BUDGET_PROBE.md). Current GUI uses the static JSON complexity sniff before GO. Locked Edge projects use the canonical Dave decoder.
 
 ## macOS standalone application
 
@@ -149,7 +149,6 @@ cd src/frontend
 npm install
 npm run build:solver
 npm run build:native
-npm run build:native:edge
 npm run build:renderers
 ```
 

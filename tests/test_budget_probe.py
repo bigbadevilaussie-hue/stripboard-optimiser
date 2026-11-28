@@ -71,12 +71,11 @@ class BudgetProbeTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp, patch.object(nc, "NATIVE", Path(tmp)):
             locked = {"components": [{"locked": True, "edge": True, "boardPos": {"row": 13, "col": 47}}]}
             self.assertEqual(nc.decoder_directory(PROJECT), Path(tmp))
-            with self.assertRaisesRegex(RuntimeError, "Edge decoder"):
-                nc.decoder_directory(locked)
+            self.assertEqual(nc.decoder_directory(locked), Path(tmp))
             edge = Path(tmp) / "edge"
             edge.mkdir()
             (edge / "libv5decode.so").touch()
-            self.assertEqual(nc.decoder_directory(locked), edge)
+            self.assertEqual(nc.decoder_directory(locked), Path(tmp))
             locked["components"][0]["locked"] = False
             self.assertEqual(nc.decoder_directory(locked), Path(tmp))
 

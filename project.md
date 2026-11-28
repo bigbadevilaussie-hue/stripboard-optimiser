@@ -8,11 +8,11 @@ Every AI session starts with [aihandover.md](aihandover.md). Update its current 
 
 Latest research: [MOTOEX Edge and Q86.80 independent verification](docs/DAVE_MOTOEX_EDGE_2026-11-27.md). Separate fixture baselines; no production promotion.
 
-## Current release: StripSolve GUI 2.39 / Q3 (25 November 2026)
+## Current release: StripSolve GUI 2.41 / Q3 (25 November 2026)
 
 Budget recommendation: [100-point JSON complexity sniff](docs/JSON_SNIFF.md). CPU allocation is separate; no native decodes or qualification trials run before GO.
 
-Historical GUI 2.26 budget policy is superseded by the static 100-point JSON sniff in GUI 2.39. No native decodes or qualification searches before GO. Locked Edge decoder selection remains separate; no Slide search or strict-rule change.
+Historical GUI 2.26 budget policy is superseded by the static 100-point JSON sniff in GUI 2.41. No native decodes or qualification searches before GO. Locked Edge projects use canonical Dave; no Slide search or strict-rule change.
 
 macOS standalone build: [build_mac_app.sh](build_mac_app.sh) adapts the Mac-tested Route-Mate packaging workflow to StripSolve, including the native V5 CLI, Node, SVG renderers, librsvg converter and approved artwork. See [STANDALONE_MACOS.md](docs/STANDALONE_MACOS.md). Packaged Work lives in `~/Library/Application Support/StripSolve/Work/`; source checkout Work is unchanged. The new StripSolve bundle is not yet Mac-verified.
 
@@ -44,7 +44,7 @@ See [Q3 calibration and archive comparison](docs/QUALITY_Q3_2026-11-25.md) for t
 
 **Earlier GUI integration milestones below are historical where they conflict with the current release.**
 
-**Milestone:** Consolidation of Two Repositories (24 November 2026). Current GUI version **2.39** is independently tracked in `gui/VERSION`.
+**Milestone:** Consolidation of Two Repositories (24 November 2026). Current GUI version **2.41** is independently tracked in `gui/VERSION`.
 
 **Current live-work handoff:** [Current research results, multipass plan and GUI boundaries](docs/ACTIVE_HANDOFF_2026-11-24.md). **Historic static audit:** [Repository integrity and integration audit](docs/REPOSITORY_AUDIT_2026-11-24.md). Historical handovers remain useful but their future-phase language may now be outdated.
 

@@ -1,5 +1,8 @@
 # Changelog
 
+### 29 November 2026 — GUI 2.41: canonical Dave regression correction
+- Update obsolete budget-probe test to require canonical Dave even with a legacy Edge library present. Owner Mac at fb39b48: native and TypeScript builds passed, 9 solver and 7 board suites plus five standalone checks passed; GUI tests 131/132 with only old Edge expectation failing. WASM compiler lacks wasm32 target; research Python suite not reached. Corrected test not yet executed; no production solver changes.
+
 ### 29 November 2026 — One canonical Dave solver, GUI 2.40
 - Consolidate Edge/Fast and verified GPS/MPU domain into one active native decoder. Retire alternate runtime libraries; preserve research history. Canonical manifest hashes and stale build guard. Native and GUI regression checks added; Mac rebuild and execution pending. No strict-yield claim.
 
