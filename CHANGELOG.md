@@ -1,5 +1,8 @@
 # Changelog
 
+### 28 November 2026 — Complete single-cut variant coverage
+- 4a5f514: 0/2 rescues, only45/732 and51/589 variants proven infeasible. Add --cut-slide-all, no shortlist, per-variant cap and exact accounting. 35 pure assertions passed here; Mac replay pending. No production changes.
+
 ### 28 November 2026 — One-cut relocation research
 - Conflict search archive e0c6ad0: seeds26/94 fixed-cut graph infeasible,20/21/40 capped. Add bounded same-row one-cut slide and conflict reroute for26/94, pin partition/cut type/count preserved, strict final audit. 32 pure synthetic checks executed; Mac replay pending. No production changes.
 

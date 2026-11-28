@@ -564,6 +564,16 @@ function cutSlideRoute(board,ctx,edges,limits={}){
     else if(route.stats.exhausted)stats.provenInfeasible++;
     return route;
   }
+  if(limits.all){
+    stats.full=0;stats.fullMode=true;
+    for(const v of variants){
+      stats.full++;
+      const result=run(v,stateCap,"full");
+      if(result.stats.stateCap)stats.capped++;
+      if(limits.progress&&stats.full%100===0)limits.progress(stats);
+    }
+    return {successful,stats,trials};
+  }
   for(const v of variants.slice(0,probeCap)){
     stats.probes++;
     const result=run(v,1,"probe");
@@ -601,7 +611,15 @@ function testCutSlideRoute(){
   if(physicalEdges(board,ctx).some(e=>ctx.occupied.has(e.from.row+","+e.from.col)||ctx.occupied.has(e.to.row+","+e.to.col)))
     throw Error("Occupied endpoints");
   if(!cutSlideRoute(board,ctx,edges,{probes:0,deep:0}).stats.probeCap)throw Error("Probe cap");
-  return 8;
+  const all=cutSlideRoute(board,ctx,edges,{all:true,states:128});
+  if(all.stats.full!==all.stats.eligible||all.stats.full!==all.trials.length||
+    all.stats.full!==all.stats.provenInfeasible+all.stats.capped+all.successful.length)
+    throw Error("All cut variants accounted for");
+  if(!all.successful.some(x=>x.v.replacement.col===1))throw Error("Full scan lost witness");
+  const capped=cutSlideRoute(board,ctx,edges,{all:true,states:0});
+  if(capped.stats.full!==capped.stats.eligible||capped.stats.capped===0)
+    throw Error("Full scan cap accounting");
+  return 11;
 }
 
 function selfTest(){
@@ -715,7 +733,9 @@ function inspectBoard(saved,input,info,diagnose=false,groupMode=false,conflictMo
   if(cutMode){
     const bareCtx=context({...saved,board:{...board,cuts:[]}});
     const superset=physicalEdges(board,bareCtx);
-    const slide=cutSlideRoute(board,bareCtx,superset);
+    const slide=cutSlideRoute(board,bareCtx,superset,cutMode==="all"?{
+      all:true,states:4096,progress:t=>console.log("🔪",info.seed,"| scanned",t.full,"/",t.eligible,"| infeasible",t.provenInfeasible,"| capped",t.capped)
+    }:{});
     row.cutSlide={stats:slide.stats,trials:slide.trials,audits:[]};
     let best=null,bestQ=null;
     for(const {v,wires:rawWires} of slide.successful){
@@ -732,9 +752,12 @@ function inspectBoard(saved,input,info,diagnose=false,groupMode=false,conflictMo
         best=candidate;bestQ=q;row.after=q;row.method="single_cut_slide";row.cutChange={index:v.i,old:v.old,replacement:v.replacement};
       }
     }
-    row.status=best?"STRICT_RESCUE":slide.successful.length?"AUDIT_REJECT":"NO_REPAIR";
+    row.status=best?"STRICT_RESCUE":slide.successful.length?"AUDIT_REJECT":
+      cutMode==="all"?(slide.stats.capped?"SEARCH_CAP":"ONE_CUT_GRAPH_INFEASIBLE"):"NO_REPAIR";
     row.wall_ms=performance.now()-started;
-    console.log("🔪",info.seed,"| probes",slide.stats.probes,"/",slide.stats.eligible,"| deep",slide.stats.deep,"| routed",slide.successful.length,"| accepted",row.cutSlide.audits.filter(x=>x.accepted).length);
+    console.log("🔪",info.seed,"|",cutMode==="all"?"full scan "+slide.stats.full+"/"+slide.stats.eligible:"probes "+slide.stats.probes+"/"+slide.stats.eligible+" | deep "+slide.stats.deep,
+      "| infeasible",slide.stats.provenInfeasible,"| capped",slide.stats.capped,
+      "| routed",slide.successful.length,"| accepted",row.cutSlide.audits.filter(x=>x.accepted).length);
     return {row,best};
   }
   let best=null,bestQ=null;
@@ -773,8 +796,8 @@ function main(){
   const diagnose=extra.length===1&&extra[0]==="--diagnose";
   const groupMode=extra.length===1&&extra[0]==="--group-route";
   const conflictMode=extra.length===1&&extra[0]==="--conflict-route";
-  const cutMode=extra.length===1&&extra[0]==="--cut-slide";
-  if(!runArg||!outArg||(extra.length&&!diagnose&&!groupMode&&!conflictMode&&!cutMode))throw Error("Usage: node scripts/dave_fixed_route.js CAMPAIGN NEW_REPORT_DIR [--diagnose|--group-route|--conflict-route|--cut-slide]");
+  const cutMode=extra.length===1?(extra[0]==="--cut-slide-all"?"all":extra[0]==="--cut-slide"):false;
+  if(!runArg||!outArg||(extra.length&&!diagnose&&!groupMode&&!conflictMode&&!cutMode))throw Error("Usage: node scripts/dave_fixed_route.js CAMPAIGN NEW_REPORT_DIR [--diagnose|--group-route|--conflict-route|--cut-slide|--cut-slide-all]");
   const root=path.resolve(runArg),out=path.resolve(outArg);
   if(out===root||out.startsWith(root+path.sep)||fs.existsSync(out))throw Error("Choose new output outside campaign");
   const archive=read(path.join(repo,"research/dave-sniff/20261127-orientation-pair/summary.json")).campaigns[1];
@@ -794,7 +817,7 @@ function main(){
   });
   fs.mkdirSync(out,{recursive:true});
   const report={sourceCampaign:root,sourceResultsSha256:sha(resultsRaw),sourceManifest:manifest,
-    scriptSha256:sha(fs.readFileSync(__filename)),policy:{...(cutMode?{probes:512,deep:32,states:4096,endpointReuse:true,singleCutSameRowAndKind:true,pinPartitionPreserved:true}:conflictMode?{states:4096,endpointReuse:true,neutralRelayConflictSearch:true}:groupMode?{states:512,branches:16,endpointReuse:true,groupForwardCheck:true}:{states:128,hops:4,paths:8,queue:1200}),placementsFixed:true,cutsFixed:!cutMode,annealMoves:0,diagnoseOnly:diagnose,groupMode,conflictMode,cutMode},results:[]};
+    scriptSha256:sha(fs.readFileSync(__filename)),policy:{...(cutMode?{...(cutMode==="all"?{allVariants:true}:{probes:512,deep:32}),states:4096,endpointReuse:true,singleCutSameRowAndKind:true,pinPartitionPreserved:true}:conflictMode?{states:4096,endpointReuse:true,neutralRelayConflictSearch:true}:groupMode?{states:512,branches:16,endpointReuse:true,groupForwardCheck:true}:{states:128,hops:4,paths:8,queue:1200}),placementsFixed:true,cutsFixed:!cutMode,annealMoves:0,diagnoseOnly:diagnose,groupMode,conflictMode,cutMode},results:[]};
   const save=()=>{
     fs.writeFileSync(path.join(out,"report.tmp"),JSON.stringify(report,null,2)+"\n");
     fs.renameSync(path.join(out,"report.tmp"),path.join(out,"report.json"));
@@ -819,7 +842,7 @@ function main(){
     fs.writeFileSync(path.join(out,"report.md"),lines.join("\n")+"\n");
     console.log("🏁 Reachability diagnosis complete |",out);return;
   }
-  const lines=["# Dave fixed-placement routing experiment","",cutMode?"Zero annealing; fixed components; at most one existing cut moved on its row, preserving cut kind/count and component pin partitions. Bounded probes and routing; NO_REPAIR is inconclusive.":"Zero annealing; fixed components and cuts. Repair search bounded. GRAPH_INFEASIBLE means the fixed-cut legal-edge model exhausted all relay-conflict assignments, not universal physical impossibility. SEARCH_CAP or NO_REPAIR is inconclusive.","",
+  const lines=["# Dave fixed-placement routing experiment","",cutMode?"Zero annealing; fixed components; at most one existing cut moved on its row, preserving cut kind/count and component pin partitions. All-variant mode checks each eligible relocation with a per-variant state cap; ONE_CUT_GRAPH_INFEASIBLE means every eligible variant was exhausted in this model. SEARCH_CAP and NO_REPAIR remain inconclusive.":"Zero annealing; fixed components and cuts. Repair search bounded. GRAPH_INFEASIBLE means the fixed-cut legal-edge model exhausted all relay-conflict assignments, not universal physical impossibility. SEARCH_CAP or NO_REPAIR is inconclusive.","",
       "| Seed | Result | Before Q3 | After Q3 | Method |","|---:|---|---:|---:|---|",
       ...report.results.map(x=>[x.seed,x.status,x.beforeQ.q,x.after?.q??"—",x.method??"—"].join(" | ")).map(s=>"| "+s+" |"),
       "","Strict rescues: "+count+"/"+work.length,"","Full independent copper graph and saved-board audit results in report.json."];
