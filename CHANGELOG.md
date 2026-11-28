@@ -1,5 +1,8 @@
 # Changelog
 
+### 28 November 2026 — Fixed-placement repair outcome and reachability diagnosis
+- Owner Mac five-board replay: all electrically verified; no strict rescues. Retained-arm zero degree, full rebuild search capped. Add read-only exact per-net graph reachability diagnostics with endpoint reservation relaxation and full rip-up comparison; four new synthetic assertions executed, Mac diagnosis pending. No production changes.
+
 ### 28 November 2026 — Fixed-placement multi-wire repair research
 - Add bounded two-arm rerouter for five exact MOTOEX 10k near misses; preserve all components and cuts, independent copper graph with floating keys, strict final audit and original archive fingerprints. Eight pure routing assertions executed; Mac harness/board replays pending. No production changes.
 

@@ -127,6 +127,73 @@ function boundedRoute(board,ctx,edges,initial,limits={}){
   return {wires:search(initial),stats};
 }
 
+function reachability(board,ctx,edges,wires,reserveEnds){
+  const g=copper(board,ctx.pins,wires);
+  if(g.bad.length||g.shorts.length)throw Error("Invalid reachability baseline");
+  const key=p=>p.row+","+p.col;
+  const used=new Set(reserveEnds?wires.flatMap(w=>[key(w.from),key(w.to)]):[]);
+  const groups=new Map(),adj=new Map();
+  for(let row=0;row<board.rows;row++)for(let col=0;col<board.cols;col++){
+    const p={row,col},i=g.idx(p);
+    if(g.drilled.has(i))continue;
+    const r=g.root(i);
+    if(!groups.has(r))groups.set(r,{holes:0,free:[]});
+    const x=groups.get(r);x.holes++;
+    if(!used.has(key(p))&&!ctx.occupied.has(key(p)))x.free.push(p);
+  }
+  function add(a,b){if(!adj.has(a))adj.set(a,new Set());adj.get(a).add(b)}
+  for(const e of edges){
+    if(used.has(key(e.from))||used.has(key(e.to)))continue;
+    const a=g.root(g.idx(e.from)),b=g.root(g.idx(e.to));
+    if(a===b)continue;
+    const na=g.labels.get(a),nb=g.labels.get(b);
+    if(na!==undefined&&nb!==undefined&&na!==nb)continue;
+    add(a,b);add(b,a);
+  }
+  const splits=g.split.map(([net,targets])=>{
+    const components=[];
+    const remaining=new Set(targets);
+    while(remaining.size){
+      const source=remaining.values().next().value;
+      const queue=[source],dist=new Map([[source,0]]);
+      for(let i=0;i<queue.length;i++){
+        const a=queue[i];
+        for(const b of adj.get(a)||[]){
+          const n=g.labels.get(b);
+          if(dist.has(b)||(n!==undefined&&n!==net))continue;
+          dist.set(b,dist.get(a)+1);queue.push(b);
+        }
+      }
+      const reached=[...targets].filter(t=>dist.has(t));
+      reached.forEach(t=>remaining.delete(t));
+      components.push({targets:reached,reachableGroups:dist.size,
+                       maxDistanceFromSource:Math.max(...reached.map(t=>dist.get(t)))});
+    }
+    return {net,groups:[...targets].map(id=>({id,holes:groups.get(id).holes,
+      free:groups.get(id).free,neighbors:(adj.get(id)||new Set()).size})),
+      components,reachable:components.length===1};
+  });
+  return {reserveEnds,splitNets:splits.length,unreachableNets:splits.filter(s=>!s.reachable).length,
+          zeroDegreeGroups:splits.reduce((n,s)=>n+s.groups.filter(g=>g.neighbors===0).length,0),splits};
+}
+
+function testReachability(){
+  const p=(row,col)=>({row,col}),pin=(row,col,netKey)=>({row,col,netKey});
+  const board={rows:3,cols:3,cuts:[]};
+  const ctx={pins:[pin(0,0,"A"),pin(2,0,"A")],occupied:new Set(["0,0","2,0"]),cross:()=>false};
+  const e=legalEdges(board,ctx);
+  if(reachability(board,ctx,e,[],true).unreachableNets!==0)throw Error("Reachability positive test");
+  if(reachability(board,ctx,[],[],true).unreachableNets!==1)throw Error("Reachability disconnected test");
+  const retained=[{from:p(0,1),to:p(1,1)}];
+  const narrow=e.filter(w=>w.from.col===1&&w.to.col===1);
+  if(reachability(board,ctx,narrow,retained,true).unreachableNets!==1||
+     reachability(board,ctx,narrow,retained,false).unreachableNets!==0)throw Error("Reachability reservation test");
+  const other={...ctx,pins:[...ctx.pins,pin(1,0,"B")],occupied:new Set(["0,0","1,0","2,0"])};
+  const relayOnly=legalEdges(board,other).filter(w=>w.to.row-w.from.row===1);
+  if(reachability(board,other,relayOnly,[],false).unreachableNets!==1)throw Error("Reachability foreign-net relay test");
+  return 4;
+}
+
 function selfTest(){
   const assert=(ok,msg)=>{if(!ok)throw Error("SELFTEST "+msg)};
   const p=(row,col)=>({row,col}), pin=(r,c,n)=>({...p(r,c),netKey:n});
@@ -153,7 +220,7 @@ function selfTest(){
   return 8;
 }
 
-console.log("✅",selfTest(),"synthetic routing assertions passed");
+console.log("✅",selfTest()+testReachability(),"synthetic routing assertions passed");
 if(process.argv.length===3&&process.argv[2]==="--self-test")process.exit(0);
 
 const fs=require("node:fs"),path=require("node:path"),crypto=require("node:crypto");
@@ -202,7 +269,7 @@ function context(b){
 function graphReport(g){
   return {complete:g.complete,bad:g.bad,shorts:g.shorts,split:g.split.map(([net,groups])=>({net,groups:groups.size}))};
 }
-function inspectBoard(saved,input,info){
+function inspectBoard(saved,input,info,diagnose=false){
   const started=performance.now(),before=auditSavedStrict(saved,input,false),ctx=context(saved);
   const board=saved.board;
   if(board.rows!==24||board.cols!==56||board.pattern)throw Error("Unsupported board");
@@ -221,6 +288,20 @@ function inspectBoard(saved,input,info){
   row.legalEdges=edges.length;
   const badIds=new Set(bad.map(x=>x.i));
   const good=board.wires.filter((_,i)=>!badIds.has(i));
+  if(diagnose){
+    row.reachability={
+      retainedReserved:reachability(board,ctx,edges,good,true),
+      retainedReusable:reachability(board,ctx,edges,good,false),
+      allRipup:reachability(board,ctx,edges,[],false)
+    };
+    const names=new Map((saved.nets||[]).map(n=>[n.id,n.name]));
+    for(const arm of Object.values(row.reachability))for(const n of arm.splits)n.name=names.get(n.net)||n.net;
+    row.status="DIAGNOSED";
+    row.wall_ms=performance.now()-started;
+    console.log("🔬",info.seed,"| unreachable nets (reserved / reusable / full ripup)",
+      ...Object.values(row.reachability).map(x=>x.unreachableNets));
+    return {row};
+  }
   let best=null,bestQ=null;
   for(const [name,initial] of [["retain_clean",good],["ripup_all",[]]]){
     const trialStart=performance.now();
@@ -250,7 +331,8 @@ function inspectBoard(saved,input,info){
 }
 function main(){
   const [runArg,outArg,...extra]=process.argv.slice(2);
-  if(!runArg||!outArg||extra.length)throw Error("Usage: node scripts/dave_fixed_route.js CAMPAIGN NEW_REPORT_DIR");
+  const diagnose=extra.length===1&&extra[0]==="--diagnose";
+  if(!runArg||!outArg||(extra.length&&!diagnose))throw Error("Usage: node scripts/dave_fixed_route.js CAMPAIGN NEW_REPORT_DIR [--diagnose]");
   const root=path.resolve(runArg),out=path.resolve(outArg);
   if(out===root||out.startsWith(root+path.sep)||fs.existsSync(out))throw Error("Choose new output outside campaign");
   const archive=read(path.join(repo,"research/dave-sniff/20261127-orientation-pair/summary.json")).campaigns[1];
@@ -270,23 +352,31 @@ function main(){
   });
   fs.mkdirSync(out,{recursive:true});
   const report={sourceCampaign:root,sourceResultsSha256:sha(resultsRaw),sourceManifest:manifest,
-    scriptSha256:sha(fs.readFileSync(__filename)),policy:{states:128,hops:4,paths:8,queue:1200,placementsFixed:true,cutsFixed:true,annealMoves:0},results:[]};
+    scriptSha256:sha(fs.readFileSync(__filename)),policy:{states:128,hops:4,paths:8,queue:1200,placementsFixed:true,cutsFixed:true,annealMoves:0,diagnoseOnly:diagnose},results:[]};
   const save=()=>{
     fs.writeFileSync(path.join(out,"report.tmp"),JSON.stringify(report,null,2)+"\n");
     fs.renameSync(path.join(out,"report.tmp"),path.join(out,"report.json"));
   };
   for(const item of work){
     console.log("🦈",item.info.seed,"|",item.info.offenders,"offending wires");
-    const {row,best}=inspectBoard(item.saved,item.input,item.info);
+    const {row,best}=inspectBoard(item.saved,item.input,item.info,diagnose);
     if(best){
       row.saved="strict_seed_"+row.seed+".json";
       const raw=JSON.stringify(best,null,2)+"\n";
       fs.writeFileSync(path.join(out,row.saved),raw);row.savedSha256=sha(raw);
       console.log("💥 STRICT RESCUE",row.seed,"Q"+row.beforeQ.q,"→ Q"+row.after.q,row.after.w+"W/"+row.after.c+"C");
-    }else console.log("❌",row.seed,row.status);
+    }else if(!diagnose)console.log("❌",row.seed,row.status);
     report.results.push(row);save();
   }
   const count=report.results.filter(x=>x.status==="STRICT_RESCUE").length;
+  if(diagnose){
+    const lines=["# Dave fixed-cut reachability diagnosis","","No annealing or wire changes. Reachability ignores future endpoint competition, so an unreachable net is a certificate under this model; a reachable net is not proof of jointly routable nets.","",
+      "| Seed | Retained (reserved) | Retained (reusable) | Full rip-up |","|---:|---:|---:|---:|",
+      ...report.results.map(x=>"| "+x.seed+" | "+(x.reachability?.retainedReserved.unreachableNets??"n/a")+" | "+(x.reachability?.retainedReusable.unreachableNets??"n/a")+" | "+(x.reachability?.allRipup.unreachableNets??"n/a")+" |"),
+      "","Cells are counts of nets whose terminal groups are disconnected. See report.json for net names, group coordinates, free attachment holes and disconnected clusters."];
+    fs.writeFileSync(path.join(out,"report.md"),lines.join("\n")+"\n");
+    console.log("🏁 Reachability diagnosis complete |",out);return;
+  }
   const lines=["# Dave fixed-placement routing experiment","","Zero annealing; fixed components and cuts. Both repair arms bounded. No-path does not establish impossibility.","",
       "| Seed | Result | Before Q3 | After Q3 | Method |","|---:|---|---:|---:|---|",
       ...report.results.map(x=>[x.seed,x.status,x.beforeQ.q,x.after?.q??"—",x.method??"—"].join(" | ")).map(s=>"| "+s+" |"),
