@@ -1,5 +1,8 @@
 # Changelog
 
+### 28 November 2026 — Fixed-placement multi-wire repair research
+- Add bounded two-arm rerouter for five exact MOTOEX 10k near misses; preserve all components and cuts, independent copper graph with floating keys, strict final audit and original archive fingerprints. Eight pure routing assertions executed; Mac harness/board replays pending. No production changes.
+
 ### 27 November 2026 — GPS/MPU controlled 10k experiment evidence
 - bfe25bf archived local reports: paired 100 seeds 22→69 electrically complete (55 gains,8 losses), GPS triple64→0, MPU7→0, strict0→0; 1→5 routing near misses. 96 saved hashes verified, masks obeyed. Routing remains unresolved. Record exact provenance and limitations, no production/GUI changes.
 
