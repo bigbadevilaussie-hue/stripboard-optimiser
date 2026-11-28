@@ -15,6 +15,12 @@ from gui.work_directory import (
 
 
 class CampaignStorageTests(unittest.TestCase):
+    def setUp(self):
+        identity = patch("gui.pass_one._decoder_identity", return_value={
+            "native_decoder": "dave", "decoder_sha256": "test-fingerprint"})
+        identity.start()
+        self.addCleanup(identity.stop)
+
     def test_deleting_10k_never_touches_20k_or_legacy(self):
         with tempfile.TemporaryDirectory() as tmp:
             workspace = ensure_work(Path(tmp) / "Work" / "moto")

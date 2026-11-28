@@ -9,6 +9,10 @@ from gui import native_calibration as probe
 
 
 class NativeMoveProbeTests(unittest.TestCase):
+    def test_one_decoder_for_all_projects(self):
+        self.assertEqual(probe.decoder_directory({}), probe.NATIVE)
+        self.assertEqual(probe.decoder_directory({"components":[{"locked":True,"edge":True,"boardPos":{"row":0,"col":0}}]}), probe.NATIVE)
+
     def test_donor_speed_probe_remains(self):
         self.assertEqual(speed_probe.TASKS, 24)
 

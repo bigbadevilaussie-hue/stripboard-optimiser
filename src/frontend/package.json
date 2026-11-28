@@ -6,10 +6,10 @@
   "scripts": {
     "build:solver": "tsc -p tests/solver/tsconfig.json",
     "build:renderers": "tsc -p standalone-renderer/tsconfig.json && tsc-alias -p standalone-renderer/tsconfig.json",
-    "build:wasm": "clang --target=wasm32 -O3 -ffp-contract=off -mbulk-memory -msimd128 -nostdlib -Wall -Wl,--no-entry -o components/stripboard/v5wasm/v5decode.wasm components/stripboard/v5wasm/decode.c && clang --target=wasm32 -O3 -ffp-contract=off -mbulk-memory -nostdlib -Wall -Wl,--no-entry -o components/stripboard/v5wasm/v5route.wasm components/stripboard/v5wasm/route.c",
-    "build:native": "mkdir -p tests/solver/native/build && clang -O3 -fPIC -shared -o tests/solver/native/build/libv5decode.so components/stripboard/v5wasm/decode.c -lm && clang -O3 -fPIC -shared -o tests/solver/native/build/libv5route.so components/stripboard/v5wasm/route.c -lm && node tests/solver/native/buildAddon.js",
-    "build:native:fast": "mkdir -p tests/solver/native/build/fast && clang -O3 -DV5_EXPERIMENT_FAST_GRID_CLEAR=1 -DV5_EXPERIMENT_FAST_IDENTICAL_GENOME=1 -fPIC -shared -o tests/solver/native/build/fast/libv5decode.so components/stripboard/v5wasm/decode.c -lm",
-    "build:native:edge": "mkdir -p tests/solver/native/build/edge && clang -O3 -DV5_EXPERIMENT_EDGE_MOUNT=1 -DV5_EXPERIMENT_FAST_GRID_CLEAR=1 -DV5_EXPERIMENT_FAST_IDENTICAL_GENOME=1 -fPIC -shared -o tests/solver/native/build/edge/libv5decode.so components/stripboard/v5wasm/decode.c -lm",
+    "build:wasm": "clang --target=wasm32 -O3 -DV5_EXPERIMENT_EDGE_MOUNT=1 -DV5_EXPERIMENT_FAST_GRID_CLEAR=1 -DV5_EXPERIMENT_FAST_IDENTICAL_GENOME=1 -ffp-contract=off -mbulk-memory -msimd128 -nostdlib -Wall -Wl,--no-entry -o components/stripboard/v5wasm/v5decode.wasm components/stripboard/v5wasm/decode.c && clang --target=wasm32 -O3 -ffp-contract=off -mbulk-memory -nostdlib -Wall -Wl,--no-entry -o components/stripboard/v5wasm/v5route.wasm components/stripboard/v5wasm/route.c",
+    "build:native": "mkdir -p tests/solver/native/build && clang -O3 -DV5_EXPERIMENT_EDGE_MOUNT=1 -DV5_EXPERIMENT_FAST_GRID_CLEAR=1 -DV5_EXPERIMENT_FAST_IDENTICAL_GENOME=1 -fPIC -shared -o tests/solver/native/build/libv5decode.so components/stripboard/v5wasm/decode.c -lm && clang -O3 -fPIC -shared -o tests/solver/native/build/libv5route.so components/stripboard/v5wasm/route.c -lm && node tests/solver/native/buildAddon.js && mkdir -p tests/solver/native/build/edge tests/solver/native/build/fast && ln -sfn ../libv5decode.so tests/solver/native/build/edge/libv5decode.so && ln -sfn ../libv5decode.so tests/solver/native/build/fast/libv5decode.so",
+    "build:native:fast": "npm run build:native",
+    "build:native:edge": "npm run build:native",
     "test:solver": "npm run build:solver && node tests/solver/run.js",
     "test:board": "tsc -p tests/board/tsconfig.json && node tests/board/run.js",
     "test:headless": "npm run test:solver && npm run test:board"

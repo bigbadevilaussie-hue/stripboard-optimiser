@@ -127,32 +127,8 @@ def patched(source):
 
 
 def build(master):
-    baseline = validate_fixture(master)
-    source = SOURCE.read_text(encoding="utf-8")
-    generated = patched(source).encode()
-    key = hashlib.sha256(generated).hexdigest()
-    directory = FRONTEND / "tests/solver/native/build" / ("edge_gps_mpu_"+key[:12])
-    directory.mkdir(parents=True,exist_ok=True)
-    c = directory/"decode_gps_mpu.c"
-    lib = directory/"libv5decode.so"
-    metadata = directory/"build.json"
-    if not metadata.exists():
-        c.write_bytes(generated)
-        tmp = directory/"libv5decode.tmp.so"
-        command = ["clang",*FLAGS,"-o",str(tmp),str(c),"-lm"]
-        subprocess.run(command,check=True)
-        tmp.replace(lib)
-        info = {"sourceSha256":digest(SOURCE), "generatedSha256":digest(c),
-                "decoderSha256":digest(lib),"flags":FLAGS,
-                "compiler":subprocess.check_output(["clang","--version"],text=True),
-                "baselineBinarySha256":baseline["binarySha256"],
-                "masks":{k:list(v) for k,v in MASKS.items()}}
-        metadata.write_text(json.dumps(info,indent=2)+"\n",encoding="utf-8")
-    info = json.loads(metadata.read_bytes())
-    if (digest(c)!=key or digest(lib)!=info["decoderSha256"]
-        or info["sourceSha256"]!=digest(SOURCE) or info["generatedSha256"]!=key):
-        raise ValueError("Orientation experiment build fingerprint mismatch")
-    return directory,info
+    """Retired: historical experiment source retained for provenance only."""
+    raise ValueError("Alternate decoder retired. Build canonical Dave with npm run build:native.")
 
 
 def saved_errors(saved):

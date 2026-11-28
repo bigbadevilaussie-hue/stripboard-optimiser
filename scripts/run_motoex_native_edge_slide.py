@@ -42,7 +42,7 @@ from native_edge_slide_positions import anchors_for_component
 
 ROOT = Path(__file__).resolve().parents[1]
 FRONTEND = ROOT / "src" / "frontend"
-EDGE_LIB = FRONTEND / "tests" / "solver" / "native" / "build" / "edge"
+EDGE_LIB = FRONTEND / "tests" / "solver" / "native" / "build"  # Canonical Dave
 DEFAULT_OUT = Path.home() / "Desktop" / "motoex_edge_slide_native_v1"
 
 

@@ -398,11 +398,8 @@ def run(args):
     columns = select_usb_columns(args, usb, definition)
     schedule = seed_schedule(args.seed_start, args.seeds, columns, args.seed_stride)
     args.decoder_dir = EDGE_LIB
-    pair_metadata = None
-    if args.orientation_pair:
-        if args.slide or columns != [47] or args.wire_polish:
-            raise ValueError("Orientation pair requires fixed USB col47, Slide and wire polish OFF")
-        args.decoder_dir, pair_metadata = orientation_pair.build(contract.MASTER)
+    args.orientation_pair = True  # Always canonical Dave, never an alternate binary.
+    pair_metadata = {"policy": "canonical-dave", "masks": {k: list(v) for k,v in orientation_pair.MASKS.items()}}
     for needed in (args.decoder_dir / "libv5decode.so", ROUTE_LIB, NATIVE_ADDON,
                    contract.CLI, FRONTEND / "tests/solver/out/components/stripboard/autoLayout5.js"):
         if not needed.is_file():
@@ -484,7 +481,7 @@ def run(args):
     log("🔬 independent result checks; timing + move histograms + finish trace; no early stop")
     log("💾 ALL strict passes -> solved/ | all rejected -> rejected/ | top 5 unique -> top5/")
     if args.orientation_pair:
-        log("🧭 ORIENTATION PAIR | GPS 90/270 | MPU 0/180 | experimental native decoder")
+        log("🧭 DAVE | canonical decoder | GPS 90/270 | MPU 0/180")
     if entries:
         log("🔁 Resuming {} finished, {} remaining".format(len(entries), len(pending)))
 
@@ -546,7 +543,7 @@ def main():
     p.add_argument("--seed-start", type=int, default=1)
     p.add_argument("--seed-stride", type=int, default=1,
                    help="distance between seed IDs (default 1); conservative exact JS bound applies")
-    p.add_argument("--moves", type=int, default=25000)
+    p.add_argument("--moves", type=int, default=10000)
     p.add_argument("--slide", type=bool_option, default=False, metavar="yes/no",
                    help="USB sliding across columns is a SEPARATE sweep; default no (fixed)")
     p.add_argument("--column", type=int, default=None,
@@ -560,8 +557,7 @@ def main():
                    help="idle seconds between fully drained batches; no final sleep")
     p.add_argument("--timeout", type=int, default=600)
     p.add_argument("--rank", choices=("wires", "cuts"), default="wires")
-    p.add_argument("--orientation-pair", action="store_true",
-                   help="isolated MOTOEX GPS/MPU-only rotation-domain experiment")
+    p.add_argument("--orientation-pair", action="store_true", help=argparse.SUPPRESS)  # compatibility; always on
     p.add_argument("--wire-polish", type=bool_option, default=False, metavar="yes/no")
     p.add_argument("--out", type=Path, default=DEFAULT_OUT)
     p.add_argument("--resume", action="store_true")

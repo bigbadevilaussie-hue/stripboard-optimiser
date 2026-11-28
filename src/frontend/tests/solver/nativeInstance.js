@@ -1,30 +1,30 @@
-// --native: the decoder and router modules run as native code instead of
-// WebAssembly (tests/solver/native, npm run build:native), about 1.6x faster
-// on the anneal and the same walks on the boards measured (2026-09-26). The
-// app keeps WebAssembly: anything that must match the editor, like the
-// release benchmark, runs without this flag.
+// Canonical native Dave decoder/router. Former Edge/Fast paths are only
+// symlink aliases of the one build; reject stale or alternate libraries.
 const path = require("path");
-
+const fs = require("fs");
 const BUILD = path.join(__dirname, "native", "build");
-
-/** From now on, instantiating these modules gives their native builds. */
+function canonicalLibrary(variable, filename) {
+  const canonical = path.join(BUILD, filename);
+  if (process.env[variable]) {
+    const requested = path.resolve(process.env[variable], filename);
+    if (fs.realpathSync(requested) !== fs.realpathSync(canonical))
+      throw Error("Alternate solver retired: use npm run build:native (Dave)");
+  }
+  return canonical;
+}
 function install(decodeModule, routeModule) {
-  // Performance laboratory only: load an alternate compiled native *decoder*
-  // without touching the existing build, the app's WASM, or the Node addon.
-  // Unset V5_NATIVE_LIB_DIR for the ordinary solver (identical default path).
-  const libDir = process.env.V5_NATIVE_LIB_DIR
-    ? path.resolve(process.env.V5_NATIVE_LIB_DIR)
-    : BUILD;
+  const decoder = canonicalLibrary("V5_NATIVE_LIB_DIR", "libv5decode.so");
+  const router = canonicalLibrary("V5_NATIVE_ROUTE_LIB_DIR", "libv5route.so");
   const addon = require(path.join(BUILD, "v5native.node"));
-  const routeLibDir = process.env.V5_NATIVE_ROUTE_LIB_DIR
-    ? path.resolve(process.env.V5_NATIVE_ROUTE_LIB_DIR)
-    : BUILD;
-  const libs = new Map([[decodeModule, path.join(libDir, "libv5decode.so")], [routeModule, path.join(routeLibDir, "libv5route.so")]]);
+  const libs = new Map([[decodeModule, decoder], [routeModule, router]]);
   const Instance = WebAssembly.Instance;
   WebAssembly.Instance = function (module, imports) {
     const lib = libs.get(module);
-    return lib ? addon.instantiate(lib, imports ?? {}) : new Instance(module, imports);
+    if (!lib) return new Instance(module, imports);
+    const instance = addon.instantiate(lib, imports ?? {});
+    if (module === decodeModule && typeof instance.exports.v5_setDavePair !== "function")
+      throw Error("Stale native decoder/addon: npm run build:native");
+    return instance;
   };
 }
-
 module.exports = { install };

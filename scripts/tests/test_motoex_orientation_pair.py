@@ -1,18 +1,15 @@
 """Static generation and saved-rotation contract; no native solver execution."""
 import unittest
-from build_motoex_orientation_pair import SOURCE, MASKS, patched, saved_errors
+from build_motoex_orientation_pair import SOURCE, MASKS, build, saved_errors
 
 class OrientationPairTests(unittest.TestCase):
-    def test_patch_anchors(self):
-        original = SOURCE.read_text()
-        changed = patched(original)
-        self.assertIn("gRot[daveGps] = 1;",changed)
-        self.assertIn("if (!daveAllowed(k,gRot[k])) return 0;",changed)
-        self.assertIn("DAVE_PAIR_READY",changed)
-        with self.assertRaisesRegex(ValueError, "already contains"):
-            patched(changed)
-        with self.assertRaisesRegex(ValueError, "already contains"):
-            patched(original + "\n/* DAVE_PAIR_READY */\n")
+    def test_canonical_pair(self):
+        source = SOURCE.read_text()
+        self.assertIn("EXPORT(v5_setDavePair)", source)
+        self.assertIn("if (daveGps >= 0) gRot[daveGps] = 1;", source)
+        self.assertIn("if (!daveAllowed(k,gRot[k])) return 0;", source)
+        with self.assertRaisesRegex(ValueError, "retired"):
+            build(SOURCE)
 
     def test_saved_masks(self):
         saved = {"components":[{"id":i,"rotation":angles[0],"boardPos":{"row":0,"col":0}}

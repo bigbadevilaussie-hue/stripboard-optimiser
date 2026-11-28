@@ -10,6 +10,12 @@ from gui.work_directory import ensure_work, pass_one_budget_dir
 
 
 class PassOneContract(unittest.TestCase):
+    def setUp(self):
+        identity = patch("gui.pass_one._decoder_identity", return_value={
+            "native_decoder": "dave", "decoder_sha256": "test-fingerprint"})
+        identity.start()
+        self.addCleanup(identity.stop)
+
     def test_score_100_existing_formula(self):
         saved = {"board": {"cuts": [{"row": 1, "col": 1}],
                            "wires": [{"from":{"row":1,"col":1},

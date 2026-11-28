@@ -420,6 +420,27 @@ export function computeAutoLayout5(
     .map((ids) => ids.map((id) => parts.findIndex((p) => p.comp.id === id)));
   const flexIdx = parts.map((p, i) => (p.kind === "flex" ? i : -1)).filter((i) => i >= 0);
   const rigidIdx = parts.map((p, i) => (p.kind === "rigid" ? i : -1)).filter((i) => i >= 0);
+  // Verified MOTOEX pair only; preserve explicit locks and unrelated domains.
+  const pairIndex = (gps: boolean): number => {
+    const id = gps ? "adb3d26e-a0af-4dda-b90e-51b263b6f9a8" : "77c3cebd-3237-48d9-85c5-b0b0dfaec1c9";
+    const defId = gps ? "custom-fd3b91be-3685-42db-acae-7e2ab9735565" : "custom-642752f4-fc95-4d5d-b6b2-21aa4b466cc5";
+    const expected = gps ? ["net27","GND","net25","net29"] : ["3V3","GND","net11","net10"];
+    return rigidIdx.findIndex(pi => {
+      const p = parts[pi] as RigidPart;
+      return p.comp.id === id && p.comp.defId === defId && !p.locked &&
+        !(gps && p.def.halfTurnOnly) && p.def.pins.length === (gps ? 5 : 8) &&
+        p.def.pins.every((q,i) => {
+          const net = netByPin.get(id + ":" + q.id);
+          return q.id === String(i + 1) &&
+            q.offsetRow === (gps ? 12 : i) && q.offsetCol === (gps ? i + 2 : 0) &&
+            (i < 4 ? net !== undefined && nets[net]?.name === expected[i] : net === undefined);
+        });
+    });
+  };
+  const gpsIndex = pairIndex(true), mpuIndex = pairIndex(false);
+  const davePair: [number, number] | undefined =
+    !board.pattern && !options?.drilledCutsOnly && gpsIndex >= 0 && mpuIndex >= 0
+      ? [gpsIndex, mpuIndex] : undefined;
   const lean = !!options?.schedule?.lean;
   // positions in rigidIdx of the parts a rotation can change
   const rotK = rigidIdx.map((pi, k) => { const sh = (parts[pi] as RigidPart).shapes.get(0); return sh && sh.w === 1 && sh.h === 1 && sh.pins.length <= 1 ? -1 : k; }).filter((k) => k >= 0);
@@ -626,7 +647,7 @@ export function computeAutoLayout5(
       pullNet: pullGroups.map((g) => g.net),
       halfTurn: rigidIdx.map((pi) => !!parts[pi].def.halfTurnOnly),
       canHV: flexIdx.map((pi) => { const p = parts[pi] as FlexPart; return p.canH && p.canV && !p.locked; }),
-      rotK,
+      rotK, davePair,
     };
   };
   const wasmOf = (): WebAssembly.Module => {

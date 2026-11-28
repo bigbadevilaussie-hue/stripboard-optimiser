@@ -108,6 +108,13 @@ static i32 *spRow, *spCol, *spNet;
 static i32 *npStart, *npPi, *npKind, *npEnd, *npPinIdx;
 static i32 *flexList, *rigidList;
 static i32 *sgStart, *sgPi;
+// Canonical Dave domain, selected by the verified TS project model.
+static i32 daveGps = -1, daveMpu = -1;
+static int daveAllowed(i32 k, i32 rot) {
+  if (k == daveGps) return rot == 1 || rot == 3;
+  if (k == daveMpu) return rot == 0 || rot == 2;
+  return 1;
+}
 #ifdef V5_EXPERIMENT_EDGE_MOUNT
 // Experimental generic drill-only rotation domain, inferred from existing
 // footprint pin geometry and assigned nets (never from component labels).
@@ -258,6 +265,7 @@ static double *rdarr(i32 n) {
 static i32 *exHdr;
 EXPORT(v5_init) i32 *v5_init(i32 *mi, double *md) {
   M = mi; F = md; rd = 0; fd = 0;
+  daveGps = daveMpu = -1;
 #ifdef V5_EXPERIMENT_EDGE_MOUNT
   drillRotationMode = 0; drillRotMask = 0;
 #endif
@@ -672,6 +680,7 @@ static i32 decode(void) {
     vBotArr[pi] = -1;
     if (pKind[pi] == 0) {
       i32 rot = pLocked[pi] ? pLockRot[pi] : gRot[pIdx[pi]];
+      if (!daveAllowed(pIdx[pi], rot)) { outI[0] = 0; return 0; }
 #ifdef V5_EXPERIMENT_EDGE_MOUNT
       if (drillRotationMode && !(drillRotMask[pIdx[pi]] & (1 << rot))) {
         outI[0] = 0;
@@ -1621,6 +1630,13 @@ EXPORT(v5_setPullTie) void v5_setPullTie(i32 on) {
   for (i32 k = 0; k < 13; k++) mixEarly[k] = mixLate[k] = (on ? MIX_PULL_TIE : MIX_NO_PULL_TIE)[k];
 }
 // the proposal: the current genome with one move applied (0: no move)
+// Host supplies exact verified rigid indices.
+EXPORT(v5_setDavePair) i32 v5_setDavePair(i32 gps, i32 mpu) {
+  if (gps < 0 || mpu < 0 || gps >= nRigid || mpu >= nRigid || gps == mpu ||
+      pLocked[rigidList[gps]] || pLocked[rigidList[mpu]] || halfTurn[gps]) return 0;
+  daveGps = gps; daveMpu = mpu;
+  return 1;
+}
 static i32 mutate(int cold) {
   double r = rngMain();
   const double *M = mixProgress >= mixLateFrom ? mixLate : mixEarly;
@@ -1692,6 +1708,7 @@ static i32 mutate(int cold) {
       } else
 #endif
       gRot[0] = (gRot[0] + (halfTurn[0] ? 2 : 1 + rint_(3))) % 4;
+      if (!daveAllowed(0,gRot[0])) return 0;
       return 1;
     }
     return 0;
@@ -1714,6 +1731,7 @@ static i32 mutate(int cold) {
     } else
 #endif
     gRot[k] = (gRot[k] + (halfTurn[k] ? 2 : 1 + rint_(3))) % 4;
+    if (!daveAllowed(k,gRot[k])) return 0;
   } else if (r < M[7] && nFlex > 0) {
     mvKind = 6;
     i32 k = rint_(nFlex);
@@ -1766,6 +1784,7 @@ static void initGenome(void) {
   for (i32 i = 0; i < nP; i++) gGn[i] = i;
   for (i32 i = nP - 1; i > 0; i--) { i32 j = (i32)__builtin_floor(rngMain() * (i + 1)); i32 t = gGn[i]; gGn[i] = gGn[j]; gGn[j] = t; }
   fillI(gRot, 0, nRigid); fillI(gHv, 0, nFlex); fillI(gBr, 0, nFlex);
+  if (daveGps >= 0) gRot[daveGps] = 1;
 #ifdef V5_EXPERIMENT_EDGE_MOUNT
   if (drillRotationMode) for (i32 k = 0; k < nRigid; k++) {
     if (pLocked[rigidList[k]]) continue;

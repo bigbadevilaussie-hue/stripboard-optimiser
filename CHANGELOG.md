@@ -1,5 +1,8 @@
 # Changelog
 
+### 29 November 2026 — One canonical Dave solver, GUI 2.40
+- Consolidate Edge/Fast and verified GPS/MPU domain into one active native decoder. Retire alternate runtime libraries; preserve research history. Canonical manifest hashes and stale build guard. Native and GUI regression checks added; Mac rebuild and execution pending. No strict-yield claim.
+
 ### 28 November 2026 — Close single-board rescue research; 10k candidate yield
 - Archive 2a103b7: all 1,321 eligible single-cut variants scanned, zero rescues, 1,319 graph-infeasible and two capped. Owner directs fixed 10k strict-candidate yield as sole objective; stop individual-board rescue experiments and higher-budget annealing. Documentation only.
 

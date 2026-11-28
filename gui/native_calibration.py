@@ -21,16 +21,8 @@ POINTS = 100
 
 
 def decoder_directory(project):
-    """Edge-enabled decoder only for explicitly locked Edge mounts."""
-    edge = any(c.get("locked") is True and c.get("edge") is True
-               and isinstance(c.get("boardPos"), dict)
-               and not (c.get("offBoard") or c.get("boardExcluded"))
-               for c in project.get("components", []))
-    selected = NATIVE / "edge" if edge else NATIVE
-    if edge and not (selected / "libv5decode.so").is_file():
-        raise RuntimeError("Locked Edge mount requires the native Edge decoder. "
-                           "Build it with npm run build:native:edge in src/frontend.")
-    return selected
+    """Every project uses the canonical Dave decoder."""
+    return NATIVE
 
 
 class Cancelled(Exception):

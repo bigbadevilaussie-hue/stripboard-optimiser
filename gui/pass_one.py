@@ -141,9 +141,7 @@ def _prepared_input(project):
 
 def _decoder_identity(project):
     selected = decoder_directory(project)
-    if selected == NATIVE:
-        return {}  # Historical standard campaigns retain their existing identity.
-    return {"native_decoder": "edge", "decoder_sha256": hashlib.sha256(
+    return {"native_decoder": "dave", "decoder_sha256": hashlib.sha256(
         (selected / "libv5decode.so").read_bytes()).hexdigest()}
 
 

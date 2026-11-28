@@ -35,6 +35,7 @@ export interface WasmModel {
   // two or more) and that net's index, half-turn-only per rigid part,
   // both-ways per flex part, rigid parts a rotation changes
   conns: number[]; pullNets: number[][]; pullNet: number[]; halfTurn: boolean[]; canHV: boolean[]; rotK: number[];
+  davePair?: [number, number];
 }
 
 // the anneal's schedule (autoLayout5.ts solveSeed)
@@ -95,6 +96,12 @@ export class V5WasmDecoder {
     this.i32.set(ints, pi >> 2);
     this.f64.set(dbls, pd >> 3);
     const hdr = this.ex.v5_init(pi, pd);
+    if (m.davePair) {
+      const set = this.ex.v5_setDavePair;
+      if (typeof set !== "function" || set(...m.davePair) !== 1)
+        throw new Error("Canonical Dave decoder required: rebuild native and solver modules");
+      console.error("DAVE_PAIR_READY gps=" + m.davePair[0] + " mpu=" + m.davePair[1]);
+    }
     this.view();
     this.addr = Array.from(this.i32.subarray(hdr >> 2, (hdr >> 2) + 30));
   }
