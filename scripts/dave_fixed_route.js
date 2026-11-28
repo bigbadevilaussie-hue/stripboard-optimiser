@@ -344,6 +344,163 @@ function testGroupRoute(){
   return 5;
 }
 
+function conflictRoute(board,ctx,edges,limits={}){
+  const maxStates=limits.states??4096;
+  const g=copper(board,ctx.pins,[]);
+  const stats={states:0,stateCap:false,queueCaps:0,generated:0,duplicates:0,
+    routeCalls:0,cacheHits:0,infeasibleBranches:0,conflictsResolved:0,
+    maxFrontier:0,bestConflictPairs:null,exhausted:false};
+  if(g.bad.length||g.shorts.length)throw Error("Invalid static copper graph");
+  // Every group is a connected piece of fixed copper. An edge is one legal
+  // vertical jumper. With stacking and same-net solder-hole reuse allowed,
+  // endpoints are not exclusive resources; neutral copper ownership is.
+  const adj=new Map();
+  function add(a,z,from,to,len){
+    if(!adj.has(a))adj.set(a,new Map());
+    const old=adj.get(a).get(z);
+    if(!old||len<old.len)adj.get(a).set(z,{g:z,from,to,len});
+  }
+  for(const e of edges){
+    const a=g.root(g.idx(e.from)),z=g.root(g.idx(e.to));
+    if(a===z)continue;
+    const na=g.labels.get(a),nz=g.labels.get(z);
+    if(na!==undefined&&nz!==undefined&&na!==nz)continue;
+    add(a,z,e.from,e.to,e.len);add(z,a,e.to,e.from,e.len);
+  }
+  const neighbors=new Map([...adj].map(([id,ns])=>[id,[...ns.values()].sort((a,b)=>a.len-b.len||a.g-b.g)]));
+  const nets=g.split.map(([net,targets])=>({net,targets:[...targets].sort((a,b)=>a-b)}));
+  const caches=nets.map(()=>new Map());
+  function routeNet(i,ban){
+    const sig=[...ban].sort((a,b)=>a-b).join(",");
+    if(caches[i].has(sig)){stats.cacheHits++;return caches[i].get(sig)}
+    stats.routeCalls++;
+    const {net,targets}=nets[i],connected=new Set([targets[0]]),remaining=new Set(targets.slice(1)),wires=[];
+    // Grow a connected tree by shortest unweighted paths to the nearest
+    // remaining terminal. This is a complete single-net connectivity test,
+    // not a minimum Steiner-tree solver.
+    while(remaining.size){
+      const queue=[...connected],prev=new Map(queue.map(a=>[a,null]));
+      let found;
+      for(let j=0;j<queue.length&&found===undefined;j++){
+        const a=queue[j];
+        for(const e of neighbors.get(a)||[]){
+          if(prev.has(e.g)||ban.has(e.g))continue;
+          const label=g.labels.get(e.g);
+          if(label!==undefined&&label!==net)continue;
+          prev.set(e.g,{a,e});
+          if(remaining.has(e.g)){found=e.g;break}
+          queue.push(e.g);
+        }
+      }
+      if(found===undefined){caches[i].set(sig,null);return null}
+      let t=found;
+      while(prev.get(t)){
+        const {a,e}=prev.get(t);
+        wires.push({from:e.from,to:e.to});connected.add(t);t=a;
+      }
+      remaining.delete(found);
+    }
+    const result={wires,relays:[...connected].filter(id=>!g.labels.has(id))};
+    caches[i].set(sig,result);return result;
+  }
+  function competition(routes){
+    const owners=new Map();
+    for(let i=0;i<routes.length;i++)for(const id of routes[i].relays){
+      if(!owners.has(id))owners.set(id,[]);
+      owners.get(id).push(i);
+    }
+    const clashes=[...owners].filter(([,ns])=>ns.length>1)
+      .sort((a,b)=>b[1].length-a[1].length||a[0]-b[0]);
+    return {clashes,pairs:clashes.reduce((n,[,ns])=>n+ns.length*(ns.length-1)/2,0)};
+  }
+  const bans=nets.map(()=>new Set()),routes=nets.map((_,i)=>routeNet(i,bans[i]));
+  if(routes.some(x=>x===null)){stats.exhausted=true;stats.infeasibleBranches++;return {wires:null,stats}}
+  const stack=[{bans,routes,conflict:competition(routes)}],seen=new Set([JSON.stringify(bans.map(()=>[]))]);
+  stats.generated=1;stats.maxFrontier=1;
+  while(stack.length){
+    if(stats.states>=maxStates){stats.stateCap=true;return {wires:null,stats}}
+    const state=stack.pop();stats.states++;
+    const {clashes,pairs}=state.conflict;
+    stats.bestConflictPairs=stats.bestConflictPairs===null?pairs:Math.min(stats.bestConflictPairs,pairs);
+    if(!clashes.length){
+      const wires=state.routes.flatMap(r=>r.wires);
+      if(!copper(board,ctx.pins,wires).complete)throw Error("Conflict route graph inconsistency");
+      return {wires,stats};
+    }
+    const [relay,users]=clashes[0];
+    stats.conflictsResolved++;
+    const children=[];
+    // Any feasible assignment must forbid this relay to at least one of
+    // these two nets. Neither branch assumes which alternative path wins.
+    for(const i of users.slice(0,2)){
+      const nextBans=state.bans.slice();
+      nextBans[i]=new Set([...nextBans[i],relay]);
+      const signature=JSON.stringify(nextBans.map(x=>[...x].sort((a,b)=>a-b)));
+      if(seen.has(signature)){stats.duplicates++;continue}
+      seen.add(signature);
+      const replacement=routeNet(i,nextBans[i]);
+      if(!replacement){stats.infeasibleBranches++;continue}
+      const nextRoutes=state.routes.slice();nextRoutes[i]=replacement;
+      children.push({bans:nextBans,routes:nextRoutes,conflict:competition(nextRoutes)});
+      stats.generated++;
+    }
+    // Depth-first, try lower-conflict child first, retain the other child.
+    // There is no per-net path cap. Only the global state limit can truncate.
+    children.sort((a,b)=>b.conflict.pairs-a.conflict.pairs||
+      b.routes.reduce((n,r)=>n+r.wires.length,0)-a.routes.reduce((n,r)=>n+r.wires.length,0));
+    stack.push(...children);stats.maxFrontier=Math.max(stats.maxFrontier,stack.length);
+  }
+  stats.exhausted=true;return {wires:null,stats};
+}
+
+function testConflictRoute(){
+  const p=(row,col)=>({row,col}),pin=(row,col,netKey)=>({row,col,netKey});
+  const board={rows:7,cols:3,cuts:[]};
+  const ctx={pins:[pin(0,0,"A"),pin(1,0,"A"),pin(2,0,"B"),pin(3,0,"B")],
+    occupied:new Set(["0,0","1,0","2,0","3,0"]),cross:()=>false};
+  const edge=(a,b)=>({from:p(Math.min(a,b),1),to:p(Math.max(a,b),1),len:Math.abs(a-b)});
+  const paths=[[0,4],[1,4],[0,5],[1,5],[2,4],[3,4]].map(([a,b])=>edge(a,b));
+  const route=conflictRoute(board,ctx,paths);
+  if(!route.wires||route.wires.length!==4||!copper(board,ctx.pins,route.wires).complete||
+     !route.stats.conflictsResolved)throw Error("Conflict route alternative relay");
+  const blocked=conflictRoute(board,ctx,paths.filter(e=>e.to.row!==5));
+  if(blocked.wires||!blocked.stats.exhausted||blocked.stats.stateCap)throw Error("Exclusive relay proof");
+  const cap=conflictRoute(board,ctx,paths,{states:0});
+  if(cap.wires||!cap.stats.stateCap||cap.stats.exhausted)throw Error("Conflict search cap");
+  const direct=conflictRoute(board,ctx,[edge(0,1),edge(2,3)]);
+  if(!direct.wires||direct.wires.length!==2||direct.stats.conflictsResolved)throw Error("Direct connectivity");
+  const floating={...ctx,pins:[...ctx.pins,pin(4,0,"nc:f")],occupied:new Set([...ctx.occupied,"4,0"])};
+  const blockedFloat=conflictRoute(board,floating,paths);
+  if(blockedFloat.wires||!blockedFloat.stats.exhausted)throw Error("Floating relay protection");
+  const longBoard={rows:9,cols:3,cuts:[]},longCtx={pins:[pin(0,0,"A"),pin(8,0,"A")],occupied:new Set(["0,0","8,0"]),cross:()=>false};
+  const long=conflictRoute(longBoard,longCtx,Array.from({length:8},(_,i)=>edge(i,i+1)));
+  if(!long.wires||long.wires.length!==8)throw Error("No artificial hop cap");
+  // Compare to an exhaustive three-way assignment of each neutral group:
+  // A, B or unused, over a deterministic sample of 96 seven-vertex graphs.
+  const pairs=[];
+  for(let a=0;a<7;a++)for(let b=a+1;b<7;b++)pairs.push([a,b]);
+  for(let k=0;k<96;k++){
+    const es=pairs.filter((_,i)=>(((Math.imul(k+1,0x9e3779b1)^Math.imul(i+17,0x85ebca6b))>>>((i+k)%24))&3)===0);
+    let feasible=false;
+    for(let a=0;a<3&&!feasible;a++)for(let b=0;b<3&&!feasible;b++)for(let c=0;c<3&&!feasible;c++){
+      const owners=[0,0,1,1,a,b,c];
+      const connected=(net,start,end)=>{
+        const seen=new Set([start]),q=[start];
+        for(let i=0;i<q.length;i++)for(const [x,y] of es){
+          const z=x===q[i]?y:y===q[i]?x:-1;
+          if(z>=0&&owners[z]===net&&!seen.has(z)){seen.add(z);q.push(z)}
+        }
+        return seen.has(end);
+      };
+      feasible=connected(0,0,1)&&connected(1,2,3);
+    }
+    const actual=conflictRoute(board,ctx,es.map(([x,y])=>edge(x,y)));
+    if(actual.stats.stateCap||!!actual.wires!==feasible||(!feasible&&!actual.stats.exhausted))
+      throw Error("Conflict vs exhaustive assignment "+k);
+  }
+  return 7;
+}
+
 function selfTest(){
   const assert=(ok,msg)=>{if(!ok)throw Error("SELFTEST "+msg)};
   const p=(row,col)=>({row,col}), pin=(r,c,n)=>({...p(r,c),netKey:n});
@@ -370,7 +527,7 @@ function selfTest(){
   return 8;
 }
 
-console.log("✅",selfTest()+testReachability()+testGroupRoute(),"synthetic routing assertions passed");
+console.log("✅",selfTest()+testReachability()+testGroupRoute()+testConflictRoute(),"synthetic routing assertions passed");
 if(process.argv.length===3&&process.argv[2]==="--self-test")process.exit(0);
 
 const fs=require("node:fs"),path=require("node:path"),crypto=require("node:crypto");
@@ -419,7 +576,7 @@ function context(b){
 function graphReport(g){
   return {complete:g.complete,bad:g.bad,shorts:g.shorts,split:g.split.map(([net,groups])=>({net,groups:groups.size}))};
 }
-function inspectBoard(saved,input,info,diagnose=false,groupMode=false){
+function inspectBoard(saved,input,info,diagnose=false,groupMode=false,conflictMode=false){
   const started=performance.now(),before=auditSavedStrict(saved,input,false),ctx=context(saved);
   const board=saved.board;
   if(board.rows!==24||board.cols!==56||board.pattern)throw Error("Unsupported board");
@@ -453,9 +610,9 @@ function inspectBoard(saved,input,info,diagnose=false,groupMode=false){
     return {row};
   }
   let best=null,bestQ=null;
-  for(const [name,initial] of (groupMode?[["group_ripup",[]]]:[["retain_clean",good],["ripup_all",[]]])){
+  for(const [name,initial] of (conflictMode?[["conflict_ripup",[]]]:groupMode?[["group_ripup",[]]]:[["retain_clean",good],["ripup_all",[]]])){
     const trialStart=performance.now();
-    const route=groupMode?groupRoute(board,ctx,edges):boundedRoute(board,ctx,edges,initial);
+    const route=conflictMode?conflictRoute(board,ctx,edges):groupMode?groupRoute(board,ctx,edges):boundedRoute(board,ctx,edges,initial);
     const arm={name,kept:initial.length,stats:route.stats,found:!!route.wires};
     row.arms.push(arm);
     if(route.wires){
@@ -472,18 +629,23 @@ function inspectBoard(saved,input,info,diagnose=false,groupMode=false){
       }
     }
     arm.wall_ms=performance.now()-trialStart;
-    console.log("🔧",info.seed,name,arm.accepted?"STRICT":arm.found?"AUDIT REJECT":arm.stats.stateCap?"SEARCH CAP":"NO PATH",
+    console.log("🔧",info.seed,name,arm.accepted?"STRICT":arm.found?"AUDIT REJECT":arm.stats.stateCap?"SEARCH CAP":arm.stats.exhausted?"GRAPH INFEASIBLE":"NO PATH",
                 "states",arm.stats.states,"queue caps",arm.stats.queueCaps);
   }
   row.wall_ms=performance.now()-started;
   if(best)row.status="STRICT_RESCUE";
+  else if(conflictMode){
+    const arm=row.arms[0];
+    row.status=arm.found?"AUDIT_REJECT":arm.stats.stateCap?"SEARCH_CAP":arm.stats.exhausted?"GRAPH_INFEASIBLE":"NO_REPAIR";
+  }
   return {row,best};
 }
 function main(){
   const [runArg,outArg,...extra]=process.argv.slice(2);
   const diagnose=extra.length===1&&extra[0]==="--diagnose";
   const groupMode=extra.length===1&&extra[0]==="--group-route";
-  if(!runArg||!outArg||(extra.length&&!diagnose&&!groupMode))throw Error("Usage: node scripts/dave_fixed_route.js CAMPAIGN NEW_REPORT_DIR [--diagnose|--group-route]");
+  const conflictMode=extra.length===1&&extra[0]==="--conflict-route";
+  if(!runArg||!outArg||(extra.length&&!diagnose&&!groupMode&&!conflictMode))throw Error("Usage: node scripts/dave_fixed_route.js CAMPAIGN NEW_REPORT_DIR [--diagnose|--group-route|--conflict-route]");
   const root=path.resolve(runArg),out=path.resolve(outArg);
   if(out===root||out.startsWith(root+path.sep)||fs.existsSync(out))throw Error("Choose new output outside campaign");
   const archive=read(path.join(repo,"research/dave-sniff/20261127-orientation-pair/summary.json")).campaigns[1];
@@ -503,14 +665,14 @@ function main(){
   });
   fs.mkdirSync(out,{recursive:true});
   const report={sourceCampaign:root,sourceResultsSha256:sha(resultsRaw),sourceManifest:manifest,
-    scriptSha256:sha(fs.readFileSync(__filename)),policy:{...(groupMode?{states:512,branches:16,endpointReuse:true,groupForwardCheck:true}:{states:128,hops:4,paths:8,queue:1200}),placementsFixed:true,cutsFixed:true,annealMoves:0,diagnoseOnly:diagnose,groupMode},results:[]};
+    scriptSha256:sha(fs.readFileSync(__filename)),policy:{...(conflictMode?{states:4096,endpointReuse:true,neutralRelayConflictSearch:true}:groupMode?{states:512,branches:16,endpointReuse:true,groupForwardCheck:true}:{states:128,hops:4,paths:8,queue:1200}),placementsFixed:true,cutsFixed:true,annealMoves:0,diagnoseOnly:diagnose,groupMode,conflictMode},results:[]};
   const save=()=>{
     fs.writeFileSync(path.join(out,"report.tmp"),JSON.stringify(report,null,2)+"\n");
     fs.renameSync(path.join(out,"report.tmp"),path.join(out,"report.json"));
   };
   for(const item of work){
     console.log("🦈",item.info.seed,"|",item.info.offenders,"offending wires");
-    const {row,best}=inspectBoard(item.saved,item.input,item.info,diagnose,groupMode);
+    const {row,best}=inspectBoard(item.saved,item.input,item.info,diagnose,groupMode,conflictMode);
     if(best){
       row.saved="strict_seed_"+row.seed+".json";
       const raw=JSON.stringify(best,null,2)+"\n";
@@ -528,7 +690,7 @@ function main(){
     fs.writeFileSync(path.join(out,"report.md"),lines.join("\n")+"\n");
     console.log("🏁 Reachability diagnosis complete |",out);return;
   }
-  const lines=["# Dave fixed-placement routing experiment","","Zero annealing; fixed components and cuts. Repair search bounded. No-path does not establish impossibility.","",
+  const lines=["# Dave fixed-placement routing experiment","","Zero annealing; fixed components and cuts. Repair search bounded. GRAPH_INFEASIBLE means the fixed-cut legal-edge model exhausted all relay-conflict assignments, not universal physical impossibility. SEARCH_CAP or NO_REPAIR is inconclusive.","",
       "| Seed | Result | Before Q3 | After Q3 | Method |","|---:|---|---:|---:|---|",
       ...report.results.map(x=>[x.seed,x.status,x.beforeQ.q,x.after?.q??"—",x.method??"—"].join(" | ")).map(s=>"| "+s+" |"),
       "","Strict rescues: "+count+"/"+work.length,"","Full independent copper graph and saved-board audit results in report.json."];

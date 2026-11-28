@@ -1,5 +1,8 @@
 # Changelog
 
+### 28 November 2026 — Conflict-based fixed-cut feasibility research
+- V2 archive 3311c93: 0/5 strict, three heuristic path exhaustions and two state caps. Add opt-in neutral-strip conflict branching with complete single-net reachability and no hop/path caps; distinguish graph infeasibility from state cap. 24 pure assertions including 96 exhaustive-assignment comparisons executed here, Mac replay pending. No production changes.
+
 ### 28 November 2026 — Group-level routing with forward checking
 - Reachability archive 0c610c1: all five full-ripup graphs individually reachable, retained wires block 14 net instances even with endpoint reuse. Add opt-in group-level full-ripup search, same-net joins, all-net reachability pruning, diversified relay paths. 17 synthetic assertions executed, Mac five-board replay pending. No production changes.
 
