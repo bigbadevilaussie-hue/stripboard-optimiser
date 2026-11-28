@@ -1,0 +1,461 @@
+{
+  "sourceCampaign": "/Users/nick/DAVE_EDGE_GPS_MPU_10K_20261127_151448",
+  "sourceResultsSha256": "090dd33449c3a0f805c07eb1fa4067b60890c19d040765a07bdf331d697b9866",
+  "sourceManifest": {
+    "createdUTC": "2026-11-27T05:14:53.772846+00:00",
+    "repo": "/Users/nick/Documents/stripboard-optimiser",
+    "gitCommit": "6b3b9bdc51d5f541861badb018827de4058efbf7",
+    "sourcePath": "/Users/nick/Documents/stripboard-optimiser/test-fixtures/masters/moto/motoex.json",
+    "sourceSha256": "e078b01bd5e563f0b9cd37289143e7fa7000a36a8b8a90d9474ce70b6f6d4bae",
+    "board": {
+      "rows": 24,
+      "cols": 56,
+      "lockedRows": true,
+      "lockedCols": true
+    },
+    "usb": {
+      "sourceColumn": 47,
+      "row": 13,
+      "overhangRows": 2,
+      "slide": false,
+      "selectedColumns": [
+        47
+      ]
+    },
+    "seeds": 100,
+    "seedStart": 1,
+    "seedStride": 1,
+    "moves": 10000,
+    "workers": 3,
+    "timeout": 600,
+    "cooldownEvery": 45,
+    "cooldownSeconds": 15,
+    "drilled": false,
+    "nostack": false,
+    "drillDomain": false,
+    "wirePolish": false,
+    "rank": "wires",
+    "orientationPair": {
+      "sourceSha256": "ef0370ae7db2a59cb89723a153834fdc4d6135e28ad0d2030d423f3587b993e5",
+      "generatedSha256": "55737e5c71f1dd86b5e2a1050f3c430f39d8f72b905d9f8d3d95b0b70d4fb569",
+      "decoderSha256": "4d3390ee4eea1f9cfabed54a015f8558b5c1e034f930adf8d261837e34552ddb",
+      "flags": [
+        "-O3",
+        "-DV5_EXPERIMENT_EDGE_MOUNT=1",
+        "-DV5_EXPERIMENT_FAST_GRID_CLEAR=1",
+        "-DV5_EXPERIMENT_FAST_IDENTICAL_GENOME=1",
+        "-fPIC",
+        "-shared"
+      ],
+      "compiler": "Apple clang version 16.0.0 (clang-1600.0.26.6)\nTarget: x86_64-apple-darwin23.6.0\nThread model: posix\nInstalledDir: /Library/Developer/CommandLineTools/usr/bin\n",
+      "baselineBinarySha256": {
+        "src/frontend/tests/solver/native/build/edge/libv5decode.so": "3a3a651fe7b8fa12a1a936d7cf26ed94973b06603d3d3d6c53339fcda995d520",
+        "src/frontend/tests/solver/native/build/libv5route.so": "5758e84282da0145c480fd2b900222cd4926bd7b6299eb57b326d225e3bcf0b4",
+        "src/frontend/tests/solver/native/build/v5native.node": "5b308c4e2376bad5ba9ae3fc20154cb51605fea4a7180c6f6322646fd3350bc7"
+      },
+      "masks": {
+        "adb3d26e-a0af-4dda-b90e-51b263b6f9a8": [
+          90,
+          270
+        ],
+        "77c3cebd-3237-48d9-85c5-b0b0dfaec1c9": [
+          0,
+          180
+        ]
+      }
+    },
+    "binarySha256": {
+      "src/frontend/tests/solver/native/build/edge_gps_mpu_55737e5c71f1/libv5decode.so": "4d3390ee4eea1f9cfabed54a015f8558b5c1e034f930adf8d261837e34552ddb",
+      "src/frontend/tests/solver/native/build/libv5route.so": "5758e84282da0145c480fd2b900222cd4926bd7b6299eb57b326d225e3bcf0b4",
+      "src/frontend/tests/solver/native/build/v5native.node": "5b308c4e2376bad5ba9ae3fc20154cb51605fea4a7180c6f6322646fd3350bc7"
+    }
+  },
+  "scriptSha256": "b272789d83f51f1116b8ad8c206548daff4fae9db1810d6f942bae91e69b60cf",
+  "policy": {
+    "states": 512,
+    "branches": 16,
+    "endpointReuse": true,
+    "groupForwardCheck": true,
+    "placementsFixed": true,
+    "cutsFixed": true,
+    "annealMoves": 0,
+    "diagnoseOnly": false,
+    "groupMode": true
+  },
+  "results": [
+    {
+      "seed": 26,
+      "sourceSha256": "28ca81a33186f6ac62760bbb7fa199d1808f228707ae4b9adb154c41e188c898",
+      "before": {
+        "valid": false,
+        "failures": [
+          "NONVERTICAL_1",
+          "BODY_CROSSINGS_4"
+        ],
+        "warnings": [
+          "BODY_OVERHANG_C1",
+          "BODY_OVERHANG_C6"
+        ],
+        "wires": 47,
+        "cuts": 63,
+        "stacked": 4,
+        "nonvertical": 1,
+        "crossings": 4,
+        "conflicts": 0,
+        "incomplete": 0,
+        "geometry": 0,
+        "wireLength": 276.906,
+        "unplaced": []
+      },
+      "beforeQ": {
+        "q": 68.61,
+        "w": 47,
+        "c": 63,
+        "s": 2,
+        "len": 703.3415251584024
+      },
+      "graph": {
+        "complete": true,
+        "bad": [],
+        "shorts": [],
+        "split": []
+      },
+      "offenders": [
+        {
+          "wire": 24,
+          "crossings": 1,
+          "nonvertical": false
+        },
+        {
+          "wire": 28,
+          "crossings": 3,
+          "nonvertical": true
+        }
+      ],
+      "arms": [
+        {
+          "name": "group_ripup",
+          "kept": 0,
+          "stats": {
+            "states": 71,
+            "queueCaps": 0,
+            "stateCap": false,
+            "branchCaps": 0,
+            "forwardPrunes": 37,
+            "directJoins": 21,
+            "branches": 70,
+            "maxDepth": 5,
+            "duplicateStates": 0
+          },
+          "found": false,
+          "wall_ms": 110.82836800000001
+        }
+      ],
+      "status": "NO_REPAIR",
+      "legalEdges": 4343,
+      "wall_ms": 248.02316299999998
+    },
+    {
+      "seed": 94,
+      "sourceSha256": "fa61cf3559c2f4d2dd1a36afabe7a0723bde0cb773318fcf58917ca851c78b1f",
+      "before": {
+        "valid": false,
+        "failures": [
+          "NONVERTICAL_2",
+          "BODY_CROSSINGS_4"
+        ],
+        "warnings": [],
+        "wires": 42,
+        "cuts": 58,
+        "stacked": 6,
+        "nonvertical": 2,
+        "crossings": 4,
+        "conflicts": 0,
+        "incomplete": 0,
+        "geometry": 0,
+        "wireLength": 307.265,
+        "unplaced": []
+      },
+      "beforeQ": {
+        "q": 64.8,
+        "w": 42,
+        "c": 58,
+        "s": 3,
+        "len": 780.4540626003082
+      },
+      "graph": {
+        "complete": true,
+        "bad": [],
+        "shorts": [],
+        "split": []
+      },
+      "offenders": [
+        {
+          "wire": 18,
+          "crossings": 3,
+          "nonvertical": true
+        },
+        {
+          "wire": 23,
+          "crossings": 0,
+          "nonvertical": true
+        },
+        {
+          "wire": 42,
+          "crossings": 1,
+          "nonvertical": false
+        }
+      ],
+      "arms": [
+        {
+          "name": "group_ripup",
+          "kept": 0,
+          "stats": {
+            "states": 6,
+            "queueCaps": 0,
+            "stateCap": false,
+            "branchCaps": 0,
+            "forwardPrunes": 2,
+            "directJoins": 30,
+            "branches": 5,
+            "maxDepth": 3,
+            "duplicateStates": 0
+          },
+          "found": false,
+          "wall_ms": 12.527501999999913
+        }
+      ],
+      "status": "NO_REPAIR",
+      "legalEdges": 4276,
+      "wall_ms": 152.04207299999996
+    },
+    {
+      "seed": 20,
+      "sourceSha256": "e80bc3fbaf12b305f250937a3f3aec0b29aa4aa454c090db4f95acd87f361d57",
+      "before": {
+        "valid": false,
+        "failures": [
+          "NONVERTICAL_3",
+          "BODY_CROSSINGS_7"
+        ],
+        "warnings": [
+          "BODY_OVERHANG_C1"
+        ],
+        "wires": 48,
+        "cuts": 64,
+        "stacked": 4,
+        "nonvertical": 3,
+        "crossings": 7,
+        "conflicts": 0,
+        "incomplete": 0,
+        "geometry": 0,
+        "wireLength": 312.708,
+        "unplaced": []
+      },
+      "beforeQ": {
+        "q": 59.49,
+        "w": 48,
+        "c": 64,
+        "s": 2,
+        "len": 794.2787313033763
+      },
+      "graph": {
+        "complete": true,
+        "bad": [],
+        "shorts": [],
+        "split": []
+      },
+      "offenders": [
+        {
+          "wire": 8,
+          "crossings": 2,
+          "nonvertical": true
+        },
+        {
+          "wire": 9,
+          "crossings": 3,
+          "nonvertical": true
+        },
+        {
+          "wire": 21,
+          "crossings": 2,
+          "nonvertical": true
+        }
+      ],
+      "arms": [
+        {
+          "name": "group_ripup",
+          "kept": 0,
+          "stats": {
+            "states": 35,
+            "queueCaps": 0,
+            "stateCap": false,
+            "branchCaps": 0,
+            "forwardPrunes": 17,
+            "directJoins": 29,
+            "branches": 34,
+            "maxDepth": 4,
+            "duplicateStates": 1
+          },
+          "found": false,
+          "wall_ms": 61.42248600000005
+        }
+      ],
+      "status": "NO_REPAIR",
+      "legalEdges": 4410,
+      "wall_ms": 189.39060000000006
+    },
+    {
+      "seed": 21,
+      "sourceSha256": "a8afddf85330425bc2afe99c502391c4509c637c469ada4c489ef2679f553570",
+      "before": {
+        "valid": false,
+        "failures": [
+          "NONVERTICAL_2",
+          "BODY_CROSSINGS_6"
+        ],
+        "warnings": [
+          "BODY_OVERHANG_L1"
+        ],
+        "wires": 54,
+        "cuts": 70,
+        "stacked": 8,
+        "nonvertical": 2,
+        "crossings": 6,
+        "conflicts": 0,
+        "incomplete": 0,
+        "geometry": 0,
+        "wireLength": 368.636,
+        "unplaced": []
+      },
+      "beforeQ": {
+        "q": 58.75,
+        "w": 54,
+        "c": 70,
+        "s": 3,
+        "len": 936.3345310014439
+      },
+      "graph": {
+        "complete": true,
+        "bad": [],
+        "shorts": [],
+        "split": []
+      },
+      "offenders": [
+        {
+          "wire": 23,
+          "crossings": 3,
+          "nonvertical": true
+        },
+        {
+          "wire": 28,
+          "crossings": 1,
+          "nonvertical": false
+        },
+        {
+          "wire": 30,
+          "crossings": 2,
+          "nonvertical": true
+        }
+      ],
+      "arms": [
+        {
+          "name": "group_ripup",
+          "kept": 0,
+          "stats": {
+            "states": 512,
+            "queueCaps": 0,
+            "stateCap": true,
+            "branchCaps": 0,
+            "forwardPrunes": 208,
+            "directJoins": 311,
+            "branches": 512,
+            "maxDepth": 12,
+            "duplicateStates": 93
+          },
+          "found": false,
+          "wall_ms": 926.017127
+        }
+      ],
+      "status": "NO_REPAIR",
+      "legalEdges": 5012,
+      "wall_ms": 1055.414695
+    },
+    {
+      "seed": 40,
+      "sourceSha256": "d2a3ee6624cd565181303efc9d548b46f35d6434e3db998533e138971256de54",
+      "before": {
+        "valid": false,
+        "failures": [
+          "NONVERTICAL_3",
+          "BODY_CROSSINGS_1"
+        ],
+        "warnings": [
+          "BODY_OVERHANG_C6"
+        ],
+        "wires": 60,
+        "cuts": 76,
+        "stacked": 13,
+        "nonvertical": 3,
+        "crossings": 1,
+        "conflicts": 0,
+        "incomplete": 0,
+        "geometry": 0,
+        "wireLength": 416.034,
+        "unplaced": []
+      },
+      "beforeQ": {
+        "q": 51.39,
+        "w": 60,
+        "c": 76,
+        "s": 3,
+        "len": 1056.7270830549433
+      },
+      "graph": {
+        "complete": true,
+        "bad": [],
+        "shorts": [],
+        "split": []
+      },
+      "offenders": [
+        {
+          "wire": 24,
+          "crossings": 1,
+          "nonvertical": true
+        },
+        {
+          "wire": 36,
+          "crossings": 0,
+          "nonvertical": true
+        },
+        {
+          "wire": 45,
+          "crossings": 0,
+          "nonvertical": true
+        }
+      ],
+      "arms": [
+        {
+          "name": "group_ripup",
+          "kept": 0,
+          "stats": {
+            "states": 512,
+            "queueCaps": 0,
+            "stateCap": true,
+            "branchCaps": 0,
+            "forwardPrunes": 201,
+            "directJoins": 211,
+            "branches": 512,
+            "maxDepth": 12,
+            "duplicateStates": 92
+          },
+          "found": false,
+          "wall_ms": 776.7948589999999
+        }
+      ],
+      "status": "NO_REPAIR",
+      "legalEdges": 4455,
+      "wall_ms": 905.0789799999998
+    }
+  ]
+}
