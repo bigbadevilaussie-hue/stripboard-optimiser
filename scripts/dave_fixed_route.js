@@ -194,6 +194,156 @@ function testReachability(){
   return 4;
 }
 
+function groupRoute(board,ctx,edges,limits={}){
+  const stateLimit=limits.states??512,branchLimit=limits.branches??16;
+  const stats={states:0,queueCaps:0,stateCap:false,branchCaps:0,forwardPrunes:0,
+    directJoins:0,branches:0,maxDepth:0,duplicateStates:0};
+  const seen=new Set(),key=p=>p.row+","+p.col;
+  function model(wires){
+    const g=copper(board,ctx.pins,wires);
+    if(g.bad.length||g.shorts.length)return {g,adj:new Map()};
+    const used=new Set(wires.flatMap(w=>[key(w.from),key(w.to)])),adj=new Map();
+    function add(a,z,from,to,len){
+      if(!adj.has(a))adj.set(a,new Map());
+      const score=len+2*Number(used.has(key(from)))+2*Number(used.has(key(to)));
+      const old=adj.get(a).get(z);
+      if(!old||score<old.score)adj.get(a).set(z,{g:z,from,to,len,score});
+    }
+    for(const e of edges){
+      const a=g.root(g.idx(e.from)),z=g.root(g.idx(e.to));
+      if(a===z)continue;
+      const na=g.labels.get(a),nz=g.labels.get(z);
+      if(na!==undefined&&nz!==undefined&&na!==nz)continue;
+      add(a,z,e.from,e.to,e.len);add(z,a,e.to,e.from,e.len);
+    }
+    return {g,adj};
+  }
+  function reach(m,net,source,banned=new Set()){
+    const queue=[source],prev=new Map([[source,null]]);
+    for(let i=0;i<queue.length;i++){
+      const a=queue[i];
+      for(const e of m.adj.get(a)?.values()||[]){
+        if(prev.has(e.g)||banned.has(e.g))continue;
+        const label=m.g.labels.get(e.g);
+        if(label!==undefined&&label!==net)continue;
+        prev.set(e.g,{a,e});queue.push(e.g);
+      }
+    }
+    return {prev,queue};
+  }
+  function pathTo(prev,target){
+    const path=[];
+    while(prev.get(target)){
+      const {a,e}=prev.get(target);path.push(e);target=a;
+    }
+    return path.reverse();
+  }
+  function search(input,depth){
+    if(stats.states>=stateLimit){stats.stateCap=true;return null}
+    let wires=input.slice(),m=model(wires);
+    if(m.g.bad.length||m.g.shorts.length){stats.forwardPrunes++;return null}
+    stats.states++;stats.maxDepth=Math.max(stats.maxDepth,depth);
+    // Joining two already-owned components of the same net cannot consume
+    // neutral copper. Reusable endpoints are legal in the baseline policy.
+    const parent=new Map();
+    function root(x){while(parent.has(x))x=parent.get(x);return x}
+    const direct=[];
+    for(const [a,neighbors] of m.adj){
+      const net=m.g.labels.get(a);
+      if(net===undefined)continue;
+      for(const [z,e] of neighbors)if(a<z&&m.g.labels.get(z)===net)direct.push({a,z,e});
+    }
+    direct.sort((a,b)=>a.e.score-b.e.score||a.a-b.a||a.z-b.z);
+    for(const {a,z,e} of direct){
+      const ar=root(a),zr=root(z);if(ar===zr)continue;
+      parent.set(zr,ar);wires.push({from:e.from,to:e.to});stats.directJoins++;
+    }
+    if(parent.size)m=model(wires);
+    if(m.g.bad.length||m.g.shorts.length){stats.forwardPrunes++;return null}
+    if(m.g.complete)return wires;
+    // Deduplicate by allocation of copper groups, not jumper endpoint choices.
+    const groups=new Map();
+    for(let r=0;r<board.rows;r++)for(let c=0;c<board.cols;c++){
+      const i=m.g.idx({row:r,col:c});if(m.g.drilled.has(i))continue;
+      const g=m.g.root(i);
+      if(!groups.has(g))groups.set(g,[]);
+      groups.get(g).push(i);
+    }
+    const signature=JSON.stringify([...groups.values()].sort((a,b)=>a[0]-b[0]));
+    if(seen.has(signature)){stats.duplicateStates++;return null}
+    seen.add(signature);
+    // Forward checking across ALL split nets before allocating another relay.
+    let choice=null;
+    for(const [net,targets] of m.g.split){
+      const first=targets.values().next().value,reachable=reach(m,net,first);
+      if([...targets].some(t=>!reachable.prev.has(t))){
+        stats.forwardPrunes++;return null;
+      }
+      for(const source of targets){
+        const degree=m.adj.get(source)?.size||0;
+        const slack=reachable.queue.length-targets.size;
+        if(!choice||degree<choice.degree||(degree===choice.degree&&slack<choice.slack))
+          choice={net,targets,source,degree,slack};
+      }
+    }
+    if(!choice){stats.forwardPrunes++;return null}
+    const {net,source,targets}=choice,paths=[],pathKeys=new Set();
+    function offer(path){
+      if(!path.length)return;
+      const relays=path.slice(0,-1).map(e=>e.g);
+      const sig=JSON.stringify([path.at(-1).g,...relays.slice().sort((a,b)=>a-b)]);
+      if(pathKeys.has(sig))return;
+      pathKeys.add(sig);
+      paths.push({path,relays,cost:path.reduce((n,e)=>n+e.score,0)});
+    }
+    // One shortest connection to each target, with alternatives via every
+    // distinct first relay and by excluding each relay of the shortest paths.
+    const base=reach(m,net,source);
+    for(const target of targets)if(target!==source&&base.prev.has(target))offer(pathTo(base.prev,target));
+    for(const e of m.adj.get(source)?.values()||[]){
+      if(m.g.labels.has(e.g))continue;
+      const next=reach(m,net,e.g,new Set([source]));
+      for(const target of targets)if(target!==source&&next.prev.has(target))
+        offer([e,...pathTo(next.prev,target)]);
+    }
+    const initial=paths.slice().sort((a,b)=>a.path.length-b.path.length||a.cost-b.cost).slice(0,branchLimit);
+    const bans=new Set(initial.flatMap(p=>p.relays));
+    for(const ban of bans){
+      const alt=reach(m,net,source,new Set([ban]));
+      for(const target of targets)if(target!==source&&alt.prev.has(target))offer(pathTo(alt.prev,target));
+    }
+    paths.sort((a,b)=>a.relays.length-b.relays.length||a.cost-b.cost);
+    if(paths.length>branchLimit)stats.branchCaps++;
+    for(const p of paths.slice(0,branchLimit)){
+      stats.branches++;
+      const next=search([...wires,...p.path.map(e=>({from:e.from,to:e.to}))],depth+1);
+      if(next)return next;
+      if(stats.stateCap)break;
+    }
+    return null;
+  }
+  return {wires:search([],0),stats};
+}
+
+function testGroupRoute(){
+  const p=(row,col)=>({row,col}),pin=(row,col,netKey)=>({row,col,netKey});
+  const board={rows:6,cols:3,cuts:[]};
+  const ctx={pins:[pin(0,0,"A"),pin(1,0,"A"),pin(2,0,"B"),pin(3,0,"B")],
+             occupied:new Set(["0,0","1,0","2,0","3,0"]),cross:()=>false};
+  const edge=(a,b)=>({from:p(Math.min(a,b),1),to:p(Math.max(a,b),1),len:Math.abs(a-b)});
+  const e=[[0,4],[1,4],[0,5],[1,5],[2,4],[3,4]].map(([a,b])=>edge(a,b));
+  const result=groupRoute(board,ctx,e);
+  if(!result.wires||!copper(board,ctx.pins,result.wires).complete||result.wires.length!==4)throw Error("Group competition test");
+  if(new Set(result.wires.flatMap(w=>[w.from.row+","+w.from.col,w.to.row+","+w.to.col])).size===8)throw Error("Expected legal same-net daisy chain");
+  const impossible=groupRoute(board,ctx,e.filter(w=>w.to.row!==5));
+  if(impossible.wires||!impossible.stats.forwardPrunes)throw Error("Exclusive relay competition test");
+  const direct=groupRoute(board,ctx,[edge(0,1),edge(2,3)]);
+  if(!direct.wires||direct.wires.length!==2||direct.stats.directJoins!==2)throw Error("Direct same-net test");
+  const cap=groupRoute(board,ctx,e,{states:0});
+  if(cap.wires||!cap.stats.stateCap)throw Error("Group state cap test");
+  return 5;
+}
+
 function selfTest(){
   const assert=(ok,msg)=>{if(!ok)throw Error("SELFTEST "+msg)};
   const p=(row,col)=>({row,col}), pin=(r,c,n)=>({...p(r,c),netKey:n});
@@ -220,7 +370,7 @@ function selfTest(){
   return 8;
 }
 
-console.log("✅",selfTest()+testReachability(),"synthetic routing assertions passed");
+console.log("✅",selfTest()+testReachability()+testGroupRoute(),"synthetic routing assertions passed");
 if(process.argv.length===3&&process.argv[2]==="--self-test")process.exit(0);
 
 const fs=require("node:fs"),path=require("node:path"),crypto=require("node:crypto");
@@ -269,7 +419,7 @@ function context(b){
 function graphReport(g){
   return {complete:g.complete,bad:g.bad,shorts:g.shorts,split:g.split.map(([net,groups])=>({net,groups:groups.size}))};
 }
-function inspectBoard(saved,input,info,diagnose=false){
+function inspectBoard(saved,input,info,diagnose=false,groupMode=false){
   const started=performance.now(),before=auditSavedStrict(saved,input,false),ctx=context(saved);
   const board=saved.board;
   if(board.rows!==24||board.cols!==56||board.pattern)throw Error("Unsupported board");
@@ -303,9 +453,9 @@ function inspectBoard(saved,input,info,diagnose=false){
     return {row};
   }
   let best=null,bestQ=null;
-  for(const [name,initial] of [["retain_clean",good],["ripup_all",[]]]){
+  for(const [name,initial] of (groupMode?[["group_ripup",[]]]:[["retain_clean",good],["ripup_all",[]]])){
     const trialStart=performance.now();
-    const route=boundedRoute(board,ctx,edges,initial);
+    const route=groupMode?groupRoute(board,ctx,edges):boundedRoute(board,ctx,edges,initial);
     const arm={name,kept:initial.length,stats:route.stats,found:!!route.wires};
     row.arms.push(arm);
     if(route.wires){
@@ -322,7 +472,7 @@ function inspectBoard(saved,input,info,diagnose=false){
       }
     }
     arm.wall_ms=performance.now()-trialStart;
-    console.log("🔧",info.seed,name,arm.accepted?"STRICT":arm.found?"AUDIT REJECT":"NO PATH",
+    console.log("🔧",info.seed,name,arm.accepted?"STRICT":arm.found?"AUDIT REJECT":arm.stats.stateCap?"SEARCH CAP":"NO PATH",
                 "states",arm.stats.states,"queue caps",arm.stats.queueCaps);
   }
   row.wall_ms=performance.now()-started;
@@ -332,7 +482,8 @@ function inspectBoard(saved,input,info,diagnose=false){
 function main(){
   const [runArg,outArg,...extra]=process.argv.slice(2);
   const diagnose=extra.length===1&&extra[0]==="--diagnose";
-  if(!runArg||!outArg||(extra.length&&!diagnose))throw Error("Usage: node scripts/dave_fixed_route.js CAMPAIGN NEW_REPORT_DIR [--diagnose]");
+  const groupMode=extra.length===1&&extra[0]==="--group-route";
+  if(!runArg||!outArg||(extra.length&&!diagnose&&!groupMode))throw Error("Usage: node scripts/dave_fixed_route.js CAMPAIGN NEW_REPORT_DIR [--diagnose|--group-route]");
   const root=path.resolve(runArg),out=path.resolve(outArg);
   if(out===root||out.startsWith(root+path.sep)||fs.existsSync(out))throw Error("Choose new output outside campaign");
   const archive=read(path.join(repo,"research/dave-sniff/20261127-orientation-pair/summary.json")).campaigns[1];
@@ -352,14 +503,14 @@ function main(){
   });
   fs.mkdirSync(out,{recursive:true});
   const report={sourceCampaign:root,sourceResultsSha256:sha(resultsRaw),sourceManifest:manifest,
-    scriptSha256:sha(fs.readFileSync(__filename)),policy:{states:128,hops:4,paths:8,queue:1200,placementsFixed:true,cutsFixed:true,annealMoves:0,diagnoseOnly:diagnose},results:[]};
+    scriptSha256:sha(fs.readFileSync(__filename)),policy:{...(groupMode?{states:512,branches:16,endpointReuse:true,groupForwardCheck:true}:{states:128,hops:4,paths:8,queue:1200}),placementsFixed:true,cutsFixed:true,annealMoves:0,diagnoseOnly:diagnose,groupMode},results:[]};
   const save=()=>{
     fs.writeFileSync(path.join(out,"report.tmp"),JSON.stringify(report,null,2)+"\n");
     fs.renameSync(path.join(out,"report.tmp"),path.join(out,"report.json"));
   };
   for(const item of work){
     console.log("🦈",item.info.seed,"|",item.info.offenders,"offending wires");
-    const {row,best}=inspectBoard(item.saved,item.input,item.info,diagnose);
+    const {row,best}=inspectBoard(item.saved,item.input,item.info,diagnose,groupMode);
     if(best){
       row.saved="strict_seed_"+row.seed+".json";
       const raw=JSON.stringify(best,null,2)+"\n";
@@ -377,7 +528,7 @@ function main(){
     fs.writeFileSync(path.join(out,"report.md"),lines.join("\n")+"\n");
     console.log("🏁 Reachability diagnosis complete |",out);return;
   }
-  const lines=["# Dave fixed-placement routing experiment","","Zero annealing; fixed components and cuts. Both repair arms bounded. No-path does not establish impossibility.","",
+  const lines=["# Dave fixed-placement routing experiment","","Zero annealing; fixed components and cuts. Repair search bounded. No-path does not establish impossibility.","",
       "| Seed | Result | Before Q3 | After Q3 | Method |","|---:|---|---:|---:|---|",
       ...report.results.map(x=>[x.seed,x.status,x.beforeQ.q,x.after?.q??"—",x.method??"—"].join(" | ")).map(s=>"| "+s+" |"),
       "","Strict rescues: "+count+"/"+work.length,"","Full independent copper graph and saved-board audit results in report.json."];

@@ -1,5 +1,8 @@
 # Changelog
 
+### 28 November 2026 — Group-level routing with forward checking
+- Reachability archive 0c610c1: all five full-ripup graphs individually reachable, retained wires block 14 net instances even with endpoint reuse. Add opt-in group-level full-ripup search, same-net joins, all-net reachability pruning, diversified relay paths. 17 synthetic assertions executed, Mac five-board replay pending. No production changes.
+
 ### 28 November 2026 — Fixed-placement repair outcome and reachability diagnosis
 - Owner Mac five-board replay: all electrically verified; no strict rescues. Retained-arm zero degree, full rebuild search capped. Add read-only exact per-net graph reachability diagnostics with endpoint reservation relaxation and full rip-up comparison; four new synthetic assertions executed, Mac diagnosis pending. No production changes.
 
